@@ -9,15 +9,18 @@ interface PlansProps {
   updatePlan: (id: string, price: number) => void;
   whatsappMessage: string;
   setWhatsappMessage: (msg: string) => void;
+  renewalMessage: string;
+  setRenewalMessage: (msg: string) => void;
   addManualAddition: (addition: Omit<ManualAddition, 'id'>) => void;
   manualAdditions: ManualAddition[];
 }
 
-export function Plans({ plans, updatePlan, whatsappMessage, setWhatsappMessage, addManualAddition, manualAdditions }: PlansProps) {
+export function Plans({ plans, updatePlan, whatsappMessage, setWhatsappMessage, renewalMessage, setRenewalMessage, addManualAddition, manualAdditions }: PlansProps) {
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
   const [priceInput, setPriceInput] = useState('');
 
   const [isEditingMessage, setIsEditingMessage] = useState(false);
+  const [isEditingRenewalMessage, setIsEditingRenewalMessage] = useState(false);
   const [messageInput, setMessageInput] = useState('');
 
   const [isAddingMoney, setIsAddingMoney] = useState(false);
@@ -46,8 +49,13 @@ export function Plans({ plans, updatePlan, whatsappMessage, setWhatsappMessage, 
   };
 
   const handleSaveMessage = () => {
-    setWhatsappMessage(messageInput);
+    if (isEditingRenewalMessage) {
+      setRenewalMessage(messageInput);
+    } else {
+      setWhatsappMessage(messageInput);
+    }
     setIsEditingMessage(false);
+    setIsEditingRenewalMessage(false);
   };
 
   const handleOpenMoneyModal = (action: 'add' | 'remove') => {
@@ -151,16 +159,16 @@ export function Plans({ plans, updatePlan, whatsappMessage, setWhatsappMessage, 
         </div>
       </section>
 
-      {/* WhatsApp Message Section */}
+      {/* WhatsApp Message Section (Expiring) */}
       <section>
         <div className="flex items-center space-x-3 mb-6">
           <MessageSquare size={28} className="text-[#c8a646]" />
-          <h2 className="text-xl font-bold text-white uppercase tracking-widest">Mensagem WhatsApp</h2>
+          <h2 className="text-xl font-bold text-white uppercase tracking-widest text-sm">Aviso de Vencimento</h2>
         </div>
 
         <div className="bg-[#1a1a1a] p-5 rounded-2xl border border-white/5 shadow-lg">
           <div className="flex justify-between items-start mb-4">
-            <p className="text-sm text-gray-400">Mensagem padrão enviada para clientes próximos do vencimento.</p>
+            <p className="text-xs text-gray-400">Mensagem padrão enviada para clientes próximos do vencimento.</p>
             <button
               onClick={handleEditMessage}
               className="p-2 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 rounded-full transition-colors shrink-0 ml-4"
@@ -169,7 +177,34 @@ export function Plans({ plans, updatePlan, whatsappMessage, setWhatsappMessage, 
             </button>
           </div>
           <div className="bg-[#0f0f0f] p-4 rounded-xl border border-white/5">
-            <p className="text-white text-sm whitespace-pre-wrap">{whatsappMessage}</p>
+            <p className="text-white text-xs whitespace-pre-wrap">{whatsappMessage}</p>
+          </div>
+        </div>
+      </section>
+
+      {/* WhatsApp Message Section (Renewal) */}
+      <section>
+        <div className="flex items-center space-x-3 mb-6">
+          <MessageSquare size={28} className="text-green-500" />
+          <h2 className="text-xl font-bold text-white uppercase tracking-widest text-sm">Confirmação de Renovação</h2>
+        </div>
+
+        <div className="bg-[#1a1a1a] p-5 rounded-2xl border border-white/5 shadow-lg">
+          <div className="flex justify-between items-start mb-4">
+            <p className="text-xs text-gray-400">Mensagem enviada logo após confirmar uma renovação.</p>
+            <button
+              onClick={() => {
+                setMessageInput(renewalMessage);
+                setIsEditingRenewalMessage(true);
+                setIsEditingMessage(true);
+              }}
+              className="p-2 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 rounded-full transition-colors shrink-0 ml-4"
+            >
+              <Edit2 size={18} />
+            </button>
+          </div>
+          <div className="bg-[#0f0f0f] p-4 rounded-xl border border-white/5">
+            <p className="text-white text-xs whitespace-pre-wrap">{renewalMessage}</p>
           </div>
         </div>
       </section>
@@ -213,8 +248,11 @@ export function Plans({ plans, updatePlan, whatsappMessage, setWhatsappMessage, 
       {/* Edit Message Modal */}
       <Modal
         isOpen={isEditingMessage}
-        onClose={() => setIsEditingMessage(false)}
-        title="Mensagem WhatsApp"
+        onClose={() => {
+          setIsEditingMessage(false);
+          setIsEditingRenewalMessage(false);
+        }}
+        title={isEditingRenewalMessage ? "Mensagem de Renovação" : "Aviso de Vencimento"}
       >
         <p className="text-gray-400 text-xs mb-4">
           Variáveis disponíveis:<br />
@@ -236,7 +274,10 @@ export function Plans({ plans, updatePlan, whatsappMessage, setWhatsappMessage, 
 
           <div className="flex space-x-3 mt-8">
             <button
-              onClick={() => setIsEditingMessage(false)}
+              onClick={() => {
+                setIsEditingMessage(false);
+                setIsEditingRenewalMessage(false);
+              }}
               className="flex-1 py-3 rounded-xl border border-white/10 text-white font-medium hover:bg-white/5 transition-colors"
             >
               Cancelar
@@ -294,8 +335,8 @@ export function Plans({ plans, updatePlan, whatsappMessage, setWhatsappMessage, 
             <button
               onClick={handleAddMoney}
               className={`flex-1 py-3 rounded-xl font-bold transition-colors ${moneyAction === 'add'
-                  ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
-                  : 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
+                ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                : 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
                 }`}
             >
               {moneyAction === 'add' ? 'Adicionar' : 'Remover'}

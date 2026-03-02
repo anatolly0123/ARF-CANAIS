@@ -63,6 +63,7 @@ export default function App() {
             renewals={store.renewals}
             addRenewal={store.addRenewal}
             manualAdditions={store.manualAdditions}
+            renewalMessage={store.renewalMessage}
           />
         );
       case 'customers':
@@ -77,6 +78,7 @@ export default function App() {
             deleteCustomer={store.deleteCustomer}
             bulkUpdateCustomers={store.bulkUpdateCustomers}
             addRenewal={store.addRenewal}
+            renewalMessage={store.renewalMessage}
           />
         );
       case 'servers':
@@ -97,6 +99,8 @@ export default function App() {
             updatePlan={store.updatePlan}
             whatsappMessage={store.whatsappMessage}
             setWhatsappMessage={store.setWhatsappMessage}
+            renewalMessage={store.renewalMessage}
+            setRenewalMessage={store.setRenewalMessage}
             addManualAddition={store.addManualAddition}
             manualAdditions={store.manualAdditions}
           />

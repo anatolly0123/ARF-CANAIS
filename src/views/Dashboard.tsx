@@ -14,9 +14,10 @@ interface DashboardProps {
   renewals: Renewal[];
   addRenewal: (r: Omit<Renewal, 'id'>) => void;
   manualAdditions: ManualAddition[];
+  renewalMessage: string;
 }
 
-export function Dashboard({ customers, servers, plans, whatsappMessage, updateCustomer, renewals, addRenewal, manualAdditions }: DashboardProps) {
+export function Dashboard({ customers, servers, plans, whatsappMessage, updateCustomer, renewals, addRenewal, manualAdditions, renewalMessage }: DashboardProps) {
   const today = new Date();
 
   // Renew State
@@ -124,6 +125,14 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
           cost: cost,
           date: new Date().toISOString()
         });
+
+        // Open Renewal Confirmation Message
+        const message = formatWhatsappMessage(renewalMessage, {
+          name: selectedCustomer.name,
+          amount: parseFloat(renewData.amountPaid.replace(',', '.')),
+          dueDate: newDueDate
+        });
+        window.open(`https://wa.me/${selectedCustomer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
       }
       setSelectedCustomer(null);
     }

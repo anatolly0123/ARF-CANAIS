@@ -17,12 +17,13 @@ interface CustomersProps {
   deleteCustomer: (id: string) => void;
   bulkUpdateCustomers: (updater: (prev: Customer[]) => Customer[]) => void;
   addRenewal: (r: Omit<Renewal, 'id'>) => void;
+  renewalMessage: string;
 }
 
 export function Customers({
   customers, servers, plans, whatsappMessage,
   addCustomer, updateCustomer, deleteCustomer,
-  bulkUpdateCustomers, addRenewal
+  bulkUpdateCustomers, addRenewal, renewalMessage
 }: CustomersProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
@@ -79,6 +80,14 @@ export function Customers({
           cost: cost,
           date: new Date().toISOString()
         });
+
+        // Open Renewal Confirmation Message
+        const message = formatWhatsappMessage(renewalMessage, {
+          name: selectedCustomerForRenew.name,
+          amount: parseFloat(renewData.amountPaid.replace(',', '.')),
+          dueDate: newDueDate
+        });
+        window.open(`https://wa.me/${selectedCustomerForRenew.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
       }
       setSelectedCustomerForRenew(null);
     }
@@ -116,6 +125,14 @@ export function Customers({
         cost: cost,
         date: new Date().toISOString()
       });
+
+      // Open Renewal Confirmation Message for NEW customer
+      const message = formatWhatsappMessage(renewalMessage, {
+        name: data.name,
+        amount: data.amountPaid,
+        dueDate: data.dueDate
+      });
+      window.open(`https://wa.me/${data.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
     }
     closeModal();
   };

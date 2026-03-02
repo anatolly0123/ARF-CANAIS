@@ -46,6 +46,12 @@ export function useStore() {
     return saved || defaultMsg;
   });
 
+  const [renewalMessage, setRenewalMessage] = useState<string>(() => {
+    const saved = localStorage.getItem('arf_renewal_message');
+    const defaultMsg = 'Olá *{nome}*! 👋\n\nSua renovação foi confirmada com sucesso! ✅\n\nSeu novo vencimento é: *{vencimento}*.\n\nObrigado pela confiança! 😊';
+    return saved || defaultMsg;
+  });
+
   const [appIcon, setAppIcon] = useState<string | null>(() => {
     return localStorage.getItem('arf_app_icon');
   });
@@ -69,6 +75,10 @@ export function useStore() {
   useEffect(() => {
     localStorage.setItem('arf_manual_additions', JSON.stringify(manualAdditions));
   }, [manualAdditions]);
+
+  useEffect(() => {
+    localStorage.setItem('arf_renewal_message', renewalMessage);
+  }, [renewalMessage]);
 
   useEffect(() => {
     localStorage.setItem('arf_message_v2', whatsappMessage);
@@ -144,6 +154,7 @@ export function useStore() {
     renewals, addRenewal, bulkUpdateRenewals,
     manualAdditions, addManualAddition, bulkUpdateManualAdditions,
     whatsappMessage, setWhatsappMessage,
+    renewalMessage, setRenewalMessage,
     appIcon, setAppIcon
   };
 }
