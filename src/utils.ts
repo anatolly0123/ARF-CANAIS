@@ -56,22 +56,42 @@ export const parseCurrency = (val: any): number => {
 export const parseExcelDate = (val: any): string => {
   if (!val) return new Date().toISOString();
 
+  // If it's already a Date object (common with cellDates: true)
+  if (val instanceof Date) {
+    if (!isNaN(val.getTime())) return val.toISOString();
+    return new Date().toISOString();
+  }
+
   // If it's a number (Excel serial date)
   if (typeof val === 'number') {
-    const d = new Date((val - 25569) * 86400 * 1000);
+    // Excel dates are number of days since 1899-12-30
+    const d = new Date(Math.round((val - 25569) * 86400 * 1000));
     return d.toISOString();
   }
 
-  const str = val.toString().trim();
+  const str = val.toString().trim().replace(/-/g, '/');
 
-  // Handle DD/MM/YYYY
+  // Handle DD/MM/YYYY or DD/MM/YY
   if (str.includes('/')) {
     const parts = str.split('/');
     if (parts.length === 3) {
-      const day = parseInt(parts[0]);
-      const month = parseInt(parts[1]);
-      const year = parts[2].length === 2 ? 2000 + parseInt(parts[2]) : parseInt(parts[2]);
+      let day = parseInt(parts[0]);
+      let month = parseInt(parts[1]);
+      let year = parseInt(parts[2]);
+
+      // Handle YY
+      if (parts[2].length === 2) {
+        year += year > 50 ? 1900 : 2000;
+      }
+
       const d = new Date(year, month - 1, day);
+      if (!isNaN(d.getTime())) return d.toISOString();
+    }
+
+    // Handle YYYY/MM/DD
+    const partsISO = str.split('/');
+    if (partsISO.length === 3 && partsISO[0].length === 4) {
+      const d = new Date(str);
       if (!isNaN(d.getTime())) return d.toISOString();
     }
   }

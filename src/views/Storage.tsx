@@ -77,17 +77,34 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
           // Normalize column names to be more forgiving
           const getVal = (possibleNames: string[]) => {
             const keys = Object.keys(row);
+            // 1. Try exact match (case insensitive)
             for (const name of possibleNames) {
               const found = keys.find(k => k.toLowerCase().trim() === name.toLowerCase());
+              if (found) return row[found];
+            }
+            // 2. Try partial match
+            for (const name of possibleNames) {
+              const found = keys.find(k => k.toLowerCase().includes(name.toLowerCase()));
               if (found) return row[found];
             }
             return undefined;
           };
 
-          const serverName = getVal(['Servidor', 'Server', 'Servidores'])?.toString().trim();
-          const planName = getVal(['Plano', 'Plan', 'Planos'])?.toString().trim();
-          const rawAmount = getVal(['Valor Pago', 'Valor', 'Amount', 'Preço', 'Mensalidade']);
-          const rawDate = getVal(['Vencimento (DD/MM/AAAA)', 'Vencimento', 'Due Date', 'Data', 'Vence']);
+          const serverName = getVal(['Servidor', 'Server', 'Servidores', 'Srv'])?.toString().trim();
+          const planName = getVal(['Plano', 'Plan', 'Planos', 'Pln'])?.toString().trim();
+          const rawAmount = getVal(['Valor Pago', 'Valor', 'Amount', 'Preço', 'Mensalidade', 'Pago', 'Total']);
+          const rawDate = getVal([
+            'Vencimento (DD/MM/AAAA)',
+            'Vencimento',
+            'Due Date',
+            'Data',
+            'Vence',
+            'Validade',
+            'Expira',
+            'Venc',
+            'Data de Vencimento',
+            'Final'
+          ]);
 
           const server = servers.find(s => s.name.toLowerCase().trim() === serverName?.toLowerCase()) ||
             servers.find(s => s.name.toLowerCase().includes(serverName?.toLowerCase() || ''));
