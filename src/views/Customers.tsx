@@ -354,13 +354,30 @@ export function Customers({
                     {!isActive && (
                       <button
                         onClick={() => {
+                          const lastNotified = customer.lastOverdueNotifiedDate ? parseISO(customer.lastOverdueNotifiedDate) : null;
+                          const canSend = !lastNotified || differenceInDays(today, lastNotified) >= 7;
+
+                          if (!canSend) {
+                            const daysRemaining = 7 - differenceInDays(today, lastNotified!);
+                            alert(`Mensagem já enviada. Aguarde mais ${daysRemaining} ${daysRemaining === 1 ? 'dia' : 'dias'} para enviar novamente.`);
+                            return;
+                          }
+
                           const overdueDays = Math.abs(daysDiff);
                           const message = `Olá *${customer.name}*! 👋\n\nPassando para avisar que seu acesso IPTV está vencido há *${overdueDays}* ${overdueDays === 1 ? 'dia' : 'dias'}. ⚠️\n\nGostaria de renovar seu acesso com a gente agora? 😊`;
 
+                          updateCustomer(customer.id, { lastOverdueNotifiedDate: format(today, 'yyyy-MM-dd') });
                           window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
                         }}
-                        className="p-2 bg-red-500/20 text-red-500 rounded-full hover:bg-red-500/30 transition-colors animate-bounce"
-                        title="Lembrar Vencimento"
+                        className={`p-2 rounded-full transition-colors ${customer.lastOverdueNotifiedDate && differenceInDays(today, parseISO(customer.lastOverdueNotifiedDate)) < 7
+                            ? 'bg-gray-500/20 text-gray-500 cursor-not-allowed'
+                            : 'bg-red-500/20 text-red-500 hover:bg-red-500/30 animate-bounce'
+                          }`}
+                        title={
+                          customer.lastOverdueNotifiedDate && differenceInDays(today, parseISO(customer.lastOverdueNotifiedDate)) < 7
+                            ? `Próximo envio em ${7 - differenceInDays(today, parseISO(customer.lastOverdueNotifiedDate))} dias`
+                            : "Lembrar Vencimento"
+                        }
                       >
                         <MessageCircle size={16} />
                       </button>

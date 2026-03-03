@@ -20,6 +20,7 @@ export interface Customer {
   amountPaid: number;
   dueDate: string;
   lastNotifiedDate?: string;
+  lastOverdueNotifiedDate?: string;
 }
 
 export interface Renewal {
