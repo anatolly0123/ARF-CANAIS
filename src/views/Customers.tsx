@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { formatCurrency, isCustomerActive, formatWhatsappMessage } from '../utils';
 import { Modal } from '../components/Modal';
 import { RenewModal } from '../components/RenewModal';
-import { Plus, Search, Filter, Phone, RefreshCw, Edit2, Trash2, Calendar, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, Search, Filter, Phone, RefreshCw, Edit2, Trash2, Calendar, CheckCircle, XCircle, MessageCircle, Users, Award, Star } from 'lucide-react';
 
 interface CustomersProps {
   customers: Customer[];
@@ -179,6 +179,25 @@ export function Customers({
     setSelectedCustomerForRenew(customer);
   };
 
+  // Statistics
+  const stats = useMemo(() => {
+    const activeCustomers = customers.filter(c => isCustomerActive(c.dueDate));
+    const mensalista = activeCustomers.filter(c => {
+      const plan = plans.find(p => p.id === c.planId);
+      return plan && plan.name !== 'Gratuito';
+    }).length;
+    const gratuito = activeCustomers.filter(c => {
+      const plan = plans.find(p => p.id === c.planId);
+      return plan && plan.name === 'Gratuito';
+    }).length;
+
+    return {
+      total: activeCustomers.length,
+      mensalista,
+      gratuito
+    };
+  }, [customers, plans]);
+
 
   // Filter and sort customers
   const filteredCustomers = useMemo(() => {
@@ -206,6 +225,31 @@ export function Customers({
           >
             <Plus size={24} />
           </button>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-[#1a1a1a] border border-white/5 p-3 rounded-2xl shadow-lg">
+          <div className="flex items-center space-x-2 mb-1">
+            <Users size={14} className="text-[#c8a646]" />
+            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Ativos</span>
+          </div>
+          <div className="text-xl font-bold text-white">{stats.total}</div>
+        </div>
+        <div className="bg-[#1a1a1a] border border-white/5 p-3 rounded-2xl shadow-lg">
+          <div className="flex items-center space-x-2 mb-1">
+            <Award size={14} className="text-blue-500" />
+            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Mensal</span>
+          </div>
+          <div className="text-xl font-bold text-white">{stats.mensalista}</div>
+        </div>
+        <div className="bg-[#1a1a1a] border border-white/5 p-3 rounded-2xl shadow-lg">
+          <div className="flex items-center space-x-2 mb-1">
+            <Star size={14} className="text-green-500" />
+            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Gratis</span>
+          </div>
+          <div className="text-xl font-bold text-white">{stats.gratuito}</div>
         </div>
       </div>
 
@@ -296,6 +340,22 @@ export function Customers({
                     >
                       <Phone size={16} />
                     </button>
+
+                    {!isActive && (
+                      <button
+                        onClick={() => {
+                          const overdueDays = Math.abs(daysDiff);
+                          const message = `Olá *${customer.name}*! 👋\n\nPassando para avisar que seu acesso IPTV está vencido há *${overdueDays}* ${overdueDays === 1 ? 'dia' : 'dias'}. ⚠️\n\nGostaria de renovar seu acesso com a gente agora? 😊`;
+
+                          window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
+                        }}
+                        className="p-2 bg-red-500/20 text-red-500 rounded-full hover:bg-red-500/30 transition-colors animate-bounce"
+                        title="Lembrar Vencimento"
+                      >
+                        <MessageCircle size={16} />
+                      </button>
+                    )}
+
                     <button onClick={() => openRenewModal(customer)} className="p-2 text-green-400 hover:text-green-300 transition-colors bg-green-500/10 rounded-full" title="Renovar">
                       <RefreshCw size={16} />
                     </button>
