@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { formatCurrency, isCustomerActive, formatWhatsappMessage } from '../utils';
 import { Modal } from '../components/Modal';
 import { RenewModal } from '../components/RenewModal';
-import { Plus, Search, Filter, Phone, RefreshCw, Edit2, Trash2, Calendar, CheckCircle, XCircle, MessageCircle, Users, Award, Star } from 'lucide-react';
+import { Plus, Search, Filter, Phone, RefreshCw, Edit2, Trash2, Calendar, CheckCircle, XCircle, MessageCircle, Users, Award, Star, UserX } from 'lucide-react';
 
 interface CustomersProps {
   customers: Customer[];
@@ -191,10 +191,13 @@ export function Customers({
       return plan && plan.name === 'Gratuito';
     }).length;
 
+    const inativos = customers.filter(c => !isCustomerActive(c.dueDate)).length;
+
     return {
       total: activeCustomers.length,
       mensalista,
-      gratuito
+      gratuito,
+      inativos
     };
   }, [customers, plans]);
 
@@ -229,7 +232,7 @@ export function Customers({
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="bg-[#1a1a1a] border border-white/5 p-3 rounded-2xl shadow-lg">
           <div className="flex items-center space-x-2 mb-1">
             <Users size={14} className="text-[#c8a646]" />
@@ -250,6 +253,13 @@ export function Customers({
             <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Gratis</span>
           </div>
           <div className="text-xl font-bold text-white">{stats.gratuito}</div>
+        </div>
+        <div className="bg-[#1a1a1a] border border-white/5 p-3 rounded-2xl shadow-lg">
+          <div className="flex items-center space-x-2 mb-1">
+            <UserX size={14} className="text-red-500" />
+            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Inativos</span>
+          </div>
+          <div className="text-xl font-bold text-white">{stats.inativos}</div>
         </div>
       </div>
 
