@@ -14,14 +14,51 @@ const DEFAULT_PLANS: Plan[] = [
 
 export function useStore(user: User | null) {
   const [loading, setLoading] = useState(true);
-  const [servers, setServers] = useState<Server[]>([]);
-  const [plans, setPlans] = useState<Plan[]>(DEFAULT_PLANS);
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [renewals, setRenewals] = useState<Renewal[]>([]);
-  const [manualAdditions, setManualAdditions] = useState<ManualAddition[]>([]);
-  const [whatsappMessage, setWhatsappMessage] = useState<string>('Olá *{nome}*! 👋\n\nPassando para lembrar que seu acesso vence em *{dias}* (dia *{vencimento}*).\n\nO valor para renovação é de *{valor}*.\n\nPodemos confirmar sua renovação para garantir que você não fique sem sinal? 😊');
-  const [renewalMessage, setRenewalMessage] = useState<string>('Olá *{nome}*! 👋\n\nSua renovação foi confirmada com sucesso! ✅\n\nSeu novo vencimento é: *{vencimento}*.\n\nObrigado pela confiança! 😊');
-  const [appIcon, setAppIcon] = useState<string | null>(null);
+
+  const [servers, setServers] = useState<Server[]>(() => {
+    const saved = localStorage.getItem('arf_servers');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [plans, setPlans] = useState<Plan[]>(() => {
+    const saved = localStorage.getItem('arf_plans');
+    let parsed = saved ? JSON.parse(saved) : DEFAULT_PLANS;
+    if (!parsed.find((p: Plan) => p.name === 'Gratuito')) {
+      parsed = [{ id: '0', name: 'Gratuito', defaultPrice: 0, months: 1 }, ...parsed];
+    }
+    return parsed;
+  });
+
+  const [customers, setCustomers] = useState<Customer[]>(() => {
+    const saved = localStorage.getItem('arf_customers');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [renewals, setRenewals] = useState<Renewal[]>(() => {
+    const saved = localStorage.getItem('arf_renewals');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [manualAdditions, setManualAdditions] = useState<ManualAddition[]>(() => {
+    const saved = localStorage.getItem('arf_manual_additions');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [whatsappMessage, setWhatsappMessage] = useState<string>(() => {
+    const saved = localStorage.getItem('arf_message_v2');
+    const defaultMsg = 'Olá *{nome}*! 👋\n\nPassando para lembrar que seu acesso vence em *{dias}* (dia *{vencimento}*).\n\nO valor para renovação é de *{valor}*.\n\nPodemos confirmar sua renovação para garantir que você não fique sem sinal? 😊';
+    return saved || defaultMsg;
+  });
+
+  const [renewalMessage, setRenewalMessage] = useState<string>(() => {
+    const saved = localStorage.getItem('arf_renewal_message');
+    const defaultMsg = 'Olá *{nome}*! 👋\n\nSua renovação foi confirmada com sucesso! ✅\n\nSeu novo vencimento é: *{vencimento}*.\n\nObrigado pela confiança! 😊';
+    return saved || defaultMsg;
+  });
+
+  const [appIcon, setAppIcon] = useState<string | null>(() => {
+    return localStorage.getItem('arf_app_icon');
+  });
 
   // Initial load from Supabase
   useEffect(() => {
@@ -48,11 +85,11 @@ export function useStore(user: User | null) {
           supabase.from('settings').select('*').single()
         ]);
 
-        if (serversData) setServers(serversData.map((s: any) => ({ ...s, costPerActive: Number(s.cost_per_active) })));
+        if (serversData && serversData.length > 0) setServers(serversData.map((s: any) => ({ ...s, costPerActive: Number(s.cost_per_active) })));
         if (plansData && plansData.length > 0) setPlans(plansData.map((p: any) => ({ ...p, defaultPrice: Number(p.default_price) })));
-        if (customersData) setCustomers(customersData.map((c: any) => ({ ...c, serverId: c.server_id, planId: c.plan_id, amountPaid: Number(c.amount_paid), dueDate: c.due_date, lastNotifiedDate: c.last_notified_date })));
-        if (renewalsData) setRenewals(renewalsData.map((r: any) => ({ ...r, customerId: r.customer_id, serverId: r.server_id, planId: r.plan_id, amount: Number(r.amount), cost: Number(r.cost) })));
-        if (additionsData) setManualAdditions(additionsData.map((a: any) => ({ ...a, amount: Number(a.amount) })));
+        if (customersData && customersData.length > 0) setCustomers(customersData.map((c: any) => ({ ...c, serverId: c.server_id, planId: c.plan_id, amountPaid: Number(c.amount_paid), dueDate: c.due_date, lastNotifiedDate: c.last_notified_date })));
+        if (renewalsData && renewalsData.length > 0) setRenewals(renewalsData.map((r: any) => ({ ...r, customerId: r.customer_id, serverId: r.server_id, planId: r.plan_id, amount: Number(r.amount), cost: Number(r.cost) })));
+        if (additionsData && additionsData.length > 0) setManualAdditions(additionsData.map((a: any) => ({ ...a, amount: Number(a.amount) })));
 
         if (settingsData) {
           if (settingsData.whatsapp_message) setWhatsappMessage(settingsData.whatsapp_message);
@@ -200,6 +237,43 @@ export function useStore(user: User | null) {
     const timer = setTimeout(syncSettings, 1000);
     return () => clearTimeout(timer);
   }, [whatsappMessage, renewalMessage, appIcon, user, loading]);
+
+  // Local Storage Cache sync
+  useEffect(() => {
+    localStorage.setItem('arf_servers', JSON.stringify(servers));
+  }, [servers]);
+
+  useEffect(() => {
+    localStorage.setItem('arf_plans', JSON.stringify(plans));
+  }, [plans]);
+
+  useEffect(() => {
+    localStorage.setItem('arf_customers', JSON.stringify(customers));
+  }, [customers]);
+
+  useEffect(() => {
+    localStorage.setItem('arf_renewals', JSON.stringify(renewals));
+  }, [renewals]);
+
+  useEffect(() => {
+    localStorage.setItem('arf_manual_additions', JSON.stringify(manualAdditions));
+  }, [manualAdditions]);
+
+  useEffect(() => {
+    localStorage.setItem('arf_renewal_message', renewalMessage);
+  }, [renewalMessage]);
+
+  useEffect(() => {
+    localStorage.setItem('arf_message_v2', whatsappMessage);
+  }, [whatsappMessage]);
+
+  useEffect(() => {
+    if (appIcon) {
+      localStorage.setItem('arf_app_icon', appIcon);
+    } else {
+      localStorage.removeItem('arf_app_icon');
+    }
+  }, [appIcon]);
 
   const bulkUpdateServers = (newServers: Server[]) => setServers(newServers);
   const bulkUpdatePlans = (newPlans: Plan[]) => setPlans(newPlans);
