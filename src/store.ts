@@ -174,10 +174,10 @@ export function useStore(user: User | null) {
   };
 
   // Customer Actions
-  const addCustomer = async (customer: Customer) => {
+  const addCustomer = (customer: Customer) => {
     setCustomers(prev => [...prev, customer]);
     if (user) {
-      await supabase.from('customers').insert({
+      supabase.from('customers').insert({
         id: customer.id,
         name: customer.name,
         phone: customer.phone,
@@ -186,11 +186,13 @@ export function useStore(user: User | null) {
         amount_paid: customer.amountPaid,
         due_date: customer.dueDate,
         user_id: user.id
+      }).then(({ error }) => {
+        if (error) console.error('Error syncing customer to cloud:', error);
       });
     }
   };
 
-  const updateCustomer = async (id: string, data: Partial<Customer>) => {
+  const updateCustomer = (id: string, data: Partial<Customer>) => {
     setCustomers(prev => prev.map(c => c.id === id ? { ...c, ...data } : c));
     if (user) {
       const updateData: any = {};
@@ -201,14 +203,18 @@ export function useStore(user: User | null) {
       if (data.amountPaid !== undefined) updateData.amount_paid = data.amountPaid;
       if (data.dueDate) updateData.due_date = data.dueDate;
       if (data.lastNotifiedDate) updateData.last_notified_date = data.lastNotifiedDate;
-      await supabase.from('customers').update(updateData).eq('id', id);
+      supabase.from('customers').update(updateData).eq('id', id).then(({ error }) => {
+        if (error) console.error('Error updating customer in cloud:', error);
+      });
     }
   };
 
-  const deleteCustomer = async (id: string) => {
+  const deleteCustomer = (id: string) => {
     setCustomers(prev => prev.filter(c => c.id !== id));
     if (user) {
-      await supabase.from('customers').delete().eq('id', id);
+      supabase.from('customers').delete().eq('id', id).then(({ error }) => {
+        if (error) console.error('Error deleting customer from cloud:', error);
+      });
     }
   };
 
@@ -220,11 +226,11 @@ export function useStore(user: User | null) {
     });
   };
 
-  const addRenewal = async (renewal: Omit<Renewal, 'id'>) => {
+  const addRenewal = (renewal: Omit<Renewal, 'id'>) => {
     const newRenewal = { ...renewal, id: uuidv4() };
     setRenewals(prev => [...prev, newRenewal]);
     if (user) {
-      await supabase.from('renewals').insert({
+      supabase.from('renewals').insert({
         id: newRenewal.id,
         customer_id: newRenewal.customerId,
         server_id: newRenewal.serverId,
@@ -233,6 +239,8 @@ export function useStore(user: User | null) {
         cost: newRenewal.cost,
         date: newRenewal.date,
         user_id: user.id
+      }).then(({ error }) => {
+        if (error) console.error('Error syncing renewal to cloud:', error);
       });
     }
   };

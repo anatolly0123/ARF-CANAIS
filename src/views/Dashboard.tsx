@@ -26,34 +26,44 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
 
   // Calculate stats
   const { grossValue, totalPaidToServers, netValue, serverStats, expiringCustomers, monthlyGross, monthlyNet, monthlyCost } = useMemo(() => {
-    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    // Helper to check if a date string is in the current month
+    const isCurrentMonth = (dateStr: any) => {
+      try {
+        if (!dateStr) return false;
+        const d = parseISO(dateStr.toString());
+        if (isNaN(d.getTime())) return false;
+        return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
+      } catch {
+        return false;
+      }
+    };
 
     // 1. Totals (All-time)
-    const totalGross = renewals.reduce((acc, r) => acc + Number(r.amount || 0), 0);
-    const totalCost = renewals.reduce((acc, r) => acc + Number(r.cost || 0), 0);
-    const totalManualAdditions = manualAdditions.reduce((acc, a) => acc + Number(a.amount || 0), 0);
+    const totalGross = renewals.reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
+    const totalCost = renewals.reduce((acc, r) => acc + (Number(r.cost) || 0), 0);
+    const totalManualAdditions = manualAdditions.reduce((acc, a) => acc + (Number(a.amount) || 0), 0);
 
     // 2. Monthly Stats (Current Month)
-    const currentMonthStr = format(today, 'yyyy-MM');
-    const currentMonthRenewals = renewals.filter(r => r.date && r.date.startsWith(currentMonthStr));
-    const mGross = currentMonthRenewals.reduce((acc, r) => acc + Number(r.amount || 0), 0);
-    const mCost = currentMonthRenewals.reduce((acc, r) => acc + Number(r.cost || 0), 0);
+    const currentMonthRenewals = renewals.filter(r => isCurrentMonth(r.date));
+    const mGross = currentMonthRenewals.reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
+    const mCost = currentMonthRenewals.reduce((acc, r) => acc + (Number(r.cost) || 0), 0);
 
-    const currentMonthAdditions = manualAdditions.filter(a => a.date && a.date.startsWith(currentMonthStr));
-    const mAdditions = currentMonthAdditions.reduce((acc, a) => acc + Number(a.amount || 0), 0);
+    const currentMonthAdditions = manualAdditions.filter(a => isCurrentMonth(a.date));
+    const mAdditions = currentMonthAdditions.reduce((acc, a) => acc + (Number(a.amount) || 0), 0);
 
     const stats: Record<string, { name: string; active: number; monthlyGross: number; monthlyCost: number; accumulatedTotal: number }> = {};
     const expiring: Customer[] = [];
 
     servers.forEach(s => {
-      const serverRenewals = renewals.filter(r => r.serverId === s.id);
-      const accumulatedTotal = serverRenewals.reduce((acc, r) => acc + Number(r.amount || 0), 0);
+      const sId = s.id.toString();
+      const serverRenewals = renewals.filter(r => (r.serverId || (r as any).server_id || '').toString() === sId);
+      const accumulatedTotal = serverRenewals.reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
 
-      const serverMonthRenewals = serverRenewals.filter(r => r.date && r.date.startsWith(currentMonthStr));
-      const serverMonthlyGross = serverMonthRenewals.reduce((acc, r) => acc + Number(r.amount || 0), 0);
-      const serverMonthlyCost = serverMonthRenewals.reduce((acc, r) => acc + Number(r.cost || 0), 0);
+      const serverMonthRenewals = serverRenewals.filter(r => isCurrentMonth(r.date));
+      const serverMonthlyGross = serverMonthRenewals.reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
+      const serverMonthlyCost = serverMonthRenewals.reduce((acc, r) => acc + (Number(r.cost) || 0), 0);
 
-      stats[s.id] = {
+      stats[sId] = {
         name: s.name,
         active: 0,
         monthlyGross: serverMonthlyGross,
@@ -64,15 +74,17 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
 
     customers.forEach(c => {
       try {
-        const dueDate = parseISO(c.dueDate);
+        const dueDateStr = c.dueDate || (c as any).due_date;
+        if (!dueDateStr) return;
+
+        const dueDate = parseISO(dueDateStr.toString());
         if (isNaN(dueDate.getTime())) return;
 
         const isActive = isAfter(dueDate, today) || differenceInDays(dueDate, today) === 0;
+        const sId = (c.serverId || (c as any).server_id || '').toString();
 
-        if (isActive) {
-          if (stats[c.serverId]) {
-            stats[c.serverId].active += 1;
-          }
+        if (isActive && stats[sId]) {
+          stats[sId].active += 1;
         }
 
         const daysUntilDue = differenceInDays(dueDate, today);
@@ -84,7 +96,11 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
       }
     });
 
-    expiring.sort((a, b) => parseISO(a.dueDate).getTime() - parseISO(b.dueDate).getTime());
+    expiring.sort((a, b) => {
+      const dateA = parseISO((a.dueDate || (a as any).due_date || '').toString());
+      const dateB = parseISO((b.dueDate || (b as any).due_date || '').toString());
+      return (dateA.getTime() || 0) - (dateB.getTime() || 0);
+    });
 
     return {
       grossValue: totalGross,
@@ -96,7 +112,7 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
       serverStats: Object.values(stats),
       expiringCustomers: expiring
     };
-  }, [customers, servers, renewals, manualAdditions, today.getFullYear(), today.getMonth(), today.getDate()]);
+  }, [customers, servers, renewals, manualAdditions]);
 
   const openRenewModal = (customer: Customer) => {
     setSelectedCustomer(customer);
@@ -254,9 +270,9 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
           </div>
           <div className="divide-y divide-white/5">
             {expiringCustomers.map(c => {
-              const server = servers.find(s => s.id === c.serverId);
-              const days = differenceInDays(parseISO(c.dueDate), today);
-              const alreadyNotified = c.lastNotifiedDate === format(today, 'yyyy-MM-dd');
+              const server = servers.find(s => s.id === (c.serverId || (c as any).server_id));
+              const days = differenceInDays(parseISO(c.dueDate || (c as any).due_date), today);
+              const alreadyNotified = (c.lastNotifiedDate || (c as any).last_notified_date) === format(today, 'yyyy-MM-dd');
 
               return (
                 <div key={c.id} className="p-4 flex items-center justify-between">
