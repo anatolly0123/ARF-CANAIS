@@ -76,8 +76,8 @@ export function Customers({
           customerId: selectedCustomerForRenew.id,
           serverId: renewData.serverId,
           planId: renewData.planId,
-          amount: parseFloat(renewData.amountPaid.replace(',', '.')),
-          cost: cost,
+          amount: Number(parseFloat(renewData.amountPaid.replace(',', '.'))),
+          cost: Number(cost),
           date: new Date().toISOString()
         });
 
@@ -121,8 +121,8 @@ export function Customers({
         customerId: newId,
         serverId: data.serverId,
         planId: data.planId,
-        amount: data.amountPaid,
-        cost: cost,
+        amount: Number(data.amountPaid),
+        cost: Number(cost),
         date: new Date().toISOString()
       });
 
@@ -370,8 +370,8 @@ export function Customers({
                           window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
                         }}
                         className={`p-2 rounded-full transition-colors ${customer.lastOverdueNotifiedDate && differenceInDays(today, parseISO(customer.lastOverdueNotifiedDate)) < 7
-                            ? 'bg-gray-500/20 text-gray-500 cursor-not-allowed'
-                            : 'bg-red-500/20 text-red-500 hover:bg-red-500/30 animate-bounce'
+                          ? 'bg-gray-500/20 text-gray-500 cursor-not-allowed'
+                          : 'bg-red-500/20 text-red-500 hover:bg-red-500/30 animate-bounce'
                           }`}
                         title={
                           customer.lastOverdueNotifiedDate && differenceInDays(today, parseISO(customer.lastOverdueNotifiedDate)) < 7

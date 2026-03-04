@@ -283,11 +283,11 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
       return isWithinInterval(aDate, { start, end });
     });
 
-    const gross = monthRenewals.reduce((acc, r) => acc + (Number(r.amount) || 0), 0) +
-      monthAdditions.filter(a => (Number(a.amount) || 0) > 0).reduce((acc, a) => acc + (Number(a.amount) || 0), 0);
+    const gross = monthRenewals.reduce((acc, r) => acc + (Number(r.amount || (r as any).amount) || 0), 0) +
+      monthAdditions.filter(a => (Number(a.amount || (a as any).amount) || 0) > 0).reduce((acc, a) => acc + (Number(a.amount || (a as any).amount) || 0), 0);
 
-    const cost = monthRenewals.reduce((acc, r) => acc + (Number(r.cost) || 0), 0) +
-      Math.abs(monthAdditions.filter(a => (Number(a.amount) || 0) < 0).reduce((acc, a) => acc + (Number(a.amount) || 0), 0));
+    const cost = monthRenewals.reduce((acc, r) => acc + (Number(r.cost || (r as any).cost) || 0), 0) +
+      Math.abs(monthAdditions.filter(a => (Number(a.amount || (a as any).amount) || 0) < 0).reduce((acc, a) => acc + (Number(a.amount || (a as any).amount) || 0), 0));
 
     const transactions: { id: string; date: string; description: string; amount: number; type: 'profit' | 'expense' }[] = [];
 
@@ -296,21 +296,25 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
       const customer = customers.find(c => c.id.toString() === rCustomerId?.toString());
       const customerName = customer ? customer.name : 'Cliente Excluído';
 
-      if ((Number(r.amount) || 0) > 0) {
+      const amount = Number(r.amount || (r as any).amount) || 0;
+      const cost = Number(r.cost || (r as any).cost) || 0;
+      const rDate = r.date || (r as any).date || (r as any).created_at || new Date().toISOString();
+
+      if (amount > 0) {
         transactions.push({
-          id: `ren-gross-${r.id}`,
-          date: r.date || (r as any).created_at || new Date().toISOString(),
+          id: `ren-gross-${r.id || Math.random()}`,
+          date: rDate,
           description: `Renovação: ${customerName}`,
-          amount: Number(r.amount),
+          amount: amount,
           type: 'profit'
         });
       }
-      if (r.cost && (Number(r.cost) || 0) > 0) {
+      if (cost > 0) {
         transactions.push({
-          id: `ren-cost-${r.id}`,
-          date: r.date || (r as any).created_at || new Date().toISOString(),
+          id: `ren-cost-${r.id || Math.random()}`,
+          date: rDate,
           description: `Custo Servidor: ${customerName}`,
-          amount: Number(r.cost),
+          amount: cost,
           type: 'expense'
         });
       }

@@ -45,32 +45,35 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
     };
 
     // 1. Totals (All-time)
-    const totalGross = renewals.reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
-    const totalCost = renewals.reduce((acc, r) => acc + (Number(r.cost) || 0), 0);
-    const totalManualAdditions = manualAdditions.reduce((acc, a) => acc + (Number(a.amount) || 0), 0);
+    // 1. Totals (All-time)
+    const totalGross = renewals.reduce((acc, r) => acc + (Number(r.amount || (r as any).amount) || 0), 0);
+    const totalCost = renewals.reduce((acc, r) => acc + (Number(r.cost || (r as any).cost) || 0), 0);
+    const totalManualAdditions = manualAdditions.reduce((acc, a) => acc + (Number(a.amount || (a as any).amount) || 0), 0);
 
     // 2. Monthly Stats (Current Month)
-    const currentMonthRenewals = renewals.filter(r => isCurrentMonth(r.date));
-    const mGross = currentMonthRenewals.reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
-    const mCost = currentMonthRenewals.reduce((acc, r) => acc + (Number(r.cost) || 0), 0);
+    const currentMonthRenewals = renewals.filter(r => isCurrentMonth(r.date || (r as any).date || (r as any).created_at));
+    const mGross = currentMonthRenewals.reduce((acc, r) => acc + (Number(r.amount || (r as any).amount) || 0), 0);
+    const mCost = currentMonthRenewals.reduce((acc, r) => acc + (Number(r.cost || (r as any).cost) || 0), 0);
 
-    const currentMonthAdditions = manualAdditions.filter(a => isCurrentMonth(a.date));
-    const mAdditions = currentMonthAdditions.reduce((acc, a) => acc + (Number(a.amount) || 0), 0);
+    const currentMonthAdditions = manualAdditions.filter(a => isCurrentMonth(a.date || (a as any).date || (a as any).created_at));
+    const mAdditions = currentMonthAdditions.reduce((acc, a) => acc + (Number(a.amount || (a as any).amount) || 0), 0);
 
     const stats: Record<string, { name: string; active: number; monthlyGross: number; monthlyCost: number; accumulatedTotal: number }> = {};
     const expiring: Customer[] = [];
 
     servers.forEach(s => {
-      const sId = s.id.toString();
+      const sId = (s.id || '').toString();
+      if (!sId) return;
+
       const serverRenewals = renewals.filter(r => {
         const rSId = (r.serverId || (r as any).server_id || '').toString();
         return rSId === sId;
       });
-      const accumulatedTotal = serverRenewals.reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
+      const accumulatedTotal = serverRenewals.reduce((acc, r) => acc + (Number(r.amount || (r as any).amount) || 0), 0);
 
-      const serverMonthRenewals = serverRenewals.filter(r => isCurrentMonth(r.date));
-      const serverMonthlyGross = serverMonthRenewals.reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
-      const serverMonthlyCost = serverMonthRenewals.reduce((acc, r) => acc + (Number(r.cost) || 0), 0);
+      const serverMonthRenewals = serverRenewals.filter(r => isCurrentMonth(r.date || (r as any).date || (r as any).created_at));
+      const serverMonthlyGross = serverMonthRenewals.reduce((acc, r) => acc + (Number(r.amount || (r as any).amount) || 0), 0);
+      const serverMonthlyCost = serverMonthRenewals.reduce((acc, r) => acc + (Number(r.cost || (r as any).cost) || 0), 0);
 
       stats[sId] = {
         name: s.name,
@@ -106,9 +109,15 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
     });
 
     expiring.sort((a, b) => {
-      const dateA = parseISO((a.dueDate || (a as any).due_date || '').toString());
-      const dateB = parseISO((b.dueDate || (b as any).due_date || '').toString());
-      return (dateA.getTime() || 0) - (dateB.getTime() || 0);
+      const dateStrA = (a.dueDate || (a as any).due_date || '').toString();
+      const dateStrB = (b.dueDate || (b as any).due_date || '').toString();
+      if (!dateStrA && !dateStrB) return 0;
+      if (!dateStrA) return 1;
+      if (!dateStrB) return -1;
+
+      const dateA = new Date(dateStrA).getTime();
+      const dateB = new Date(dateStrB).getTime();
+      return (dateA || 0) - (dateB || 0);
     });
 
     return {

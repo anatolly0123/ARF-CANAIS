@@ -115,48 +115,48 @@ export function useStore(user: User | null) {
 
         if (serversData && serversData.length > 0) {
           setServers(serversData.map((s: any) => ({
-            id: s.id,
-            name: s.name,
+            id: s.id?.toString() || '',
+            name: s.name || 'Sem Nome',
             costPerActive: Number(s.cost_per_active ?? s.costPerActive ?? 0)
           })));
         }
         if (plansData && plansData.length > 0) {
           setPlans(plansData.map((p: any) => ({
-            id: p.id,
-            name: p.name,
+            id: p.id?.toString() || '',
+            name: p.name || 'Plano',
             defaultPrice: Number(p.default_price ?? p.defaultPrice ?? 0),
             months: Number(p.months ?? 1)
           })));
         }
         if (customersData && customersData.length > 0) {
           setCustomers(customersData.map((c: any) => ({
-            id: c.id,
-            name: c.name,
+            id: c.id?.toString() || '',
+            name: c.name || 'Sem Nome',
             phone: c.phone || '',
-            serverId: c.server_id || c.serverId,
-            planId: PLAN_ID_MAP[c.plan_id] || PLAN_ID_MAP[c.planId] || c.plan_id || c.planId,
+            serverId: (c.server_id || c.serverId || '').toString(),
+            planId: (PLAN_ID_MAP[c.plan_id] || PLAN_ID_MAP[c.planId] || c.plan_id || c.planId || '').toString(),
             amountPaid: Number(c.amount_paid ?? c.amountPaid ?? 0),
-            dueDate: c.due_date || c.dueDate,
+            dueDate: c.due_date || c.dueDate || new Date().toISOString(),
             lastNotifiedDate: c.last_notified_date || c.lastNotifiedDate,
             lastOverdueNotifiedDate: c.last_overdue_notified_date || c.lastOverdueNotifiedDate
           })));
         }
         if (renewalsData && renewalsData.length > 0) {
           setRenewals(renewalsData.map((r: any) => ({
-            id: r.id,
-            customerId: r.customer_id || r.customerId,
-            serverId: r.server_id || r.serverId,
-            planId: PLAN_ID_MAP[r.plan_id] || PLAN_ID_MAP[r.planId] || r.plan_id || r.planId,
+            id: r.id?.toString() || '',
+            customerId: (r.customer_id || r.customerId || '').toString(),
+            serverId: (r.server_id || r.serverId || '').toString(),
+            planId: (PLAN_ID_MAP[r.plan_id] || PLAN_ID_MAP[r.planId] || r.plan_id || r.planId || '').toString(),
             amount: Number(r.amount ?? 0),
             cost: Number(r.cost ?? 0),
-            date: r.date || r.created_at
+            date: r.date || r.created_at || new Date().toISOString()
           })));
         }
         if (additionsData && additionsData.length > 0) {
           setManualAdditions(additionsData.map((a: any) => ({
-            id: a.id,
+            id: a.id?.toString() || '',
             amount: Number(a.amount ?? 0),
-            date: a.date,
+            date: a.date || a.created_at || new Date().toISOString(),
             description: a.description || ''
           })));
         }
@@ -254,9 +254,13 @@ export function useStore(user: User | null) {
 
   const deleteCustomer = (id: string) => {
     setCustomers(prev => prev.filter(c => c.id !== id));
+    setRenewals(prev => prev.filter(r => (r.customerId || (r as any).customer_id) !== id));
     if (user) {
       supabase.from('customers').delete().eq('id', id).then(({ error }) => {
         if (error) console.error('Error deleting customer from cloud:', error);
+      });
+      supabase.from('renewals').delete().eq('customer_id', id).then(({ error }) => {
+        if (error) console.error('Error deleting customer renewals from cloud:', error);
       });
     }
   };
