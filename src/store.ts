@@ -5,12 +5,20 @@ import { supabase } from './lib/supabase';
 import { User } from '@supabase/supabase-js';
 
 const DEFAULT_PLANS: Plan[] = [
-  { id: '0', name: 'Gratuito', defaultPrice: 0, months: 1 },
-  { id: '1', name: 'Mensal', defaultPrice: 35, months: 1 },
-  { id: '2', name: 'Trimestral', defaultPrice: 90, months: 3 },
-  { id: '3', name: 'Semestral', defaultPrice: 160, months: 6 },
-  { id: '4', name: 'Anual', defaultPrice: 300, months: 12 },
+  { id: '702330a6-168a-4933-9114-1ce5d2f63f53', name: 'Gratuito', defaultPrice: 0, months: 1 },
+  { id: '9609a562-b13c-41c3-8820-2f9540b61545', name: 'Mensal', defaultPrice: 35, months: 1 },
+  { id: '47d7c672-9657-4f40-84a1-0bd7299a4e32', name: 'Trimestral', defaultPrice: 90, months: 3 },
+  { id: '628b031b-7538-4f6c-843c-6cb76e22c9e3', name: 'Semestral', defaultPrice: 160, months: 6 },
+  { id: '2c5a2bc9-f538-43d9-95e5-f55a15998f82', name: 'Anual', defaultPrice: 300, months: 12 },
 ];
+
+const PLAN_ID_MAP: Record<string, string> = {
+  '0': '702330a6-168a-4933-9114-1ce5d2f63f53',
+  '1': '9609a562-b13c-41c3-8820-2f9540b61545',
+  '2': '47d7c672-9657-4f40-84a1-0bd7299a4e32',
+  '3': '628b031b-7538-4f6c-843c-6cb76e22c9e3',
+  '4': '2c5a2bc9-f538-43d9-95e5-f55a15998f82',
+};
 
 export function useStore(user: User | null) {
   const [loading, setLoading] = useState(true);
@@ -23,20 +31,35 @@ export function useStore(user: User | null) {
   const [plans, setPlans] = useState<Plan[]>(() => {
     const saved = localStorage.getItem('arf_plans');
     let parsed = saved ? JSON.parse(saved) : DEFAULT_PLANS;
+    // Migrate old numeric IDs to UUIDs
+    parsed = parsed.map((p: Plan) => ({
+      ...p,
+      id: PLAN_ID_MAP[p.id] || p.id
+    }));
     if (!parsed.find((p: Plan) => p.name === 'Gratuito')) {
-      parsed = [{ id: '0', name: 'Gratuito', defaultPrice: 0, months: 1 }, ...parsed];
+      parsed = [{ id: '702330a6-168a-4933-9114-1ce5d2f63f53', name: 'Gratuito', defaultPrice: 0, months: 1 }, ...parsed];
     }
     return parsed;
   });
 
   const [customers, setCustomers] = useState<Customer[]>(() => {
     const saved = localStorage.getItem('arf_customers');
-    return saved ? JSON.parse(saved) : [];
+    const parsed = saved ? JSON.parse(saved) : [];
+    // Migrate old numeric plan IDs in customers
+    return parsed.map((c: Customer) => ({
+      ...c,
+      planId: PLAN_ID_MAP[c.planId] || c.planId
+    }));
   });
 
   const [renewals, setRenewals] = useState<Renewal[]>(() => {
     const saved = localStorage.getItem('arf_renewals');
-    return saved ? JSON.parse(saved) : [];
+    const parsed = saved ? JSON.parse(saved) : [];
+    // Migrate old numeric plan IDs in renewals
+    return parsed.map((r: Renewal) => ({
+      ...r,
+      planId: PLAN_ID_MAP[r.planId] || r.planId
+    }));
   });
 
   const [manualAdditions, setManualAdditions] = useState<ManualAddition[]>(() => {
