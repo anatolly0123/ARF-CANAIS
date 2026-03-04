@@ -12,7 +12,7 @@ interface CustomersProps {
   servers: Server[];
   plans: Plan[];
   whatsappMessage: string;
-  addCustomer: (c: Customer) => void;
+  addCustomer: (c: Customer) => Promise<boolean>;
   updateCustomer: (id: string, c: Partial<Customer>) => void;
   deleteCustomer: (id: string) => void;
   bulkUpdateCustomers: (updater: (prev: Customer[]) => Customer[]) => void;
@@ -93,7 +93,7 @@ export function Customers({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const amount = parseSafeNumber(formData.amountPaid);
 
@@ -110,28 +110,32 @@ export function Customers({
       updateCustomer(editingCustomer.id, data);
     } else {
       const newId = uuidv4();
-      addCustomer({ ...data, id: newId });
+      const success = await addCustomer({ ...data, id: newId });
 
-      const server = servers.find(s => s.id === data.serverId);
-      const plan = plans.find(p => p.id === data.planId);
-      const cost = (server?.costPerActive || 0) * (plan?.months || 1);
+      if (success) {
+        const server = servers.find(s => s.id === data.serverId);
+        const plan = plans.find(p => p.id === data.planId);
+        const cost = (server?.costPerActive || 0) * (plan?.months || 1);
 
-      addRenewal({
-        customerId: newId,
-        serverId: data.serverId,
-        planId: data.planId,
-        amount: Number(data.amountPaid),
-        cost: Number(cost),
-        date: new Date().toISOString()
-      });
+        addRenewal({
+          customerId: newId,
+          serverId: data.serverId,
+          planId: data.planId,
+          amount: Number(data.amountPaid),
+          cost: Number(cost),
+          date: new Date().toISOString()
+        });
 
-      // Open Renewal Confirmation Message for NEW customer
-      const message = formatWhatsappMessage(renewalMessage, {
-        name: data.name,
-        amount: data.amountPaid,
-        dueDate: data.dueDate
-      });
-      window.open(`https://wa.me/${data.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
+        // Open Renewal Confirmation Message for NEW customer
+        const message = formatWhatsappMessage(renewalMessage, {
+          name: data.name,
+          amount: data.amountPaid,
+          dueDate: data.dueDate
+        });
+        window.open(`https://wa.me/${data.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
+      } else {
+        alert("Erro ao salvar cliente no banco de dados. Verifique sua conexão.");
+      }
     }
     closeModal();
   };

@@ -217,7 +217,7 @@ export function useStore(user: User | null) {
   };
 
   // Customer Actions
-  const addCustomer = async (customer: Customer) => {
+  const addCustomer = async (customer: Customer): Promise<boolean> => {
     setCustomers(prev => [...prev, customer]);
     if (user) {
       const { error } = await supabase.from('customers').insert({
@@ -230,8 +230,12 @@ export function useStore(user: User | null) {
         due_date: customer.dueDate,
         user_id: user.id
       });
-      if (error) console.error('Error syncing customer to cloud:', error);
+      if (error) {
+        console.error('Error syncing customer to cloud:', error);
+        return false;
+      }
     }
+    return true;
   };
 
   const updateCustomer = (id: string, data: Partial<Customer>) => {
@@ -494,7 +498,7 @@ export function useStore(user: User | null) {
     loading,
     servers, addServer, updateServer, deleteServer, bulkUpdateServers,
     plans, updatePlan, bulkUpdatePlans,
-    customers, addCustomer, updateCustomer, deleteCustomer, bulkUpdateCustomers,
+    customers, addCustomer: addCustomer as (c: Customer) => Promise<boolean>, updateCustomer, deleteCustomer, bulkUpdateCustomers,
     renewals, addRenewal, bulkUpdateRenewals,
     manualAdditions, addManualAddition, bulkUpdateManualAdditions,
     whatsappMessage, setWhatsappMessage,
