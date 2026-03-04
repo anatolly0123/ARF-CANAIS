@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Customer, Server, Plan, Renewal, ManualAddition } from '../types';
-import { differenceInDays, isAfter, parseISO, format, addMonths } from 'date-fns';
+import { format, parseISO, isAfter, differenceInDays, addMonths } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { TrendingUp, TrendingDown, DollarSign, AlertCircle, MessageCircle, RefreshCw } from 'lucide-react';
 import { formatCurrency, formatWhatsappMessage } from '../utils';
 import { RenewModal } from '../components/RenewModal';
@@ -33,11 +34,12 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
     const totalManualAdditions = manualAdditions.reduce((acc, a) => acc + Number(a.amount || 0), 0);
 
     // 2. Monthly Stats (Current Month)
-    const currentMonthRenewals = renewals.filter(r => isAfter(parseISO(r.date), startOfMonth) || r.date.startsWith(format(today, 'yyyy-MM')));
+    const currentMonthStr = format(today, 'yyyy-MM');
+    const currentMonthRenewals = renewals.filter(r => r.date.startsWith(currentMonthStr));
     const mGross = currentMonthRenewals.reduce((acc, r) => acc + Number(r.amount || 0), 0);
     const mCost = currentMonthRenewals.reduce((acc, r) => acc + Number(r.cost || 0), 0);
 
-    const currentMonthAdditions = manualAdditions.filter(a => isAfter(parseISO(a.date), startOfMonth) || a.date.startsWith(format(today, 'yyyy-MM')));
+    const currentMonthAdditions = manualAdditions.filter(a => a.date.startsWith(currentMonthStr));
     const mAdditions = currentMonthAdditions.reduce((acc, a) => acc + Number(a.amount || 0), 0);
 
     const stats: Record<string, { name: string; active: number; monthlyGross: number; monthlyCost: number; accumulatedTotal: number }> = {};
@@ -47,7 +49,7 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
       const serverRenewals = renewals.filter(r => r.serverId === s.id);
       const accumulatedTotal = serverRenewals.reduce((acc, r) => acc + Number(r.amount || 0), 0);
 
-      const serverMonthRenewals = serverRenewals.filter(r => isAfter(parseISO(r.date), startOfMonth) || r.date.startsWith(format(today, 'yyyy-MM')));
+      const serverMonthRenewals = serverRenewals.filter(r => r.date.startsWith(currentMonthStr));
       const serverMonthlyGross = serverMonthRenewals.reduce((acc, r) => acc + Number(r.amount || 0), 0);
       const serverMonthlyCost = serverMonthRenewals.reduce((acc, r) => acc + Number(r.cost || 0), 0);
 
@@ -188,7 +190,7 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
           <DollarSign size={64} className="text-[#c8a646]" />
         </div>
         <div className="relative z-10">
-          <div className="text-[10px] font-bold uppercase tracking-widest text-[#c8a646] mb-1">Lucro Mensal ({format(today, 'MMMM', { locale: (await import('date-fns/locale/pt-BR')).default })})</div>
+          <div className="text-[10px] font-bold uppercase tracking-widest text-[#c8a646] mb-1">Lucro Mensal ({format(today, 'MMMM', { locale: ptBR })})</div>
           <div className="text-4xl font-black text-white">{formatCurrency(monthlyNet)}</div>
           <div className="mt-2 text-[10px] text-gray-500 font-medium">Líquido Total: {formatCurrency(netValue)}</div>
         </div>
