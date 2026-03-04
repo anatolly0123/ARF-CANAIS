@@ -218,7 +218,12 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
         if (json.appIcon) {
           setAppIcon(json.appIcon);
         }
-        alert('Backup restaurado com sucesso!');
+
+        if (confirm('Backup restaurado localmente com sucesso! Deseja enviar esses dados para a nuvem agora para que fiquem disponíveis em todos os seus aparelhos?')) {
+          syncToCloud();
+        } else {
+          alert('Backup restaurado localmente.');
+        }
       } catch (err) {
         alert('Erro ao importar backup. Verifique o arquivo.');
       }
