@@ -36,7 +36,7 @@ export const formatWhatsappMessage = (
   return template
     .replace('{nome}', data.name)
     .replace('{valor}', formatCurrency(data.amount))
-    .replace('{dias}', days === 0 ? 'hoje' : days < 0 ? `vencido há ${Math.abs(days)} dias` : `${days} dias`)
+    .replace('{dias}', days === 0 ? 'hoje' : days === 1 ? 'amanhã' : days < 0 ? `vencido há ${Math.abs(days)} ${Math.abs(days) === 1 ? 'dia' : 'dias'}` : `${days} dias`)
     .replace('{vencimento}', formattedDate);
 };
 export const parseCurrency = (val: any): number => {

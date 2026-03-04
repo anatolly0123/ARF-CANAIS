@@ -113,16 +113,58 @@ export function useStore(user: User | null) {
           supabase.from('settings').select('*').single()
         ]);
 
-        if (serversData && serversData.length > 0) setServers(serversData.map((s: any) => ({ ...s, costPerActive: Number(s.cost_per_active) })));
-        if (plansData && plansData.length > 0) setPlans(plansData.map((p: any) => ({ ...p, defaultPrice: Number(p.default_price) })));
-        if (customersData && customersData.length > 0) setCustomers(customersData.map((c: any) => ({ ...c, serverId: c.server_id, planId: c.plan_id, amountPaid: Number(c.amount_paid), dueDate: c.due_date, lastNotifiedDate: c.last_notified_date })));
-        if (renewalsData && renewalsData.length > 0) setRenewals(renewalsData.map((r: any) => ({ ...r, customerId: r.customer_id, serverId: r.server_id, planId: r.plan_id, amount: Number(r.amount), cost: Number(r.cost) })));
-        if (additionsData && additionsData.length > 0) setManualAdditions(additionsData.map((a: any) => ({ ...a, amount: Number(a.amount) })));
+        if (serversData && serversData.length > 0) {
+          setServers(serversData.map((s: any) => ({
+            id: s.id,
+            name: s.name,
+            costPerActive: Number(s.cost_per_active ?? s.costPerActive ?? 0)
+          })));
+        }
+        if (plansData && plansData.length > 0) {
+          setPlans(plansData.map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            defaultPrice: Number(p.default_price ?? p.defaultPrice ?? 0),
+            months: Number(p.months ?? 1)
+          })));
+        }
+        if (customersData && customersData.length > 0) {
+          setCustomers(customersData.map((c: any) => ({
+            id: c.id,
+            name: c.name,
+            phone: c.phone || '',
+            serverId: c.server_id || c.serverId,
+            planId: c.plan_id || c.planId,
+            amountPaid: Number(c.amount_paid ?? c.amountPaid ?? 0),
+            dueDate: c.due_date || c.dueDate,
+            lastNotifiedDate: c.last_notified_date || c.lastNotifiedDate,
+            lastOverdueNotifiedDate: c.last_overdue_notified_date || c.lastOverdueNotifiedDate
+          })));
+        }
+        if (renewalsData && renewalsData.length > 0) {
+          setRenewals(renewalsData.map((r: any) => ({
+            id: r.id,
+            customerId: r.customer_id || r.customerId,
+            serverId: r.server_id || r.serverId,
+            planId: r.plan_id || r.planId,
+            amount: Number(r.amount ?? 0),
+            cost: Number(r.cost ?? 0),
+            date: r.date
+          })));
+        }
+        if (additionsData && additionsData.length > 0) {
+          setManualAdditions(additionsData.map((a: any) => ({
+            id: a.id,
+            amount: Number(a.amount ?? 0),
+            date: a.date,
+            description: a.description || ''
+          })));
+        }
 
         if (settingsData) {
-          if (settingsData.whatsapp_message) setWhatsappMessage(settingsData.whatsapp_message);
-          if (settingsData.renewal_message) setRenewalMessage(settingsData.renewal_message);
-          if (settingsData.app_icon) setAppIcon(settingsData.app_icon);
+          if (settingsData.whatsapp_message || (settingsData as any).whatsappMessage) setWhatsappMessage(settingsData.whatsapp_message || (settingsData as any).whatsappMessage);
+          if (settingsData.renewal_message || (settingsData as any).renewalMessage) setRenewalMessage(settingsData.renewal_message || (settingsData as any).renewalMessage);
+          if (settingsData.app_icon || (settingsData as any).appIcon) setAppIcon(settingsData.app_icon || (settingsData as any).appIcon);
         }
       } catch (error) {
         console.error('Error loading data from Supabase:', error);
@@ -196,13 +238,14 @@ export function useStore(user: User | null) {
     setCustomers(prev => prev.map(c => c.id === id ? { ...c, ...data } : c));
     if (user) {
       const updateData: any = {};
-      if (data.name) updateData.name = data.name;
-      if (data.phone) updateData.phone = data.phone;
-      if (data.serverId) updateData.server_id = data.serverId;
-      if (data.planId) updateData.plan_id = data.planId;
+      if (data.name !== undefined) updateData.name = data.name;
+      if (data.phone !== undefined) updateData.phone = data.phone;
+      if (data.serverId !== undefined) updateData.server_id = data.serverId;
+      if (data.planId !== undefined) updateData.plan_id = data.planId;
       if (data.amountPaid !== undefined) updateData.amount_paid = data.amountPaid;
-      if (data.dueDate) updateData.due_date = data.dueDate;
-      if (data.lastNotifiedDate) updateData.last_notified_date = data.lastNotifiedDate;
+      if (data.dueDate !== undefined) updateData.due_date = data.dueDate;
+      if (data.lastNotifiedDate !== undefined) updateData.last_notified_date = data.lastNotifiedDate;
+      if (data.lastOverdueNotifiedDate !== undefined) updateData.last_overdue_notified_date = data.lastOverdueNotifiedDate;
       supabase.from('customers').update(updateData).eq('id', id).then(({ error }) => {
         if (error) console.error('Error updating customer in cloud:', error);
       });

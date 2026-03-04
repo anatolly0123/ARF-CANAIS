@@ -32,7 +32,13 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
         if (!dateStr) return false;
         const d = parseISO(dateStr.toString());
         if (isNaN(d.getTime())) return false;
-        return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
+
+        const dMonth = d.getMonth();
+        const dYear = d.getFullYear();
+        const tMonth = today.getMonth();
+        const tYear = today.getFullYear();
+
+        return dMonth === tMonth && dYear === tYear;
       } catch {
         return false;
       }
@@ -56,7 +62,10 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
 
     servers.forEach(s => {
       const sId = s.id.toString();
-      const serverRenewals = renewals.filter(r => (r.serverId || (r as any).server_id || '').toString() === sId);
+      const serverRenewals = renewals.filter(r => {
+        const rSId = (r.serverId || (r as any).server_id || '').toString();
+        return rSId === sId;
+      });
       const accumulatedTotal = serverRenewals.reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
 
       const serverMonthRenewals = serverRenewals.filter(r => isCurrentMonth(r.date));
