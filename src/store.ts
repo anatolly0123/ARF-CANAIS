@@ -3,6 +3,7 @@ import { Server, Plan, Customer, Renewal, ManualAddition } from './types';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from './lib/supabase';
 import { User } from '@supabase/supabase-js';
+import { formatCurrency, isCustomerActive, parseSafeNumber } from './utils';
 
 const DEFAULT_PLANS: Plan[] = [
   { id: '702330a6-168a-4933-9114-1ce5d2f63f53', name: 'Gratuito', defaultPrice: 0, months: 1 },
@@ -117,14 +118,14 @@ export function useStore(user: User | null) {
           setServers(serversData.map((s: any) => ({
             id: s.id?.toString() || '',
             name: s.name || 'Sem Nome',
-            costPerActive: Number(s.cost_per_active ?? s.costPerActive ?? 0)
+            costPerActive: parseSafeNumber(s.cost_per_active ?? s.costPerActive)
           })));
         }
         if (plansData && plansData.length > 0) {
           setPlans(plansData.map((p: any) => ({
             id: p.id?.toString() || '',
             name: p.name || 'Plano',
-            defaultPrice: Number(p.default_price ?? p.defaultPrice ?? 0),
+            defaultPrice: parseSafeNumber(p.default_price ?? p.defaultPrice),
             months: Number(p.months ?? 1)
           })));
         }
@@ -135,7 +136,7 @@ export function useStore(user: User | null) {
             phone: c.phone || '',
             serverId: (c.server_id || c.serverId || '').toString(),
             planId: (PLAN_ID_MAP[c.plan_id] || PLAN_ID_MAP[c.planId] || c.plan_id || c.planId || '').toString(),
-            amountPaid: Number(c.amount_paid ?? c.amountPaid ?? 0),
+            amountPaid: parseSafeNumber(c.amount_paid ?? c.amountPaid),
             dueDate: c.due_date || c.dueDate || new Date().toISOString(),
             lastNotifiedDate: c.last_notified_date || c.lastNotifiedDate,
             lastOverdueNotifiedDate: c.last_overdue_notified_date || c.lastOverdueNotifiedDate
@@ -147,15 +148,15 @@ export function useStore(user: User | null) {
             customerId: (r.customer_id || r.customerId || '').toString(),
             serverId: (r.server_id || r.serverId || '').toString(),
             planId: (PLAN_ID_MAP[r.plan_id] || PLAN_ID_MAP[r.planId] || r.plan_id || r.planId || '').toString(),
-            amount: Number(r.amount ?? 0),
-            cost: Number(r.cost ?? 0),
+            amount: parseSafeNumber(r.amount ?? (r as any).amount),
+            cost: parseSafeNumber(r.cost ?? (r as any).cost),
             date: r.date || r.created_at || new Date().toISOString()
           })));
         }
         if (additionsData && additionsData.length > 0) {
           setManualAdditions(additionsData.map((a: any) => ({
             id: a.id?.toString() || '',
-            amount: Number(a.amount ?? 0),
+            amount: parseSafeNumber(a.amount ?? (a as any).amount),
             date: a.date || a.created_at || new Date().toISOString(),
             description: a.description || ''
           })));

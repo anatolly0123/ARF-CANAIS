@@ -3,12 +3,26 @@ import { format, parseISO, isAfter, differenceInDays } from 'date-fns';
 export const formatCurrency = (val: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
+export const parseSafeNumber = (val: any): number => {
+  if (typeof val === 'number') return isNaN(val) ? 0 : val;
+  if (!val) return 0;
+  // Replace comma with dot and remove anything that isn't a digit, dot, or minus sign
+  const str = val.toString().replace(',', '.').replace(/[^\d.-]/g, '');
+  const parsed = parseFloat(str);
+  return isNaN(parsed) ? 0 : parsed;
+};
+
 export const isCustomerActive = (dueDateStr: string) => {
   try {
-    const dueDate = parseISO(dueDateStr);
+    if (!dueDateStr) return false;
+    // Replace - with / to force local time parsing for date-only strings
+    const dueDate = new Date(dueDateStr.replace(/-/g, '/'));
     if (isNaN(dueDate.getTime())) return false;
     const today = new Date();
-    return isAfter(dueDate, today) || differenceInDays(dueDate, today) === 0;
+    today.setHours(0, 0, 0, 0);
+    const checkDate = new Date(dueDate);
+    checkDate.setHours(0, 0, 0, 0);
+    return checkDate >= today;
   } catch {
     return false;
   }

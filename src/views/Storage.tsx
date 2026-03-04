@@ -3,7 +3,7 @@ import { Database, Download, Upload, Trash2, HardDrive, Calendar as CalendarIcon
 import { Customer, Server, Plan, Renewal, ManualAddition } from '../types';
 import { format, parseISO, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale'; // Added for locale support in date formatting
-import { formatCurrency, parseCurrency, parseExcelDate } from '../utils';
+import { formatCurrency, parseCurrency, parseExcelDate, parseSafeNumber } from '../utils';
 import { Modal } from '../components/Modal';
 import * as XLSX from 'xlsx';
 import { v4 as uuidv4 } from 'uuid';
@@ -270,7 +270,8 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
       const dateStr = r.date || (r as any).date || (r as any).created_at;
       if (!dateStr) return false;
       try {
-        const rDate = new Date(dateStr.toString());
+        // Replace - with / to force local time parsing for date-only strings
+        const rDate = new Date(dateStr.toString().replace(/-/g, '/'));
         if (isNaN(rDate.getTime())) return false;
         return isWithinInterval(rDate, { start, end });
       } catch {
@@ -279,15 +280,17 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
     });
 
     const monthAdditions = manualAdditions.filter(a => {
-      const aDate = parseISO(a.date);
+      const dateStr = a.date || (a as any).date || (a as any).created_at;
+      if (!dateStr) return false;
+      const aDate = new Date(dateStr.toString().replace(/-/g, '/'));
       return isWithinInterval(aDate, { start, end });
     });
 
-    const gross = monthRenewals.reduce((acc, r) => acc + (Number(r.amount || (r as any).amount) || 0), 0) +
-      monthAdditions.filter(a => (Number(a.amount || (a as any).amount) || 0) > 0).reduce((acc, a) => acc + (Number(a.amount || (a as any).amount) || 0), 0);
+    const gross = monthRenewals.reduce((acc, r) => acc + parseSafeNumber(r.amount || (r as any).amount), 0) +
+      monthAdditions.filter(a => parseSafeNumber(a.amount || (a as any).amount) > 0).reduce((acc, a) => acc + parseSafeNumber(a.amount || (a as any).amount), 0);
 
-    const cost = monthRenewals.reduce((acc, r) => acc + (Number(r.cost || (r as any).cost) || 0), 0) +
-      Math.abs(monthAdditions.filter(a => (Number(a.amount || (a as any).amount) || 0) < 0).reduce((acc, a) => acc + (Number(a.amount || (a as any).amount) || 0), 0));
+    const cost = monthRenewals.reduce((acc, r) => acc + parseSafeNumber(r.cost || (r as any).cost), 0) +
+      Math.abs(monthAdditions.filter(a => parseSafeNumber(a.amount || (a as any).amount) < 0).reduce((acc, a) => acc + parseSafeNumber(a.amount || (a as any).amount), 0));
 
     const transactions: { id: string; date: string; description: string; amount: number; type: 'profit' | 'expense' }[] = [];
 
@@ -296,8 +299,8 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
       const customer = customers.find(c => c.id.toString() === rCustomerId?.toString());
       const customerName = customer ? customer.name : 'Cliente Excluído';
 
-      const amount = Number(r.amount || (r as any).amount) || 0;
-      const cost = Number(r.cost || (r as any).cost) || 0;
+      const amount = parseSafeNumber(r.amount || (r as any).amount);
+      const cost = parseSafeNumber(r.cost || (r as any).cost);
       const rDate = r.date || (r as any).date || (r as any).created_at || new Date().toISOString();
 
       if (amount > 0) {
@@ -737,7 +740,7 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
             <span className="text-gray-500">Adições Manuais</span>
             <span className="text-white font-mono">{manualAdditions.length}</span>
           </div>
-          <div class="pt-4 border-t border-white/5 text-[10px] text-gray-600 leading-relaxed">
+          <div className="pt-4 border-t border-white/5 text-[10px] text-gray-600 leading-relaxed">
             Seus dados estão sendo sincronizados com a nuvem (Supabase).
             Isso permite que você acesse suas informações de qualquer dispositivo.
             O botão "Sincronizar com a Nuvem" acima garante que seus dados locais atuais sejam carregados para o servidor.

@@ -3,7 +3,7 @@ import { Customer, Server, Plan, Renewal, ManualAddition } from '../types';
 import { format, parseISO, isAfter, differenceInDays, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { TrendingUp, TrendingDown, DollarSign, AlertCircle, MessageCircle, RefreshCw } from 'lucide-react';
-import { formatCurrency, formatWhatsappMessage } from '../utils';
+import { formatCurrency, formatWhatsappMessage, parseSafeNumber, isCustomerActive } from '../utils';
 import { RenewModal } from '../components/RenewModal';
 
 interface DashboardProps {
@@ -30,7 +30,8 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
     const isCurrentMonth = (dateStr: any) => {
       try {
         if (!dateStr) return false;
-        const d = new Date(dateStr.toString());
+        // Replace - with / to force local time parsing for date-only strings
+        const d = new Date(dateStr.toString().replace(/-/g, '/'));
         if (isNaN(d.getTime())) return false;
 
         const dMonth = d.getMonth();
@@ -45,18 +46,17 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
     };
 
     // 1. Totals (All-time)
-    // 1. Totals (All-time)
-    const totalGross = renewals.reduce((acc, r) => acc + (Number(r.amount || (r as any).amount) || 0), 0);
-    const totalCost = renewals.reduce((acc, r) => acc + (Number(r.cost || (r as any).cost) || 0), 0);
-    const totalManualAdditions = manualAdditions.reduce((acc, a) => acc + (Number(a.amount || (a as any).amount) || 0), 0);
+    const totalGross = renewals.reduce((acc, r) => acc + parseSafeNumber(r.amount || (r as any).amount), 0);
+    const totalCost = renewals.reduce((acc, r) => acc + parseSafeNumber(r.cost || (r as any).cost), 0);
+    const totalManualAdditions = manualAdditions.reduce((acc, a) => acc + parseSafeNumber(a.amount || (a as any).amount), 0);
 
     // 2. Monthly Stats (Current Month)
     const currentMonthRenewals = renewals.filter(r => isCurrentMonth(r.date || (r as any).date || (r as any).created_at));
-    const mGross = currentMonthRenewals.reduce((acc, r) => acc + (Number(r.amount || (r as any).amount) || 0), 0);
-    const mCost = currentMonthRenewals.reduce((acc, r) => acc + (Number(r.cost || (r as any).cost) || 0), 0);
+    const mGross = currentMonthRenewals.reduce((acc, r) => acc + parseSafeNumber(r.amount || (r as any).amount), 0);
+    const mCost = currentMonthRenewals.reduce((acc, r) => acc + parseSafeNumber(r.cost || (r as any).cost), 0);
 
     const currentMonthAdditions = manualAdditions.filter(a => isCurrentMonth(a.date || (a as any).date || (a as any).created_at));
-    const mAdditions = currentMonthAdditions.reduce((acc, a) => acc + (Number(a.amount || (a as any).amount) || 0), 0);
+    const mAdditions = currentMonthAdditions.reduce((acc, a) => acc + parseSafeNumber(a.amount || (a as any).amount), 0);
 
     const stats: Record<string, { name: string; active: number; monthlyGross: number; monthlyCost: number; accumulatedTotal: number }> = {};
     const expiring: Customer[] = [];
@@ -69,11 +69,11 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
         const rSId = (r.serverId || (r as any).server_id || '').toString();
         return rSId === sId;
       });
-      const accumulatedTotal = serverRenewals.reduce((acc, r) => acc + (Number(r.amount || (r as any).amount) || 0), 0);
+      const accumulatedTotal = serverRenewals.reduce((acc, r) => acc + parseSafeNumber(r.amount || (r as any).amount), 0);
 
       const serverMonthRenewals = serverRenewals.filter(r => isCurrentMonth(r.date || (r as any).date || (r as any).created_at));
-      const serverMonthlyGross = serverMonthRenewals.reduce((acc, r) => acc + (Number(r.amount || (r as any).amount) || 0), 0);
-      const serverMonthlyCost = serverMonthRenewals.reduce((acc, r) => acc + (Number(r.cost || (r as any).cost) || 0), 0);
+      const serverMonthlyGross = serverMonthRenewals.reduce((acc, r) => acc + parseSafeNumber(r.amount || (r as any).amount), 0);
+      const serverMonthlyCost = serverMonthRenewals.reduce((acc, r) => acc + parseSafeNumber(r.cost || (r as any).cost), 0);
 
       stats[sId] = {
         name: s.name,
@@ -89,17 +89,15 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
         const dueDateStr = c.dueDate || (c as any).due_date;
         if (!dueDateStr) return;
 
-        const dueDate = parseISO(dueDateStr.toString());
-        if (isNaN(dueDate.getTime())) return;
-
-        const isActive = isAfter(dueDate, today) || differenceInDays(dueDate, today) === 0;
+        const isActive = isCustomerActive(dueDateStr.toString());
         const sId = (c.serverId || (c as any).server_id || '').toString();
 
         if (isActive && stats[sId]) {
           stats[sId].active += 1;
         }
 
-        const daysUntilDue = differenceInDays(dueDate, today);
+        const checkDate = new Date(dueDateStr.toString().replace(/-/g, '/'));
+        const daysUntilDue = differenceInDays(checkDate, today);
         if (daysUntilDue >= -7 && daysUntilDue <= 7) {
           expiring.push(c);
         }
