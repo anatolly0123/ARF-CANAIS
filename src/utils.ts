@@ -9,26 +9,40 @@ export const parseSafeNumber = (val: any): number => {
 
   let str = val.toString().trim();
 
-  // If it has both . and , it's definitely formatted (e.g. 1.200,00)
-  if (str.includes('.') && str.includes(',')) {
-    // Remove dots (thousands) and replace comma with dot (decimal)
+  // Handle Brazilian/European formats (1.200,50 or 1.200)
+  // If it has a comma, it's definitely using comma-as-decimal
+  if (str.includes(',')) {
+    // Remove all dots (thousands) and replace comma with dot
     str = str.replace(/\./g, '').replace(',', '.');
-  } else if (str.includes(',')) {
-    // Only comma (e.g. 20,00 or 1.200) -> assume it's a decimal separator for Brazil
-    str = str.replace(',', '.');
+  } else {
+    // No comma. If it has a dot, it could be thousands (1.200) or decimal (1.2)
+    // Most financial apps in Brazil would use . as thousands if there's no comma
+    // But this is ambiguous. A safer bet is to see if it's "1.234" (thousands) vs "1.2" (decimal)
+    // For this specific admin app, users entry like "1.500" almost always means 1500.
+    if (str.includes('.') && str.split('.').pop()?.length !== 2) {
+      // If it has a dot but not exactly 2 decimal places? (Fragile heuristic)
+      // Let's be more robust: assume dot is thousands IF there are more than 3 digits total
+      // Actually, let's just assume if there's a dot, we check the length after it.
+      // If user typed 1.500, length is 3. If they typed 10.50, length is 2.
+      const parts = str.split('.');
+      if (parts.length > 1 && parts[parts.length - 1].length === 3) {
+        str = str.replace(/\./g, ''); // 1.500 -> 1500
+      }
+    }
   }
 
-  // Remove everything except numbers, dot, and minus
+  // Final cleanup: remove anything not numeric or decimal point
   str = str.replace(/[^\d.-]/g, '');
   const parsed = parseFloat(str);
   return isNaN(parsed) ? 0 : parsed;
 };
 
-const parseRobustLocalTime = (dateStr: string) => {
+export const parseRobustLocalTime = (dateStr: string) => {
   if (!dateStr) return new Date(NaN);
   const str = dateStr.toString();
-  // Only use slash replacement for YYYY-MM-DD format (no 'T') to avoid corrupting ISO strings
-  if (str.length <= 10 && str.includes('-') && !str.includes('T')) {
+  // Handle YYYY-MM-DD format (10 chars, has hyphens, no 'T')
+  if (str.length === 10 && str.includes('-') && !str.includes('T')) {
+    // Replace - with / to force local date interpretation and avoid midnight-UTC-shift-backwards
     return new Date(str.replace(/-/g, '/'));
   }
   return new Date(str);

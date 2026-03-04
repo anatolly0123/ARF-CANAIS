@@ -2,8 +2,8 @@ import { useState, useMemo } from 'react';
 import { Customer, Server, Plan, Renewal, ManualAddition } from '../types';
 import { format, parseISO, isAfter, differenceInDays, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { TrendingUp, TrendingDown, DollarSign, AlertCircle, MessageCircle, RefreshCw } from 'lucide-react';
-import { formatCurrency, formatWhatsappMessage, parseSafeNumber, isCustomerActive } from '../utils';
+import { TrendingUp, TrendingDown, DollarSign, Users, AlertCircle, MessageCircle, ChevronRight, Server as ServerIcon, Calendar, CheckCircle, Clock, RefreshCw } from 'lucide-react';
+import { formatCurrency, isCustomerActive, parseSafeNumber, parseRobustLocalTime, formatWhatsappMessage } from '../utils';
 import { RenewModal } from '../components/RenewModal';
 
 interface DashboardProps {
@@ -30,13 +30,7 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
     const isCurrentMonth = (dateStr: any) => {
       try {
         if (!dateStr) return false;
-        const str = dateStr.toString();
-        let d;
-        if (str.length <= 10 && str.includes('-') && !str.includes('T')) {
-          d = new Date(str.replace(/-/g, '/'));
-        } else {
-          d = new Date(str);
-        }
+        const d = parseRobustLocalTime(dateStr);
 
         if (isNaN(d.getTime())) return false;
 
@@ -165,7 +159,7 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
           customerId: selectedCustomer.id,
           serverId: renewData.serverId,
           planId: renewData.planId,
-          amount: parseFloat(renewData.amountPaid.replace(',', '.')),
+          amount: parseSafeNumber(renewData.amountPaid),
           cost: cost,
           date: new Date().toISOString()
         });

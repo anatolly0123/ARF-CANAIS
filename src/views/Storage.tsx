@@ -2,8 +2,8 @@ import { useState, useEffect, ChangeEvent, useMemo } from 'react';
 import { Database, Download, Upload, Trash2, HardDrive, Calendar as CalendarIcon, TrendingUp, TrendingDown, DollarSign, Image as ImageIcon, History } from 'lucide-react';
 import { Customer, Server, Plan, Renewal, ManualAddition } from '../types';
 import { format, parseISO, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns';
-import { ptBR } from 'date-fns/locale'; // Added for locale support in date formatting
-import { formatCurrency, parseCurrency, parseExcelDate, parseSafeNumber } from '../utils';
+import { ptBR } from 'date-fns/locale';
+import { formatCurrency, parseCurrency, parseExcelDate, parseSafeNumber, parseRobustLocalTime } from '../utils';
 import { Modal } from '../components/Modal';
 import * as XLSX from 'xlsx';
 import { v4 as uuidv4 } from 'uuid';
@@ -270,14 +270,7 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
       const dateStr = r.date || (r as any).date || (r as any).created_at;
       if (!dateStr) return false;
       try {
-        const str = dateStr.toString();
-        let rDate;
-        if (str.length <= 10 && str.includes('-') && !str.includes('T')) {
-          rDate = new Date(str.replace(/-/g, '/'));
-        } else {
-          rDate = new Date(str);
-        }
-
+        const rDate = parseRobustLocalTime(dateStr);
         if (isNaN(rDate.getTime())) return false;
         return isWithinInterval(rDate, { start, end });
       } catch {
@@ -288,14 +281,13 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
     const monthAdditions = manualAdditions.filter(a => {
       const dateStr = a.date || (a as any).date || (a as any).created_at;
       if (!dateStr) return false;
-      const str = dateStr.toString();
-      let aDate;
-      if (str.length <= 10 && str.includes('-') && !str.includes('T')) {
-        aDate = new Date(str.replace(/-/g, '/'));
-      } else {
-        aDate = new Date(str);
+      try {
+        const aDate = parseRobustLocalTime(dateStr);
+        if (isNaN(aDate.getTime())) return false;
+        return isWithinInterval(aDate, { start, end });
+      } catch {
+        return false;
       }
-      return isWithinInterval(aDate, { start, end });
     });
 
     const gross = monthRenewals.reduce((acc, r) => acc + parseSafeNumber(r.amount || (r as any).amount), 0) +
@@ -317,18 +309,18 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
 
       if (amount > 0) {
         transactions.push({
-          id: `ren-gross-${r.id || Math.random()}`,
+          id: `ren - gross - ${r.id || Math.random()} `,
           date: rDate,
-          description: `Renovação: ${customerName}`,
+          description: `Renovação: ${customerName} `,
           amount: amount,
           type: 'profit'
         });
       }
       if (cost > 0) {
         transactions.push({
-          id: `ren-cost-${r.id || Math.random()}`,
+          id: `ren - cost - ${r.id || Math.random()} `,
           date: rDate,
-          description: `Custo Servidor: ${customerName}`,
+          description: `Custo Servidor: ${customerName} `,
           amount: cost,
           type: 'expense'
         });
@@ -341,7 +333,7 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
 
       if (amount > 0) {
         transactions.push({
-          id: `add-${a.id || Math.random()}`,
+          id: `add - ${a.id || Math.random()} `,
           date: aDate,
           description: a.description || 'Adição manual',
           amount: amount,
@@ -349,7 +341,7 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
         });
       } else if (amount < 0) {
         transactions.push({
-          id: `add-${a.id || Math.random()}`,
+          id: `add - ${a.id || Math.random()} `,
           date: aDate,
           description: a.description || 'Remoção manual',
           amount: Math.abs(amount),
@@ -472,7 +464,7 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
                     <div className="text-sm text-white font-medium">{tx.description}</div>
                     <div className="text-[10px] text-gray-500">{format(parseISO(tx.date), "dd/MM/yyyy 'às' HH:mm")}</div>
                   </div>
-                  <div className={`text-sm font-bold ${tx.type === 'profit' ? 'text-green-400' : 'text-red-400'}`}>
+                  <div className={`text - sm font - bold ${tx.type === 'profit' ? 'text-green-400' : 'text-red-400'} `}>
                     {tx.type === 'profit' ? '+' : '-'}{formatCurrency(tx.amount)}
                   </div>
                 </div>
@@ -727,7 +719,7 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
                   {format(parseISO(tx.date), "dd/MM/yyyy 'às' HH:mm")}
                 </div>
               </div>
-              <div className={`text-base font-black ${tx.type === 'profit' ? 'text-green-400' : 'text-red-400'}`}>
+              <div className={`text - base font - black ${tx.type === 'profit' ? 'text-green-400' : 'text-red-400'} `}>
                 {tx.type === 'profit' ? '+' : '-'}{formatCurrency(tx.amount)}
               </div>
             </div>

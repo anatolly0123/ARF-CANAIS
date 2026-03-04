@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Plan, ManualAddition } from '../types';
 import { Settings, Edit2, MessageSquare, PlusCircle, MinusCircle, DollarSign } from 'lucide-react';
-import { formatCurrency } from '../utils';
+import { formatCurrency, parseSafeNumber } from '../utils';
 import { Modal } from '../components/Modal';
 
 interface PlansProps {
@@ -35,7 +35,7 @@ export function Plans({ plans, updatePlan, whatsappMessage, setWhatsappMessage, 
 
   const handleSavePlan = () => {
     if (editingPlan) {
-      const price = parseFloat(priceInput.replace(',', '.'));
+      const price = parseSafeNumber(priceInput);
       if (!isNaN(price)) {
         updatePlan(editingPlan.id, price);
       }
@@ -64,8 +64,8 @@ export function Plans({ plans, updatePlan, whatsappMessage, setWhatsappMessage, 
   };
 
   const handleAddMoney = () => {
-    let amount = parseFloat(moneyAmount.replace(',', '.'));
-    if (!isNaN(amount) && amount > 0) {
+    let amount = parseSafeNumber(moneyAmount);
+    if (amount > 0) {
       if (moneyAction === 'remove') {
         amount = -amount;
       }
@@ -139,8 +139,8 @@ export function Plans({ plans, updatePlan, whatsappMessage, setWhatsappMessage, 
         <div className="bg-[#1a1a1a] p-5 rounded-2xl border border-white/5 shadow-lg">
           <div className="flex justify-between items-center mb-4">
             <p className="text-sm text-gray-400">Gerencie entradas e saídas extras.</p>
-            <div className={`text-xl font-bold ${manualAdditions.reduce((acc, curr) => acc + curr.amount, 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {formatCurrency(manualAdditions.reduce((acc, curr) => acc + curr.amount, 0))}
+            <div className={`text-xl font-bold ${manualAdditions.reduce((acc, curr) => acc + parseSafeNumber(curr.amount), 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              {formatCurrency(manualAdditions.reduce((acc, curr) => acc + parseSafeNumber(curr.amount), 0))}
             </div>
           </div>
 

@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef } from 'react';
 import { Customer, Server, Plan, Renewal } from '../types';
 import { format, parseISO, addMonths, isAfter, differenceInDays } from 'date-fns';
 import { v4 as uuidv4 } from 'uuid';
-import { formatCurrency, isCustomerActive, formatWhatsappMessage } from '../utils';
+import { formatCurrency, isCustomerActive, formatWhatsappMessage, parseSafeNumber, parseRobustLocalTime } from '../utils';
 import { Modal } from '../components/Modal';
 import { RenewModal } from '../components/RenewModal';
 import { Plus, Search, Filter, Phone, RefreshCw, Edit2, Trash2, Calendar, CheckCircle, XCircle, MessageCircle, Users, Award, Star, UserX } from 'lucide-react';
@@ -65,7 +65,7 @@ export function Customers({
         updateCustomer(selectedCustomerForRenew.id, {
           serverId: renewData.serverId,
           planId: renewData.planId,
-          amountPaid: parseFloat(renewData.amountPaid.replace(',', '.')),
+          amountPaid: parseSafeNumber(renewData.amountPaid),
           dueDate: newDueDate
         });
 
@@ -76,7 +76,7 @@ export function Customers({
           customerId: selectedCustomerForRenew.id,
           serverId: renewData.serverId,
           planId: renewData.planId,
-          amount: Number(parseFloat(renewData.amountPaid.replace(',', '.'))),
+          amount: parseSafeNumber(renewData.amountPaid),
           cost: Number(cost),
           date: new Date().toISOString()
         });
@@ -95,8 +95,7 @@ export function Customers({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const amount = parseFloat(formData.amountPaid.replace(',', '.'));
-    if (isNaN(amount)) return;
+    const amount = parseSafeNumber(formData.amountPaid);
 
     const data = {
       name: formData.name,
