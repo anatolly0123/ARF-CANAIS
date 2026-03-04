@@ -217,10 +217,10 @@ export function useStore(user: User | null) {
   };
 
   // Customer Actions
-  const addCustomer = (customer: Customer) => {
+  const addCustomer = async (customer: Customer) => {
     setCustomers(prev => [...prev, customer]);
     if (user) {
-      supabase.from('customers').insert({
+      const { error } = await supabase.from('customers').insert({
         id: customer.id,
         name: customer.name,
         phone: customer.phone,
@@ -229,9 +229,8 @@ export function useStore(user: User | null) {
         amount_paid: customer.amountPaid,
         due_date: customer.dueDate,
         user_id: user.id
-      }).then(({ error }) => {
-        if (error) console.error('Error syncing customer to cloud:', error);
       });
+      if (error) console.error('Error syncing customer to cloud:', error);
     }
   };
 
@@ -274,11 +273,11 @@ export function useStore(user: User | null) {
     });
   };
 
-  const addRenewal = (renewal: Omit<Renewal, 'id'>) => {
+  const addRenewal = async (renewal: Omit<Renewal, 'id'>) => {
     const newRenewal = { ...renewal, id: uuidv4() };
     setRenewals(prev => [...prev, newRenewal]);
     if (user) {
-      supabase.from('renewals').insert({
+      const { error } = await supabase.from('renewals').insert({
         id: newRenewal.id,
         customer_id: newRenewal.customerId,
         server_id: newRenewal.serverId,
@@ -287,9 +286,8 @@ export function useStore(user: User | null) {
         cost: newRenewal.cost,
         date: newRenewal.date,
         user_id: user.id
-      }).then(({ error }) => {
-        if (error) console.error('Error syncing renewal to cloud:', error);
       });
+      if (error) console.error('Error syncing renewal to cloud:', error);
     }
   };
 
