@@ -21,7 +21,7 @@ interface StorageProps {
   setManualAdditions: (additions: ManualAddition[]) => void;
   appIcon: string | null;
   setAppIcon: (icon: string | null) => void;
-  syncToCloud: () => Promise<void>;
+  syncToCloud: (data?: any, clearFirst?: boolean) => Promise<void>;
 }
 
 export function Storage({ customers, servers, plans, renewals, manualAdditions, bulkUpdateCustomers, setServers, setPlans, setRenewals, setManualAdditions, appIcon, setAppIcon, syncToCloud }: StorageProps) {
@@ -219,9 +219,19 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
           setAppIcon(json.appIcon);
         }
 
-        if (confirm('Backup restaurado localmente com sucesso! Deseja enviar esses dados para a nuvem agora para que fiquem disponíveis em todos os seus aparelhos?')) {
-          syncToCloud();
-        } else {
+        if (confirm('Backup restaurado localmente com sucesso! Deseja enviar esses dados para a nuvem agora? Isso substituirá os dados que já estão lá.')) {
+          syncToCloud({
+            customers: json.customers,
+            servers: json.servers,
+            plans: json.plans,
+            renewals: json.renewals,
+            manualAdditions: json.manualAdditions,
+            settings: {
+              appIcon: json.appIcon
+            }
+          }, true); // Clear cloud first for a clean restore
+        }
+        else {
           alert('Backup restaurado localmente.');
         }
       } catch (err) {
@@ -487,7 +497,10 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
 
         <div className="space-y-3">
           <button
-            onClick={syncToCloud}
+            onClick={() => {
+              const overwrite = confirm('Deseja substituir COMPLETAMENTE os dados da nuvem pelos seus dados locais atuais? (Se escolher "Cancelar", o sistema tentará apenas atualizar os registros sem apagar nada da nuvem).');
+              syncToCloud(undefined, overwrite);
+            }}
             className="w-full flex items-center justify-between p-4 bg-[#c8a646] text-[#0f0f0f] rounded-2xl hover:bg-[#e8c666] transition-all shadow-xl shadow-[#c8a646]/20 font-bold group"
           >
             <div className="flex items-center space-x-3">

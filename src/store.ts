@@ -280,42 +280,83 @@ export function useStore(user: User | null) {
   const bulkUpdateRenewals = (newRenewals: Renewal[]) => setRenewals(newRenewals);
   const bulkUpdateManualAdditions = (newAdditions: ManualAddition[]) => setManualAdditions(newAdditions);
 
-  const syncToCloud = async () => {
+  const syncToCloud = async (overrideData?: {
+    servers?: Server[];
+    plans?: Plan[];
+    customers?: Customer[];
+    renewals?: Renewal[];
+    manualAdditions?: ManualAddition[];
+    settings?: {
+      whatsappMessage?: string;
+      renewalMessage?: string;
+      appIcon?: string | null;
+    };
+  }, clearFirst: boolean = false) => {
     if (!user) return;
     setLoading(true);
     try {
+      const dataToSync = {
+        servers: overrideData?.servers || servers,
+        plans: overrideData?.plans || plans,
+        customers: overrideData?.customers || customers,
+        renewals: overrideData?.renewals || renewals,
+        manualAdditions: overrideData?.manualAdditions || manualAdditions,
+        settings: {
+          whatsappMessage: overrideData?.settings?.whatsappMessage ?? whatsappMessage,
+          renewalMessage: overrideData?.settings?.renewalMessage ?? renewalMessage,
+          appIcon: overrideData?.settings?.appIcon ?? appIcon,
+        }
+      };
+
+      if (clearFirst) {
+        console.log('Cleaning cloud data before sync...');
+        await Promise.all([
+          supabase.from('servers').delete().eq('user_id', user.id),
+          supabase.from('plans').delete().eq('user_id', user.id),
+          supabase.from('customers').delete().eq('user_id', user.id),
+          supabase.from('renewals').delete().eq('user_id', user.id),
+          supabase.from('manual_additions').delete().eq('user_id', user.id),
+        ]);
+      }
+
       // 1. Sync Settings
+      console.log('Syncing settings...');
       await supabase.from('settings').upsert({
         user_id: user.id,
-        whatsapp_message: whatsappMessage,
-        renewal_message: renewalMessage,
-        app_icon: appIcon
+        whatsapp_message: dataToSync.settings.whatsappMessage,
+        renewal_message: dataToSync.settings.renewalMessage,
+        app_icon: dataToSync.settings.appIcon
       }, { onConflict: 'user_id' });
 
       // 2. Sync Servers
-      if (servers.length > 0) {
-        await supabase.from('servers').upsert(servers.map(s => ({
+      if (dataToSync.servers.length > 0) {
+        console.log('Syncing servers...');
+        const { error } = await supabase.from('servers').upsert(dataToSync.servers.map(s => ({
           id: s.id,
           name: s.name,
           cost_per_active: s.costPerActive,
           user_id: user.id
         })));
+        if (error) throw error;
       }
 
       // 3. Sync Plans
-      if (plans.length > 0) {
-        await supabase.from('plans').upsert(plans.map(p => ({
+      if (dataToSync.plans.length > 0) {
+        console.log('Syncing plans...');
+        const { error } = await supabase.from('plans').upsert(dataToSync.plans.map(p => ({
           id: p.id,
           name: p.name,
           default_price: p.defaultPrice,
           months: p.months,
           user_id: user.id
         })));
+        if (error) throw error;
       }
 
       // 4. Sync Customers
-      if (customers.length > 0) {
-        await supabase.from('customers').upsert(customers.map(c => ({
+      if (dataToSync.customers.length > 0) {
+        console.log('Syncing customers...');
+        const { error } = await supabase.from('customers').upsert(dataToSync.customers.map(c => ({
           id: c.id,
           name: c.name,
           phone: c.phone,
@@ -326,11 +367,13 @@ export function useStore(user: User | null) {
           last_notified_date: c.lastNotifiedDate,
           user_id: user.id
         })));
+        if (error) throw error;
       }
 
       // 5. Sync Renewals
-      if (renewals.length > 0) {
-        await supabase.from('renewals').upsert(renewals.map(r => ({
+      if (dataToSync.renewals.length > 0) {
+        console.log('Syncing renewals...');
+        const { error } = await supabase.from('renewals').upsert(dataToSync.renewals.map(r => ({
           id: r.id,
           customer_id: r.customerId,
           server_id: r.serverId,
@@ -340,23 +383,26 @@ export function useStore(user: User | null) {
           date: r.date,
           user_id: user.id
         })));
+        if (error) throw error;
       }
 
       // 6. Sync Manual Additions
-      if (manualAdditions.length > 0) {
-        await supabase.from('manual_additions').upsert(manualAdditions.map(a => ({
+      if (dataToSync.manualAdditions.length > 0) {
+        console.log('Syncing additions...');
+        const { error } = await supabase.from('manual_additions').upsert(dataToSync.manualAdditions.map(a => ({
           id: a.id,
           amount: a.amount,
           date: a.date,
           description: a.description,
           user_id: user.id
         })));
+        if (error) throw error;
       }
 
       alert('Sincronização concluída com sucesso!');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error syncing to cloud:', error);
-      alert('Erro ao sincronizar. Verifique o console.');
+      alert('Erro ao sincronizar: ' + (error.message || 'Ocorreu um erro inesperado.'));
     } finally {
       setLoading(false);
     }
@@ -372,7 +418,7 @@ export function useStore(user: User | null) {
     whatsappMessage, setWhatsappMessage,
     renewalMessage, setRenewalMessage,
     appIcon, setAppIcon,
-    syncToCloud
+    syncToCloud: syncToCloud as (overrideData?: any, clearFirst?: boolean) => Promise<void>
   };
 }
 
