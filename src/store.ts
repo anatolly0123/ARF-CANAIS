@@ -134,7 +134,7 @@ export function useStore(user: User | null) {
             name: c.name,
             phone: c.phone || '',
             serverId: c.server_id || c.serverId,
-            planId: c.plan_id || c.planId,
+            planId: PLAN_ID_MAP[c.plan_id] || PLAN_ID_MAP[c.planId] || c.plan_id || c.planId,
             amountPaid: Number(c.amount_paid ?? c.amountPaid ?? 0),
             dueDate: c.due_date || c.dueDate,
             lastNotifiedDate: c.last_notified_date || c.lastNotifiedDate,
@@ -146,10 +146,10 @@ export function useStore(user: User | null) {
             id: r.id,
             customerId: r.customer_id || r.customerId,
             serverId: r.server_id || r.serverId,
-            planId: r.plan_id || r.planId,
+            planId: PLAN_ID_MAP[r.plan_id] || PLAN_ID_MAP[r.planId] || r.plan_id || r.planId,
             amount: Number(r.amount ?? 0),
             cost: Number(r.cost ?? 0),
-            date: r.date
+            date: r.date || r.created_at
           })));
         }
         if (additionsData && additionsData.length > 0) {

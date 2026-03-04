@@ -30,7 +30,7 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
     const isCurrentMonth = (dateStr: any) => {
       try {
         if (!dateStr) return false;
-        const d = parseISO(dateStr.toString());
+        const d = new Date(dateStr.toString());
         if (isNaN(d.getTime())) return false;
 
         const dMonth = d.getMonth();

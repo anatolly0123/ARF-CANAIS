@@ -267,8 +267,15 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
     const end = endOfMonth(selectedMonth);
 
     const monthRenewals = renewals.filter(r => {
-      const rDate = parseISO(r.date);
-      return isWithinInterval(rDate, { start, end });
+      const dateStr = r.date || (r as any).date || (r as any).created_at;
+      if (!dateStr) return false;
+      try {
+        const rDate = new Date(dateStr.toString());
+        if (isNaN(rDate.getTime())) return false;
+        return isWithinInterval(rDate, { start, end });
+      } catch {
+        return false;
+      }
     });
 
     const monthAdditions = manualAdditions.filter(a => {
@@ -276,33 +283,34 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
       return isWithinInterval(aDate, { start, end });
     });
 
-    const gross = monthRenewals.reduce((acc, r) => acc + r.amount, 0) +
-      monthAdditions.filter(a => a.amount > 0).reduce((acc, a) => acc + a.amount, 0);
+    const gross = monthRenewals.reduce((acc, r) => acc + (Number(r.amount) || 0), 0) +
+      monthAdditions.filter(a => (Number(a.amount) || 0) > 0).reduce((acc, a) => acc + (Number(a.amount) || 0), 0);
 
-    const cost = monthRenewals.reduce((acc, r) => acc + (r.cost || 0), 0) +
-      Math.abs(monthAdditions.filter(a => a.amount < 0).reduce((acc, a) => acc + a.amount, 0));
+    const cost = monthRenewals.reduce((acc, r) => acc + (Number(r.cost) || 0), 0) +
+      Math.abs(monthAdditions.filter(a => (Number(a.amount) || 0) < 0).reduce((acc, a) => acc + (Number(a.amount) || 0), 0));
 
     const transactions: { id: string; date: string; description: string; amount: number; type: 'profit' | 'expense' }[] = [];
 
     monthRenewals.forEach(r => {
-      const customer = customers.find(c => c.id === r.customerId);
+      const rCustomerId = r.customerId || (r as any).customer_id;
+      const customer = customers.find(c => c.id.toString() === rCustomerId?.toString());
       const customerName = customer ? customer.name : 'Cliente Excluído';
 
-      if (r.amount > 0) {
+      if ((Number(r.amount) || 0) > 0) {
         transactions.push({
           id: `ren-gross-${r.id}`,
-          date: r.date,
+          date: r.date || (r as any).created_at || new Date().toISOString(),
           description: `Renovação: ${customerName}`,
-          amount: r.amount,
+          amount: Number(r.amount),
           type: 'profit'
         });
       }
-      if (r.cost && r.cost > 0) {
+      if (r.cost && (Number(r.cost) || 0) > 0) {
         transactions.push({
           id: `ren-cost-${r.id}`,
-          date: r.date,
+          date: r.date || (r as any).created_at || new Date().toISOString(),
           description: `Custo Servidor: ${customerName}`,
-          amount: r.cost,
+          amount: Number(r.cost),
           type: 'expense'
         });
       }
@@ -328,7 +336,11 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
       }
     });
 
-    transactions.sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime());
+    transactions.sort((a, b) => {
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      return (dateB || 0) - (dateA || 0);
+    });
 
     return {
       gross,
