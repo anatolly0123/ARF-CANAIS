@@ -372,8 +372,12 @@ export function Customers({
 
                     {!isActive && (
                       <button
-                        onClick={() => {
-                          if (isOnCooldown) return;
+                        onClick={(e) => {
+                          if (isOnCooldown) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            return;
+                          }
 
                           const overdueDays = Math.abs(daysDiff);
                           const message = `Olá *${customer.name}*! 👋\n\nPassando para avisar que seu acesso IPTV está vencido há *${overdueDays}* ${overdueDays === 1 ? 'dia' : 'dias'}. ⚠️\n\nGostaria de renovar seu acesso com a gente agora? 😊`;
@@ -381,11 +385,12 @@ export function Customers({
                           updateCustomer(customer.id, { lastOverdueNotifiedDate: format(today, 'yyyy-MM-dd') });
                           window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
                         }}
-                        disabled={!!isOnCooldown}
+                        disabled={Boolean(isOnCooldown)}
                         className={`p-2 rounded-full transition-all duration-300 ${isOnCooldown
-                          ? 'bg-gray-500/10 text-gray-600 cursor-not-allowed opacity-40 pointer-events-none'
+                          ? 'bg-gray-500/10 text-gray-600 cursor-not-allowed opacity-40 pointer-events-none select-none'
                           : 'bg-red-500/20 text-red-500 hover:bg-red-500/30 animate-bounce'
                           }`}
+                        style={isOnCooldown ? { pointerEvents: 'none' } : {}}
                         title={
                           isOnCooldown
                             ? `Próximo envio em ${10 - differenceInDays(today, lastOverdueNotified!)} dias`

@@ -49,8 +49,10 @@ export function useStore(user: User | null) {
     // Migrate old numeric plan IDs and ensure property names (serverId, planId)
     return parsed.map((c: any) => ({
       ...c,
-      serverId: c.serverId || c.server_id,
-      planId: PLAN_ID_MAP[c.planId] || c.planId || c.plan_id
+      serverId: (c.serverId || c.server_id || '').toString(),
+      planId: (PLAN_ID_MAP[c.planId] || c.planId || c.plan_id || '').toString(),
+      lastNotifiedDate: c.lastNotifiedDate || c.last_notified_date,
+      lastOverdueNotifiedDate: c.lastOverdueNotifiedDate || c.last_overdue_notified_date
     }));
   });
 
@@ -60,9 +62,9 @@ export function useStore(user: User | null) {
     // Migrate old IDs, property names (customerId, serverId, planId) and ensure numeric amounts
     return parsed.map((r: any) => ({
       ...r,
-      customerId: r.customerId || r.customer_id,
-      serverId: r.serverId || r.server_id,
-      planId: PLAN_ID_MAP[r.planId] || r.planId || r.plan_id,
+      customerId: (r.customerId || r.customer_id || '').toString(),
+      serverId: (r.serverId || r.server_id || '').toString(),
+      planId: (PLAN_ID_MAP[r.planId] || r.planId || r.plan_id || '').toString(),
       amount: Number(r.amount || 0),
       cost: Number(r.cost || 0)
     }));

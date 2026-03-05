@@ -288,7 +288,9 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
             {expiringCustomers.map(c => {
               const server = servers.find(s => s.id === (c.serverId || (c as any).server_id));
               const days = differenceInDays(parseISO(c.dueDate || (c as any).due_date), today);
-              const alreadyNotified = (c.lastNotifiedDate || (c as any).last_notified_date) === format(today, 'yyyy-MM-dd');
+
+              const lastOverdueNotified = c.lastOverdueNotifiedDate ? parseISO(c.lastOverdueNotifiedDate) : null;
+              const isOnCooldown = lastOverdueNotified && !isNaN(lastOverdueNotified.getTime()) && differenceInDays(today, lastOverdueNotified) < 10;
 
               return (
                 <div key={c.id} className="p-4 flex items-center justify-between">
@@ -301,16 +303,20 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
                   <div className="flex items-center space-x-2">
                     <button
                       onClick={() => {
+                        if (isOnCooldown) return;
                         const message = formatWhatsappMessage(whatsappMessage, {
                           name: c.name,
                           amount: c.amountPaid,
                           dueDate: c.dueDate
                         });
-                        updateCustomer(c.id, { lastNotifiedDate: format(today, 'yyyy-MM-dd') });
+                        updateCustomer(c.id, { lastOverdueNotifiedDate: format(today, 'yyyy-MM-dd') });
                         window.open(`https://wa.me/${c.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
                       }}
-                      className={`p-2 rounded-full transition-colors ${alreadyNotified ? 'bg-gray-500/20 text-gray-500' : 'bg-green-600/20 text-green-500 hover:bg-green-600/30'}`}
-                      title="WhatsApp"
+                      disabled={!!isOnCooldown}
+                      className={`p-2 rounded-full transition-all duration-300 ${isOnCooldown
+                        ? 'bg-gray-500/10 text-gray-600 cursor-not-allowed opacity-40 pointer-events-none'
+                        : 'bg-green-600/20 text-green-500 hover:bg-green-600/30'}`}
+                      title={isOnCooldown ? `Próximo envio em ${10 - differenceInDays(today, lastOverdueNotified!)} dias` : "WhatsApp"}
                     >
                       <MessageCircle size={20} />
                     </button>
