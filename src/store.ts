@@ -95,6 +95,9 @@ export function useStore(user: User | null) {
   const [appIcon, setAppIcon] = useState<string | null>(() => {
     return localStorage.getItem('arf_app_icon');
   });
+  const [appCover, setAppCover] = useState<string | null>(() => {
+    return localStorage.getItem('arf_app_cover');
+  });
 
   // Initial load from Supabase
   useEffect(() => {
@@ -173,6 +176,7 @@ export function useStore(user: User | null) {
           if (settingsData.whatsapp_message || (settingsData as any).whatsappMessage) setWhatsappMessage(settingsData.whatsapp_message || (settingsData as any).whatsappMessage);
           if (settingsData.renewal_message || (settingsData as any).renewalMessage) setRenewalMessage(settingsData.renewal_message || (settingsData as any).renewalMessage);
           if (settingsData.app_icon || (settingsData as any).appIcon) setAppIcon(settingsData.app_icon || (settingsData as any).appIcon);
+          if (settingsData.app_cover || (settingsData as any).appCover) setAppCover(settingsData.app_cover || (settingsData as any).appCover);
         }
       } catch (error) {
         console.error('Error loading data from Supabase:', error);
@@ -358,12 +362,13 @@ export function useStore(user: User | null) {
         user_id: user.id,
         whatsapp_message: whatsappMessage,
         renewal_message: renewalMessage,
-        app_icon: appIcon
+        app_icon: appIcon,
+        app_cover: appCover
       }, { onConflict: 'user_id' });
     };
     const timer = setTimeout(syncSettings, 1000);
     return () => clearTimeout(timer);
-  }, [whatsappMessage, renewalMessage, appIcon, user, loading]);
+  }, [whatsappMessage, renewalMessage, appIcon, appCover, user, loading]);
 
   // Local Storage Cache sync
   useEffect(() => {
@@ -402,6 +407,14 @@ export function useStore(user: User | null) {
     }
   }, [appIcon]);
 
+  useEffect(() => {
+    if (appCover) {
+      localStorage.setItem('arf_app_cover', appCover);
+    } else {
+      localStorage.removeItem('arf_app_cover');
+    }
+  }, [appCover]);
+
   const bulkUpdateServers = (newServers: Server[]) => setServers(newServers);
   const bulkUpdatePlans = (newPlans: Plan[]) => setPlans(newPlans);
   const bulkUpdateRenewals = (newRenewals: Renewal[]) => setRenewals(newRenewals);
@@ -417,6 +430,7 @@ export function useStore(user: User | null) {
       whatsappMessage?: string;
       renewalMessage?: string;
       appIcon?: string | null;
+      appCover?: string | null;
     };
   }, clearFirst: boolean = false) => {
     if (!user) return;
@@ -432,6 +446,7 @@ export function useStore(user: User | null) {
           whatsappMessage: overrideData?.settings?.whatsappMessage ?? whatsappMessage,
           renewalMessage: overrideData?.settings?.renewalMessage ?? renewalMessage,
           appIcon: overrideData?.settings?.appIcon ?? appIcon,
+          appCover: overrideData?.settings?.appCover ?? appCover,
         }
       };
 
@@ -452,7 +467,8 @@ export function useStore(user: User | null) {
         user_id: user.id,
         whatsapp_message: dataToSync.settings.whatsappMessage,
         renewal_message: dataToSync.settings.renewalMessage,
-        app_icon: dataToSync.settings.appIcon
+        app_icon: dataToSync.settings.appIcon,
+        app_cover: dataToSync.settings.appCover
       }, { onConflict: 'user_id' });
 
       // 2. Sync Servers
@@ -546,6 +562,7 @@ export function useStore(user: User | null) {
     whatsappMessage, setWhatsappMessage,
     renewalMessage, setRenewalMessage,
     appIcon, setAppIcon,
+    appCover, setAppCover,
     syncToCloud: syncToCloud as (overrideData?: any, clearFirst?: boolean) => Promise<void>
   };
 }

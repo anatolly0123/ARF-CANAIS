@@ -21,10 +21,12 @@ interface StorageProps {
   setManualAdditions: (additions: ManualAddition[]) => void;
   appIcon: string | null;
   setAppIcon: (icon: string | null) => void;
+  appCover: string | null;
+  setAppCover: (cover: string | null) => void;
   syncToCloud: (data?: any, clearFirst?: boolean) => Promise<void>;
 }
 
-export function Storage({ customers, servers, plans, renewals, manualAdditions, bulkUpdateCustomers, setServers, setPlans, setRenewals, setManualAdditions, appIcon, setAppIcon, syncToCloud }: StorageProps) {
+export function Storage({ customers, servers, plans, renewals, manualAdditions, bulkUpdateCustomers, setServers, setPlans, setRenewals, setManualAdditions, appIcon, setAppIcon, appCover, setAppCover, syncToCloud }: StorageProps) {
   const [storageSize, setStorageSize] = useState<string>('0 KB');
   const [isFullHistoryOpen, setIsFullHistoryOpen] = useState(false);
   const [importPreview, setImportPreview] = useState<Customer[]>([]);
@@ -178,6 +180,7 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
       renewals,
       manualAdditions,
       appIcon,
+      appCover,
       version: '1.2',
       exportDate: new Date().toISOString()
     };
@@ -218,6 +221,9 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
         if (json.appIcon) {
           setAppIcon(json.appIcon);
         }
+        if (json.appCover) {
+          setAppCover(json.appCover);
+        }
 
         if (confirm('Backup restaurado localmente com sucesso! Deseja enviar esses dados para a nuvem agora? Isso substituirá os dados que já estão lá.')) {
           syncToCloud({
@@ -227,7 +233,8 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
             renewals: json.renewals,
             manualAdditions: json.manualAdditions,
             settings: {
-              appIcon: json.appIcon
+              appIcon: json.appIcon,
+              appCover: json.appCover
             }
           }, true); // Clear cloud first for a clean restore
         }
@@ -254,6 +261,17 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
       const reader = new FileReader();
       reader.onloadend = () => {
         setAppIcon(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCoverUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAppCover(reader.result as string);
       };
       reader.readAsDataURL(file);
     }
@@ -478,7 +496,7 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
           </div>
         </div>
 
-        <div className="bg-[#0f0f0f] p-5 rounded-2xl border border-white/5 flex items-center justify-between">
+        <div className="bg-[#0f0f0f] p-5 rounded-2xl border border-white/5 flex items-center justify-between mb-4">
           <div className="flex items-center space-x-4">
             <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden">
               {appIcon ? (
@@ -505,6 +523,37 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
             <label className="p-3 bg-[#c8a646] text-[#0f0f0f] rounded-xl hover:bg-[#e8c666] transition-colors cursor-pointer shadow-lg shadow-[#c8a646]/20">
               <Upload size={20} />
               <input type="file" accept="image/*" onChange={handleIconUpload} className="hidden" />
+            </label>
+          </div>
+        </div>
+
+        <div className="bg-[#0f0f0f] p-5 rounded-2xl border border-white/5 flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden">
+              {appCover ? (
+                <img src={appCover} alt="App Cover" className="w-full h-full object-cover" />
+              ) : (
+                <div className="text-3xl font-black text-white/20">C</div>
+              )}
+            </div>
+            <div>
+              <div className="text-sm font-bold text-white">Capa do App</div>
+              <div className="text-[10px] text-gray-500 uppercase tracking-wider">Splash Screen / Share</div>
+            </div>
+          </div>
+          <div className="flex space-x-2">
+            {appCover && (
+              <button
+                onClick={() => setAppCover(null)}
+                className="p-2 bg-red-500/10 text-red-400 rounded-xl hover:bg-red-500/20 transition-colors"
+                title="Resetar para o padrão"
+              >
+                <Trash2 size={20} />
+              </button>
+            )}
+            <label className="p-3 bg-[#c8a646] text-[#0f0f0f] rounded-xl hover:bg-[#e8c666] transition-colors cursor-pointer shadow-lg shadow-[#c8a646]/20">
+              <Upload size={20} />
+              <input type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
             </label>
           </div>
         </div>

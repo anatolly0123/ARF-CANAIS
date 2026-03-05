@@ -37,18 +37,25 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Handle Dynamic App Icon
-
-  // Handle Dynamic App Icon
+  // Handle Dynamic App Icon & Cover
   useEffect(() => {
     if (store.appIcon) {
       const appleIcon = document.getElementById('ios-icon') as HTMLLinkElement;
       const favicon = document.getElementById('favicon') as HTMLLinkElement;
-
       if (appleIcon) appleIcon.href = store.appIcon;
       if (favicon) favicon.href = store.appIcon;
     }
-  }, [store.appIcon]);
+
+    if (store.appCover) {
+      const iosSplash = document.getElementById('ios-splash') as HTMLLinkElement;
+      const ogImage = document.getElementById('og-image') as HTMLMetaElement;
+      const twitterImage = document.getElementById('twitter-image') as HTMLMetaElement;
+
+      if (iosSplash) iosSplash.href = store.appCover;
+      if (ogImage) ogImage.content = store.appCover;
+      if (twitterImage) twitterImage.content = store.appCover;
+    }
+  }, [store.appIcon, store.appCover]);
 
   const renderContent = () => {
     switch (activeTab) {
@@ -121,6 +128,8 @@ export default function App() {
             setManualAdditions={store.bulkUpdateManualAdditions}
             appIcon={store.appIcon}
             setAppIcon={store.setAppIcon}
+            appCover={store.appCover}
+            setAppCover={store.setAppCover}
             syncToCloud={store.syncToCloud}
           />
         );
