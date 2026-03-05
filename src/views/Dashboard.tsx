@@ -289,8 +289,9 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
               const server = servers.find(s => s.id === (c.serverId || (c as any).server_id));
               const days = differenceInDays(parseISO(c.dueDate || (c as any).due_date), today);
 
-              const lastOverdueNotified = c.lastOverdueNotifiedDate ? parseISO(c.lastOverdueNotifiedDate) : null;
-              const isOnCooldown = lastOverdueNotified && !isNaN(lastOverdueNotified.getTime()) && differenceInDays(today, lastOverdueNotified) < 10;
+              const lastOverdueNotified = c.lastOverdueNotifiedDate || (c as any).last_overdue_notified_date;
+              const lastOverdueDate = lastOverdueNotified ? parseISO(lastOverdueNotified) : null;
+              const isOnCooldown = lastOverdueDate && !isNaN(lastOverdueDate.getTime()) && differenceInDays(today, lastOverdueDate) < 10;
 
               return (
                 <div key={c.id} className="p-4 flex items-center justify-between">
@@ -302,21 +303,30 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
                   </div>
                   <div className="flex items-center space-x-2">
                     <button
-                      onClick={() => {
-                        if (isOnCooldown) return;
+                      type="button"
+                      onClick={(e) => {
+                        if (isOnCooldown) {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          return;
+                        }
                         const message = formatWhatsappMessage(whatsappMessage, {
                           name: c.name,
                           amount: c.amountPaid,
                           dueDate: c.dueDate
                         });
-                        updateCustomer(c.id, { lastOverdueNotifiedDate: format(today, 'yyyy-MM-dd') });
+                        updateCustomer(c.id, {
+                          lastOverdueNotifiedDate: format(today, 'yyyy-MM-dd'),
+                          last_overdue_notified_date: format(today, 'yyyy-MM-dd')
+                        } as any);
                         window.open(`https://wa.me/${c.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
                       }}
-                      disabled={!!isOnCooldown}
+                      disabled={Boolean(isOnCooldown)}
                       className={`p-2 rounded-full transition-all duration-300 ${isOnCooldown
                         ? 'bg-gray-500/10 text-gray-600 cursor-not-allowed opacity-40 pointer-events-none'
                         : 'bg-green-600/20 text-green-500 hover:bg-green-600/30'}`}
-                      title={isOnCooldown ? `Próximo envio em ${10 - differenceInDays(today, lastOverdueNotified!)} dias` : "WhatsApp"}
+                      style={{ pointerEvents: isOnCooldown ? 'none' : 'auto' }}
+                      title={isOnCooldown ? `Próximo envio em ${10 - differenceInDays(today, lastOverdueDate!)} dias` : "WhatsApp"}
                     >
                       <MessageCircle size={20} />
                     </button>

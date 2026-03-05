@@ -330,8 +330,9 @@ export function Customers({
             const daysDiff = differenceInDays(dueDate, today);
             const isActive = isAfter(dueDate, today) || daysDiff === 0;
 
-            const lastOverdueNotified = customer.lastOverdueNotifiedDate ? parseISO(customer.lastOverdueNotifiedDate) : null;
-            const isOnCooldown = lastOverdueNotified && !isNaN(lastOverdueNotified.getTime()) && differenceInDays(today, lastOverdueNotified) < 10;
+            const lastOverdueNotified = customer.lastOverdueNotifiedDate || (customer as any).last_overdue_notified_date;
+            const lastOverdueDate = lastOverdueNotified ? parseISO(lastOverdueNotified) : null;
+            const isOnCooldown = lastOverdueDate && !isNaN(lastOverdueDate.getTime()) && differenceInDays(today, lastOverdueDate) < 10;
 
             return (
               <div key={customer.id} className="bg-[#1a1a1a] rounded-2xl border border-white/5 p-4 shadow-lg">
@@ -372,6 +373,7 @@ export function Customers({
 
                     {!isActive && (
                       <button
+                        type="button"
                         onClick={(e) => {
                           if (isOnCooldown) {
                             e.preventDefault();
@@ -382,7 +384,11 @@ export function Customers({
                           const overdueDays = Math.abs(daysDiff);
                           const message = `Olá *${customer.name}*! 👋\n\nPassando para avisar que seu acesso IPTV está vencido há *${overdueDays}* ${overdueDays === 1 ? 'dia' : 'dias'}. ⚠️\n\nGostaria de renovar seu acesso com a gente agora? 😊`;
 
-                          updateCustomer(customer.id, { lastOverdueNotifiedDate: format(today, 'yyyy-MM-dd') });
+                          updateCustomer(customer.id, {
+                            lastOverdueNotifiedDate: format(today, 'yyyy-MM-dd'),
+                            last_overdue_notified_date: format(today, 'yyyy-MM-dd')
+                          } as any);
+
                           window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
                         }}
                         disabled={Boolean(isOnCooldown)}
@@ -390,10 +396,10 @@ export function Customers({
                           ? 'bg-gray-500/10 text-gray-600 cursor-not-allowed opacity-40 pointer-events-none select-none'
                           : 'bg-red-500/20 text-red-500 hover:bg-red-500/30 animate-bounce'
                           }`}
-                        style={isOnCooldown ? { pointerEvents: 'none' } : {}}
+                        style={{ pointerEvents: isOnCooldown ? 'none' : 'auto' }}
                         title={
                           isOnCooldown
-                            ? `Próximo envio em ${10 - differenceInDays(today, lastOverdueNotified!)} dias`
+                            ? `Próximo envio em ${10 - differenceInDays(today, lastOverdueDate!)} dias`
                             : "Lembrar Vencimento"
                         }
                       >
