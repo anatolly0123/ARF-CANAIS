@@ -349,7 +349,7 @@ export function Customers({
                     </h3>
                     <div className="text-xs text-[#c8a646] uppercase tracking-wider mt-1">{server?.name} • {plan?.name}</div>
                   </div>
-                  <div className="flex space-x-2">
+                  <div className="grid grid-cols-3 gap-2">
                     <button
                       onClick={() => {
                         const message = formatWhatsappMessage(whatsappMessage, {
