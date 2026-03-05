@@ -57,7 +57,7 @@ export function useStore(user: User | null) {
       amountPaid: parseSafeNumber(c.amount_paid ?? c.amountPaid),
       dueDate: c.dueDate || c.due_date || new Date().toISOString(),
       lastNotifiedDate: c.lastNotifiedDate || c.last_notified_date,
-      lastOverdueNotifiedDate: c.lastOverdueNotifiedDate || c.last_overdue_notified_date || (c as any).last_overdue_not_date
+      lastOverdueNotifiedDate: c.lastOverdueNotifiedDate || c.last_overdue_notified_date
     }));
   });
 
@@ -145,8 +145,8 @@ export function useStore(user: User | null) {
             planId: (PLAN_ID_MAP[c.plan_id] || PLAN_ID_MAP[c.planId] || c.plan_id || c.planId || '').toString(),
             amountPaid: parseSafeNumber(c.amount_paid ?? c.amountPaid),
             dueDate: c.due_date || c.dueDate || new Date().toISOString(),
-            lastNotifiedDate: c.last_notified_date || c.lastNotifiedDate,
-            lastOverdueNotifiedDate: c.last_overdue_notified_date || c.lastOverdueNotifiedDate || (c as any).last_overdue_not_date
+            lastNotifiedDate: c.last_not_date || c.last_notified_date || c.lastNotifiedDate,
+            lastOverdueNotifiedDate: c.last_overdue_not_date || c.last_overdue_notified_date || c.lastOverdueNotifiedDate
           })));
         }
         if (renewalsData && renewalsData.length > 0) {
@@ -258,11 +258,7 @@ export function useStore(user: User | null) {
       if (data.amountPaid !== undefined) updateData.amount_paid = data.amountPaid;
       if (data.dueDate !== undefined) updateData.due_date = data.dueDate;
       if (data.lastNotifiedDate !== undefined) updateData.last_notified_date = data.lastNotifiedDate;
-      if (data.lastOverdueNotifiedDate !== undefined) {
-        updateData.last_overdue_notified_date = data.lastOverdueNotifiedDate;
-        // Also map to any possible legacy names
-        (updateData as any).last_overdue_not_date = data.lastOverdueNotifiedDate;
-      }
+      if (data.lastOverdueNotifiedDate !== undefined) updateData.last_overdue_notified_date = data.lastOverdueNotifiedDate;
       supabase.from('customers').update(updateData).eq('id', id).then(({ error }) => {
         if (error) console.error('Error updating customer in cloud:', error);
       });

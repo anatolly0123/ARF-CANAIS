@@ -375,12 +375,11 @@ export function Customers({
                       <button
                         type="button"
                         onClick={(e) => {
-                          // Double triple check
-                          const checkDate = customer.lastOverdueNotifiedDate || (customer as any).last_overdue_notified_date || (customer as any).last_overdue_not_date;
-                          const checkParsed = checkDate ? parseISO(checkDate) : null;
-                          const checkIsOnCooldown = checkParsed && !isNaN(checkParsed.getTime()) && differenceInDays(today, checkParsed) < 10;
+                          const lastOverdueNotified = customer.lastOverdueNotifiedDate;
+                          const lastOverdueDate = lastOverdueNotified ? parseISO(lastOverdueNotified) : null;
+                          const isOnCooldown = lastOverdueDate && !isNaN(lastOverdueDate.getTime()) && differenceInDays(today, lastOverdueDate) < 10;
 
-                          if (checkIsOnCooldown) {
+                          if (isOnCooldown) {
                             e.preventDefault();
                             e.stopPropagation();
                             return;
