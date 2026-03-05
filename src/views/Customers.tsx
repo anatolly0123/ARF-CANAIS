@@ -385,8 +385,9 @@ export function Customers({
                           updateCustomer(customer.id, { lastOverdueNotifiedDate: format(today, 'yyyy-MM-dd') });
                           window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
                         }}
+                        disabled={customer.lastOverdueNotifiedDate && differenceInDays(today, parseISO(customer.lastOverdueNotifiedDate)) < 10 ? true : false}
                         className={`p-2 rounded-full transition-colors ${customer.lastOverdueNotifiedDate && differenceInDays(today, parseISO(customer.lastOverdueNotifiedDate)) < 10
-                          ? 'bg-gray-500/20 text-gray-500 cursor-not-allowed'
+                          ? 'bg-gray-500/10 text-gray-600 cursor-not-allowed opacity-50'
                           : 'bg-red-500/20 text-red-500 hover:bg-red-500/30 animate-bounce'
                           }`}
                         title={

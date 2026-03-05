@@ -483,6 +483,7 @@ export function useStore(user: User | null) {
           amount_paid: c.amountPaid,
           due_date: c.dueDate,
           last_notified_date: c.lastNotifiedDate,
+          last_overdue_notified_date: c.lastOverdueNotifiedDate,
           user_id: user.id
         })));
         if (error) throw error;
