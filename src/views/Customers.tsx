@@ -371,10 +371,10 @@ export function Customers({
                       <button
                         onClick={() => {
                           const lastNotified = customer.lastOverdueNotifiedDate ? parseISO(customer.lastOverdueNotifiedDate) : null;
-                          const canSend = !lastNotified || differenceInDays(today, lastNotified) >= 7;
+                          const canSend = !lastNotified || differenceInDays(today, lastNotified) >= 10;
 
                           if (!canSend) {
-                            const daysRemaining = 7 - differenceInDays(today, lastNotified!);
+                            const daysRemaining = 10 - differenceInDays(today, lastNotified!);
                             alert(`Mensagem já enviada. Aguarde mais ${daysRemaining} ${daysRemaining === 1 ? 'dia' : 'dias'} para enviar novamente.`);
                             return;
                           }
@@ -385,13 +385,13 @@ export function Customers({
                           updateCustomer(customer.id, { lastOverdueNotifiedDate: format(today, 'yyyy-MM-dd') });
                           window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
                         }}
-                        className={`p-2 rounded-full transition-colors ${customer.lastOverdueNotifiedDate && differenceInDays(today, parseISO(customer.lastOverdueNotifiedDate)) < 7
+                        className={`p-2 rounded-full transition-colors ${customer.lastOverdueNotifiedDate && differenceInDays(today, parseISO(customer.lastOverdueNotifiedDate)) < 10
                           ? 'bg-gray-500/20 text-gray-500 cursor-not-allowed'
                           : 'bg-red-500/20 text-red-500 hover:bg-red-500/30 animate-bounce'
                           }`}
                         title={
-                          customer.lastOverdueNotifiedDate && differenceInDays(today, parseISO(customer.lastOverdueNotifiedDate)) < 7
-                            ? `Próximo envio em ${7 - differenceInDays(today, parseISO(customer.lastOverdueNotifiedDate))} dias`
+                          customer.lastOverdueNotifiedDate && differenceInDays(today, parseISO(customer.lastOverdueNotifiedDate)) < 10
+                            ? `Próximo envio em ${10 - differenceInDays(today, parseISO(customer.lastOverdueNotifiedDate))} dias`
                             : "Lembrar Vencimento"
                         }
                       >
@@ -417,7 +417,7 @@ export function Customers({
                 <div className="grid grid-cols-2 gap-2 mt-4">
                   <div className="flex items-center space-x-2 text-sm text-gray-400">
                     <Calendar size={14} />
-                    <span className={!isActive ? 'text-red-400 font-medium' : daysDiff <= 7 ? 'text-yellow-500 font-medium' : ''}>
+                    <span className={!isActive ? 'text-red-400 font-medium' : daysDiff <= 10 ? 'text-yellow-500 font-medium' : ''}>
                       {(() => {
                         try {
                           return isNaN(dueDate.getTime()) ? 'Data Inválida' : format(dueDate, 'dd/MM/yyyy');
