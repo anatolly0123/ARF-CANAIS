@@ -269,6 +269,38 @@ export function useStore(user: User | null) {
     }
   };
 
+  const transferCustomer = async (customerId: string, newServerId: string) => {
+    // 1. Update Customer
+    setCustomers(prev => prev.map(c => c.id === customerId ? { ...c, serverId: newServerId } : c));
+
+    // 2. Find and Update Latest Renewal
+    let latestRenewalId: string | null = null;
+    const customerRenewals = renewals.filter(r => r.customerId === customerId);
+    if (customerRenewals.length > 0) {
+      const latest = customerRenewals.reduce((prev, current) => {
+        return (new Date(prev.date).getTime() > new Date(current.date).getTime()) ? prev : current;
+      });
+      latestRenewalId = latest.id;
+
+      const newServer = servers.find(s => s.id === newServerId);
+      const plan = plans.find(p => p.id === latest.planId);
+      const newCost = (newServer?.costPerActive || 0) * (plan?.months || 1);
+
+      setRenewals(prev => prev.map(r => r.id === latest.id ? { ...r, serverId: newServerId, cost: newCost } : r));
+
+      if (user) {
+        await supabase.from('renewals').update({
+          server_id: newServerId,
+          cost: newCost
+        }).eq('id', latest.id);
+      }
+    }
+
+    if (user) {
+      await supabase.from('customers').update({ server_id: newServerId }).eq('id', customerId);
+    }
+  };
+
   const bulkUpdateCustomers = async (updater: (prev: Customer[]) => Customer[]) => {
     setCustomers(prev => {
       const next = updater(prev);
@@ -498,7 +530,7 @@ export function useStore(user: User | null) {
     loading,
     servers, addServer, updateServer, deleteServer, bulkUpdateServers,
     plans, updatePlan, bulkUpdatePlans,
-    customers, addCustomer: addCustomer as (c: Customer) => Promise<boolean>, updateCustomer, deleteCustomer, bulkUpdateCustomers,
+    customers, addCustomer: addCustomer as (c: Customer) => Promise<boolean>, updateCustomer, deleteCustomer, bulkUpdateCustomers, transferCustomer,
     renewals, addRenewal, bulkUpdateRenewals,
     manualAdditions, addManualAddition, bulkUpdateManualAdditions,
     whatsappMessage, setWhatsappMessage,

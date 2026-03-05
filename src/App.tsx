@@ -79,6 +79,7 @@ export default function App() {
             bulkUpdateCustomers={store.bulkUpdateCustomers}
             addRenewal={store.addRenewal}
             renewalMessage={store.renewalMessage}
+            transferCustomer={store.transferCustomer}
           />
         );
       case 'servers':

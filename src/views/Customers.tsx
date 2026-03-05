@@ -5,7 +5,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { formatCurrency, isCustomerActive, formatWhatsappMessage, parseSafeNumber, parseRobustLocalTime } from '../utils';
 import { Modal } from '../components/Modal';
 import { RenewModal } from '../components/RenewModal';
-import { Plus, Search, Filter, Phone, RefreshCw, Edit2, Trash2, Calendar, CheckCircle, XCircle, MessageCircle, Users, Award, Star, UserX } from 'lucide-react';
+import { Plus, Search, Filter, Phone, RefreshCw, Edit2, Trash2, Calendar, CheckCircle, XCircle, MessageCircle, Users, Award, Star, UserX, ArrowRightLeft } from 'lucide-react';
+import { TransferModal } from '../components/TransferModal';
 
 interface CustomersProps {
   customers: Customer[];
@@ -18,12 +19,14 @@ interface CustomersProps {
   bulkUpdateCustomers: (updater: (prev: Customer[]) => Customer[]) => void;
   addRenewal: (r: Omit<Renewal, 'id'>) => void;
   renewalMessage: string;
+  transferCustomer: (customerId: string, newServerId: string) => void;
 }
 
 export function Customers({
   customers, servers, plans, whatsappMessage,
   addCustomer, updateCustomer, deleteCustomer,
-  bulkUpdateCustomers, addRenewal, renewalMessage
+  bulkUpdateCustomers, addRenewal, renewalMessage,
+  transferCustomer
 }: CustomersProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
@@ -33,6 +36,9 @@ export function Customers({
 
   // Renew State
   const [selectedCustomerForRenew, setSelectedCustomerForRenew] = useState<Customer | null>(null);
+
+  // Transfer State
+  const [selectedCustomerForTransfer, setSelectedCustomerForTransfer] = useState<Customer | null>(null);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -90,6 +96,13 @@ export function Customers({
         window.open(`https://wa.me/${selectedCustomerForRenew.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
       }
       setSelectedCustomerForRenew(null);
+    }
+  };
+
+  const handleTransfer = (newServerId: string) => {
+    if (selectedCustomerForTransfer) {
+      transferCustomer(selectedCustomerForTransfer.id, newServerId);
+      setSelectedCustomerForTransfer(null);
     }
   };
 
@@ -389,6 +402,9 @@ export function Customers({
                     <button onClick={() => openRenewModal(customer)} className="p-2 text-green-400 hover:text-green-300 transition-colors bg-green-500/10 rounded-full" title="Renovar">
                       <RefreshCw size={16} />
                     </button>
+                    <button onClick={() => setSelectedCustomerForTransfer(customer)} className="p-2 text-blue-400 hover:text-blue-300 transition-colors bg-blue-500/10 rounded-full" title="Mudar Servidor">
+                      <ArrowRightLeft size={16} />
+                    </button>
                     <button onClick={() => openModal(customer)} className="p-2 text-gray-400 hover:text-white transition-colors bg-white/5 rounded-full" title="Editar">
                       <Edit2 size={16} />
                     </button>
@@ -454,6 +470,14 @@ export function Customers({
         servers={servers}
         plans={plans}
         onConfirm={handleRenew}
+      />
+
+      <TransferModal
+        isOpen={!!selectedCustomerForTransfer}
+        onClose={() => setSelectedCustomerForTransfer(null)}
+        customer={selectedCustomerForTransfer}
+        servers={servers}
+        onConfirm={handleTransfer}
       />
 
       {/* Form Modal */}
