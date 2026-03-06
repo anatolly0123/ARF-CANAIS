@@ -271,13 +271,9 @@ export function useStore(user: User | null) {
 
   const deleteCustomer = (id: string) => {
     setCustomers(prev => prev.filter(c => c.id !== id));
-    setRenewals(prev => prev.filter(r => (r.customerId || (r as any).customer_id) !== id));
     if (user) {
       supabase.from('customers').delete().eq('id', id).then(({ error }) => {
         if (error) console.error('Error deleting customer from cloud:', error);
-      });
-      supabase.from('renewals').delete().eq('customer_id', id).then(({ error }) => {
-        if (error) console.error('Error deleting customer renewals from cloud:', error);
       });
     }
   };
