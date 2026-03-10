@@ -269,13 +269,20 @@ export function useStore(user: User | null) {
     }
   };
 
-  const deleteCustomer = (id: string) => {
-    setCustomers(prev => prev.filter(c => c.id !== id));
+  const deleteCustomer = async (id: string) => {
     if (user) {
-      supabase.from('customers').delete().eq('id', id).then(({ error }) => {
-        if (error) console.error('Error deleting customer from cloud:', error);
-      });
+      // First delete associated renewals to prevent foreign key errors if cascade is not set
+      await supabase.from('renewals').delete().eq('customer_id', id);
+
+      const { error } = await supabase.from('customers').delete().eq('id', id);
+      if (error) {
+        console.error('Error deleting customer from cloud:', error);
+        alert('Erro ao excluir cliente do banco de dados (provavelmente por causa de históricos).');
+        return;
+      }
     }
+    setRenewals(prev => prev.filter(r => r.customerId !== id));
+    setCustomers(prev => prev.filter(c => c.id !== id));
   };
 
   const transferCustomer = async (customerId: string, newServerId: string) => {
