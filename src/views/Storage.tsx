@@ -308,10 +308,18 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
       }
     });
 
-    const gross = monthRenewals.reduce((acc, r) => acc + parseSafeNumber(r.amount || (r as any).amount), 0) +
+    const gross = monthRenewals.reduce((acc, r) => {
+      const plan = plans.find(p => p.id === (r.planId || (r as any).plan_id));
+      const months = plan ? plan.months : 1;
+      return acc + (parseSafeNumber(r.amount || (r as any).amount) / months);
+    }, 0) +
       monthAdditions.filter(a => parseSafeNumber(a.amount || (a as any).amount) > 0).reduce((acc, a) => acc + parseSafeNumber(a.amount || (a as any).amount), 0);
 
-    const cost = monthRenewals.reduce((acc, r) => acc + parseSafeNumber(r.cost || (r as any).cost), 0) +
+    const cost = monthRenewals.reduce((acc, r) => {
+      const plan = plans.find(p => p.id === (r.planId || (r as any).plan_id));
+      const months = plan ? plan.months : 1;
+      return acc + (parseSafeNumber(r.cost || (r as any).cost) / months);
+    }, 0) +
       Math.abs(monthAdditions.filter(a => parseSafeNumber(a.amount || (a as any).amount) < 0).reduce((acc, a) => acc + parseSafeNumber(a.amount || (a as any).amount), 0));
 
     const transactions: { id: string; date: string; description: string; amount: number; type: 'profit' | 'expense' }[] = [];
@@ -321,8 +329,11 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
       const customer = customers.find(c => c.id.toString() === rCustomerId?.toString());
       const customerName = customer ? customer.name : 'Cliente Excluído';
 
-      const amount = parseSafeNumber(r.amount || (r as any).amount);
-      const cost = parseSafeNumber(r.cost || (r as any).cost);
+      const plan = plans.find(p => p.id === (r.planId || (r as any).plan_id));
+      const months = plan ? plan.months : 1;
+
+      const amount = parseSafeNumber(r.amount || (r as any).amount) / months;
+      const cost = parseSafeNumber(r.cost || (r as any).cost) / months;
       const rDate = r.date || (r as any).date || (r as any).created_at || new Date().toISOString();
 
       if (amount > 0) {
