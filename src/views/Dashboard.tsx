@@ -58,7 +58,11 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
       const months = plan ? plan.months : 1;
       return acc + (parseSafeNumber(r.amount || (r as any).amount) / months);
     }, 0);
-    const mCost = currentMonthRenewals.reduce((acc, r) => acc + parseSafeNumber(r.cost || (r as any).cost), 0);
+    const mCost = currentMonthRenewals.reduce((acc, r) => {
+      const plan = plans.find(p => p.id === (r.planId || (r as any).plan_id));
+      const months = plan ? plan.months : 1;
+      return acc + (parseSafeNumber(r.cost || (r as any).cost) / months);
+    }, 0);
 
     const currentMonthAdditions = manualAdditions.filter(a => isCurrentMonth(a.date || (a as any).date || (a as any).created_at));
     const mAdditions = currentMonthAdditions.reduce((acc, a) => acc + parseSafeNumber(a.amount || (a as any).amount), 0);
@@ -82,7 +86,11 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
         const months = plan ? plan.months : 1;
         return acc + (parseSafeNumber(r.amount || (r as any).amount) / months);
       }, 0);
-      const serverMonthlyCost = serverMonthRenewals.reduce((acc, r) => acc + parseSafeNumber(r.cost || (r as any).cost), 0);
+      const serverMonthlyCost = serverMonthRenewals.reduce((acc, r) => {
+        const plan = plans.find(p => p.id === (r.planId || (r as any).plan_id));
+        const months = plan ? plan.months : 1;
+        return acc + (parseSafeNumber(r.cost || (r as any).cost) / months);
+      }, 0);
 
       stats[sId] = {
         name: s.name,

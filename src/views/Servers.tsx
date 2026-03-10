@@ -84,12 +84,10 @@ export function Servers({ servers, customers, plans, addServer, updateServer, de
               return acc + (c.amountPaid / months);
             }, 0);
 
-            // Calculate total cost based on plans
+            // Calculate total cost (Monthly)
             const totalPaid = activeCustomers.reduce((sum, c) => {
               if (c.hasResetCounters) return sum; // If reset, this customer doesn't cost anything for the current cycle
-              const plan = plans.find(p => p.id === c.planId);
-              const months = plan ? plan.months : 1;
-              return sum + (server.costPerActive * months);
+              return sum + server.costPerActive;
             }, 0);
             const profit = totalGenerated - totalPaid;
 
