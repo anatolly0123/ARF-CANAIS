@@ -97,7 +97,15 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
           stats[sId].active += 1;
         }
 
-        const checkDate = new Date(dueDateStr.toString().replace(/-/g, '/'));
+        const dParts = dueDateStr.toString().split('-');
+        let checkDate = new Date();
+        if (dParts.length === 3) {
+          checkDate = new Date(parseInt(dParts[0]), parseInt(dParts[1]) - 1, parseInt(dParts[2]));
+        } else {
+          checkDate = new Date(dueDateStr.toString().replace(/-/g, '/'));
+        }
+        checkDate.setHours(0, 0, 0, 0);
+
         const daysUntilDue = differenceInDays(checkDate, today);
         if (daysUntilDue >= -6 && daysUntilDue <= 6) {
           expiring.push(c);
