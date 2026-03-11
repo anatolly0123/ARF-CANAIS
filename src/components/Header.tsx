@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, LogOut, Shield, User as UserIcon, Settings, ChevronDown, BellRing } from 'lucide-react';
+import { Bell, LogOut, Shield, User as UserIcon, Settings, ChevronDown, BellRing, Database } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Tab, UserRole } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -136,6 +136,40 @@ export function Header({ activeTab, setActiveTab, userRole, userEmail, userAvata
                       >
                         <UserIcon size={16} />
                         <span>Meu Perfil</span>
+                      </button>
+                    )}
+
+                    {setActiveTab && (
+                      <button 
+                        onClick={() => {
+                          setIsDropdownOpen(false);
+                          setActiveTab('plans');
+                        }}
+                        className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium ${
+                          activeTab === 'plans' 
+                            ? 'bg-[#c8a646]/20 text-[#c8a646]' 
+                            : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                        }`}
+                      >
+                        <Settings size={16} />
+                        <span>Planos (Valores)</span>
+                      </button>
+                    )}
+
+                    {(userRole === 'owner' || userRole === 'admin') && setActiveTab && (
+                      <button 
+                        onClick={() => {
+                          setIsDropdownOpen(false);
+                          setActiveTab('storage');
+                        }}
+                        className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium ${
+                          activeTab === 'storage' 
+                            ? 'bg-[#c8a646]/20 text-[#c8a646]' 
+                            : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                        }`}
+                      >
+                        <Database size={16} />
+                        <span>Dados e Backup</span>
                       </button>
                     )}
 
