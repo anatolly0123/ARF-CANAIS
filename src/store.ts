@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Server, Plan, Customer, Renewal, ManualAddition } from './types';
+import { Server, Plan, Customer, Renewal, ManualAddition, UserRole } from './types';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from './lib/supabase';
 import { User } from '@supabase/supabase-js';
@@ -23,8 +23,14 @@ const PLAN_ID_MAP: Record<string, string> = {
 
 export function useStore(user: User | null) {
   const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState<UserRole>('observer');
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userAvatar, setUserAvatar] = useState<string | null>(() => {
+    return localStorage.getItem('arf_user_avatar');
+  });
 
   const [servers, setServers] = useState<Server[]>(() => {
+    // ... [rest of states remain same]
     const saved = localStorage.getItem('arf_servers');
     return saved ? JSON.parse(saved) : [];
   });
@@ -104,8 +110,12 @@ export function useStore(user: User | null) {
     async function loadData() {
       if (!user) {
         setLoading(false);
+        setUserEmail(null);
         return;
       }
+      
+      setLoading(true);
+      setUserEmail(user.email || null);
 
       try {
         const [
@@ -114,15 +124,31 @@ export function useStore(user: User | null) {
           { data: customersData },
           { data: renewalsData },
           { data: additionsData },
-          { data: settingsData }
+          { data: settingsData },
+          { data: profileData }
         ] = await Promise.all([
           supabase.from('servers').select('*').order('name'),
           supabase.from('plans').select('*').order('months'),
           supabase.from('customers').select('*').order('name'),
           supabase.from('renewals').select('*').order('date', { ascending: false }),
           supabase.from('manual_additions').select('*').order('date', { ascending: false }),
-          supabase.from('settings').select('*').single()
+          supabase.from('settings').select('*').single(),
+          supabase.from('profiles').select('role, parent_id, avatar_url').eq('id', user.id).maybeSingle()
         ]);
+
+        if (profileData) {
+          if (profileData.role) {
+            setUserRole(profileData.role as UserRole);
+          } else {
+            setUserRole('owner');
+          }
+          
+          if (profileData.avatar_url) {
+            setUserAvatar(profileData.avatar_url);
+          }
+        } else {
+          setUserRole('owner');
+        }
 
         if (serversData && serversData.length > 0) {
           setServers(serversData.map((s: any) => ({
@@ -438,6 +464,14 @@ export function useStore(user: User | null) {
     }
   }, [appCover]);
 
+  useEffect(() => {
+    if (userAvatar) {
+      localStorage.setItem('arf_user_avatar', userAvatar);
+    } else {
+      localStorage.removeItem('arf_user_avatar');
+    }
+  }, [userAvatar]);
+
   const bulkUpdateServers = (newServers: Server[]) => setServers(newServers);
   const bulkUpdatePlans = (newPlans: Plan[]) => setPlans(newPlans);
   const bulkUpdateRenewals = (newRenewals: Renewal[]) => setRenewals(newRenewals);
@@ -582,6 +616,9 @@ export function useStore(user: User | null) {
     customers, addCustomer: addCustomer as (c: Customer) => Promise<boolean>, updateCustomer, deleteCustomer, bulkUpdateCustomers, transferCustomer, resetServerCounters,
     renewals, addRenewal, bulkUpdateRenewals,
     manualAdditions, addManualAddition, bulkUpdateManualAdditions,
+    userRole,
+    userEmail, setUserEmail,
+    userAvatar, setUserAvatar,
     whatsappMessage, setWhatsappMessage,
     renewalMessage, setRenewalMessage,
     appIcon, setAppIcon,

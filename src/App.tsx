@@ -13,6 +13,8 @@ import { Customers } from './views/Customers';
 import { Servers } from './views/Servers';
 import { Plans } from './views/Plans';
 import { Storage } from './views/Storage';
+import { AdminPanel } from './views/AdminPanel';
+import { Profile } from './views/Profile';
 import { Auth } from './components/Auth';
 import { supabase } from './lib/supabase';
 import { motion, AnimatePresence } from 'motion/react';
@@ -71,6 +73,7 @@ export default function App() {
             addRenewal={store.addRenewal}
             manualAdditions={store.manualAdditions}
             renewalMessage={store.renewalMessage}
+            userRole={store.userRole}
           />
         );
       case 'customers':
@@ -87,6 +90,7 @@ export default function App() {
             addRenewal={store.addRenewal}
             renewalMessage={store.renewalMessage}
             transferCustomer={store.transferCustomer}
+            userRole={store.userRole}
           />
         );
       case 'servers':
@@ -99,6 +103,7 @@ export default function App() {
             updateServer={store.updateServer}
             deleteServer={store.deleteServer}
             resetServerCounters={store.resetServerCounters}
+            userRole={store.userRole}
           />
         );
       case 'plans':
@@ -112,6 +117,7 @@ export default function App() {
             setRenewalMessage={store.setRenewalMessage}
             addManualAddition={store.addManualAddition}
             manualAdditions={store.manualAdditions}
+            userRole={store.userRole}
           />
         );
       case 'storage':
@@ -132,6 +138,22 @@ export default function App() {
             appCover={store.appCover}
             setAppCover={store.setAppCover}
             syncToCloud={store.syncToCloud}
+            userRole={store.userRole}
+          />
+        );
+      case 'admin':
+        return (
+          <AdminPanel
+            userRole={store.userRole}
+          />
+        );
+      case 'profile':
+        return (
+          <Profile
+            userEmail={store.userEmail || null}
+            userAvatar={store.userAvatar || null}
+            onAvatarUpdate={store.setUserAvatar}
+            onEmailUpdate={store.setUserEmail}
           />
         );
       default:
@@ -156,8 +178,14 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#0f0f0f] text-white font-sans selection:bg-[#c8a646]/30">
-      <Header />
-      <main className="max-w-md mx-auto p-4 sm:p-6 overflow-x-hidden">
+      <Header 
+        activeTab={activeTab} 
+        setActiveTab={setActiveTab} 
+        userRole={store.userRole}
+        userEmail={store.userEmail}
+        userAvatar={store.userAvatar}
+      />
+      <main className="max-w-md mx-auto p-4 sm:p-6 pb-32 overflow-x-hidden">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -170,7 +198,7 @@ export default function App() {
           </motion.div>
         </AnimatePresence>
       </main>
-      <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
+      <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} userRole={store.userRole} />
     </div>
   );
 }

@@ -41,4 +41,6 @@ export interface ManualAddition {
   description: string;
 }
 
-export type Tab = 'dashboard' | 'customers' | 'servers' | 'plans' | 'storage';
+export type Tab = 'dashboard' | 'customers' | 'servers' | 'plans' | 'storage' | 'admin' | 'profile';
+
+export type UserRole = 'owner' | 'admin' | 'observer';

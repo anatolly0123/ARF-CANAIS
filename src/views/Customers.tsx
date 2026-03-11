@@ -7,6 +7,7 @@ import { Modal } from '../components/Modal';
 import { RenewModal } from '../components/RenewModal';
 import { Plus, Search, Filter, Phone, RefreshCw, Edit2, Trash2, Calendar, CheckCircle, XCircle, MessageCircle, Users, Award, Star, UserX, ArrowRightLeft } from 'lucide-react';
 import { TransferModal } from '../components/TransferModal';
+import { UserRole } from '../types';
 
 interface CustomersProps {
   customers: Customer[];
@@ -20,13 +21,14 @@ interface CustomersProps {
   addRenewal: (r: Omit<Renewal, 'id'>) => void;
   renewalMessage: string;
   transferCustomer: (customerId: string, newServerId: string) => void;
+  userRole: UserRole;
 }
 
 export function Customers({
   customers, servers, plans, whatsappMessage,
   addCustomer, updateCustomer, deleteCustomer,
   bulkUpdateCustomers, addRenewal, renewalMessage,
-  transferCustomer
+  transferCustomer, userRole
 }: CustomersProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
@@ -238,12 +240,14 @@ export function Customers({
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-bold text-white uppercase tracking-widest">Clientes</h2>
         <div className="flex space-x-2">
-          <button
-            onClick={() => openModal()}
-            className="bg-[#c8a646] text-[#0f0f0f] p-2 rounded-full hover:bg-[#e8c666] transition-colors shadow-lg shadow-[#c8a646]/20"
-          >
-            <Plus size={24} />
-          </button>
+          {userRole !== 'observer' && (
+            <button
+              onClick={() => openModal()}
+              className="bg-[#c8a646] text-[#0f0f0f] p-2 rounded-full hover:bg-[#e8c666] transition-colors shadow-lg shadow-[#c8a646]/20"
+            >
+              <Plus size={24} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -371,57 +375,61 @@ export function Customers({
                       <Phone size={16} />
                     </button>
 
-                    {!isActive && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          const lastOverdueNotified = customer.lastOverdueNotifiedDate;
-                          const lastOverdueDate = lastOverdueNotified ? parseISO(lastOverdueNotified) : null;
-                          const isOnCooldown = lastOverdueDate && !isNaN(lastOverdueDate.getTime()) && differenceInDays(today, lastOverdueDate) < 10;
+                    {userRole !== 'observer' && (
+                      <>
+                        {!isActive && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              const lastOverdueNotified = customer.lastOverdueNotifiedDate;
+                              const lastOverdueDate = lastOverdueNotified ? parseISO(lastOverdueNotified) : null;
+                              const isOnCooldown = lastOverdueDate && !isNaN(lastOverdueDate.getTime()) && differenceInDays(today, lastOverdueDate) < 10;
 
-                          if (isOnCooldown) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            return;
-                          }
+                              if (isOnCooldown) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                return;
+                              }
 
-                          const overdueDays = Math.abs(daysDiff);
-                          const message = `Olá *${customer.name}*! 👋\n\nPassando para avisar que seu acesso IPTV está vencido há *${overdueDays}* ${overdueDays === 1 ? 'dia' : 'dias'}. ⚠️\n\nGostaria de renovar seu acesso com a gente agora? 😊`;
+                              const overdueDays = Math.abs(daysDiff);
+                              const message = `Olá *${customer.name}*! 👋\n\nPassando para avisar que seu acesso IPTV está vencido há *${overdueDays}* ${overdueDays === 1 ? 'dia' : 'dias'}. ⚠️\n\nGostaria de renovar seu acesso com a gente agora? 😊`;
 
-                          updateCustomer(customer.id, {
-                            lastOverdueNotifiedDate: format(today, 'yyyy-MM-dd')
-                          });
+                              updateCustomer(customer.id, {
+                                lastOverdueNotifiedDate: format(today, 'yyyy-MM-dd')
+                              });
 
-                          window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
-                        }}
-                        disabled={Boolean(isOnCooldown)}
-                        className={`p-2 rounded-full transition-all duration-300 ${isOnCooldown
-                          ? 'bg-gray-500/10 text-gray-600 cursor-not-allowed opacity-40 pointer-events-none select-none'
-                          : 'bg-red-500/20 text-red-500 hover:bg-red-500/30 animate-bounce'
-                          }`}
-                        style={{ pointerEvents: isOnCooldown ? 'none' : 'auto' }}
-                        title={
-                          isOnCooldown
-                            ? `Próximo envio em ${10 - differenceInDays(today, lastOverdueDate!)} dias`
-                            : "Lembrar Vencimento"
-                        }
-                      >
-                        <MessageCircle size={16} />
-                      </button>
+                              window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
+                            }}
+                            disabled={Boolean(isOnCooldown)}
+                            className={`p-2 rounded-full transition-all duration-300 ${isOnCooldown
+                              ? 'bg-gray-500/10 text-gray-600 cursor-not-allowed opacity-40 pointer-events-none select-none'
+                              : 'bg-red-500/20 text-red-500 hover:bg-red-500/30 animate-bounce'
+                              }`}
+                            style={{ pointerEvents: isOnCooldown ? 'none' : 'auto' }}
+                            title={
+                              isOnCooldown
+                                ? `Próximo envio em ${10 - differenceInDays(today, lastOverdueDate!)} dias`
+                                : "Lembrar Vencimento"
+                            }
+                          >
+                            <MessageCircle size={16} />
+                          </button>
+                        )}
+
+                        <button onClick={() => openRenewModal(customer)} className="p-2 text-green-400 hover:text-green-300 transition-colors bg-green-500/10 rounded-full" title="Renovar">
+                          <RefreshCw size={16} />
+                        </button>
+                        <button onClick={() => setSelectedCustomerForTransfer(customer)} className="p-2 text-blue-400 hover:text-blue-300 transition-colors bg-blue-500/10 rounded-full" title="Mudar Servidor">
+                          <ArrowRightLeft size={16} />
+                        </button>
+                        <button onClick={() => openModal(customer)} className="p-2 text-gray-400 hover:text-white transition-colors bg-white/5 rounded-full" title="Editar">
+                          <Edit2 size={16} />
+                        </button>
+                        <button onClick={() => setCustomerToDelete(customer)} className="p-2 text-red-400 hover:text-red-300 transition-colors bg-red-500/10 rounded-full" title="Excluir">
+                          <Trash2 size={16} />
+                        </button>
+                      </>
                     )}
-
-                    <button onClick={() => openRenewModal(customer)} className="p-2 text-green-400 hover:text-green-300 transition-colors bg-green-500/10 rounded-full" title="Renovar">
-                      <RefreshCw size={16} />
-                    </button>
-                    <button onClick={() => setSelectedCustomerForTransfer(customer)} className="p-2 text-blue-400 hover:text-blue-300 transition-colors bg-blue-500/10 rounded-full" title="Mudar Servidor">
-                      <ArrowRightLeft size={16} />
-                    </button>
-                    <button onClick={() => openModal(customer)} className="p-2 text-gray-400 hover:text-white transition-colors bg-white/5 rounded-full" title="Editar">
-                      <Edit2 size={16} />
-                    </button>
-                    <button onClick={() => setCustomerToDelete(customer)} className="p-2 text-red-400 hover:text-red-300 transition-colors bg-red-500/10 rounded-full" title="Excluir">
-                      <Trash2 size={16} />
-                    </button>
                   </div>
                 </div>
 

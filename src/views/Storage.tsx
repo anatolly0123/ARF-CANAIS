@@ -1,6 +1,6 @@
 import { useState, useEffect, ChangeEvent, useMemo } from 'react';
 import { Database, Download, Upload, Trash2, HardDrive, Calendar as CalendarIcon, TrendingUp, TrendingDown, DollarSign, Image as ImageIcon, History } from 'lucide-react';
-import { Customer, Server, Plan, Renewal, ManualAddition } from '../types';
+import { Customer, Server, Plan, Renewal, ManualAddition, UserRole } from '../types';
 import { format, parseISO, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatCurrency, parseCurrency, parseExcelDate, parseSafeNumber, parseRobustLocalTime } from '../utils';
@@ -24,9 +24,10 @@ interface StorageProps {
   appCover: string | null;
   setAppCover: (cover: string | null) => void;
   syncToCloud: (data?: any, clearFirst?: boolean) => Promise<void>;
+  userRole: UserRole;
 }
 
-export function Storage({ customers, servers, plans, renewals, manualAdditions, bulkUpdateCustomers, setServers, setPlans, setRenewals, setManualAdditions, appIcon, setAppIcon, appCover, setAppCover, syncToCloud }: StorageProps) {
+export function Storage({ customers, servers, plans, renewals, manualAdditions, bulkUpdateCustomers, setServers, setPlans, setRenewals, setManualAdditions, appIcon, setAppIcon, appCover, setAppCover, syncToCloud, userRole }: StorageProps) {
   const [storageSize, setStorageSize] = useState<string>('0 KB');
   const [isFullHistoryOpen, setIsFullHistoryOpen] = useState(false);
   const [importPreview, setImportPreview] = useState<Customer[]>([]);

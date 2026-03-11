@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { motion, AnimatePresence } from 'motion/react';
-import { LogIn, UserPlus, Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
+import { LogIn, User, Lock, AlertCircle, Loader2 } from 'lucide-react';
 
 export function Auth() {
-    const [isLogin, setIsLogin] = useState(true);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -16,14 +15,9 @@ export function Auth() {
         setError(null);
 
         try {
-            if (isLogin) {
-                const { error } = await supabase.auth.signInWithPassword({ email, password });
-                if (error) throw error;
-            } else {
-                const { error } = await supabase.auth.signUp({ email, password });
-                if (error) throw error;
-                alert('Confirme seu e-mail para ativar a conta!');
-            }
+            const loginEmail = email.includes('@') ? email : `${email}@arfcanais.com`;
+            const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
+            if (error) throw error;
         } catch (err: any) {
             setError(err.message || 'Ocorreu um erro inesperado');
         } finally {
@@ -51,23 +45,23 @@ export function Auth() {
                             ARF Canais
                         </h1>
                         <p className="text-gray-400 text-sm font-medium uppercase tracking-[0.2em]">
-                            {isLogin ? 'Bem-vindo de volta' : 'Nova Conta'}
+                            Bem-vindo de volta
                         </p>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="space-y-1">
                             <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">
-                                E-mail
+                                Usuário ou E-mail
                             </label>
                             <div className="relative group">
-                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-[#c8a646] transition-colors" size={18} />
+                                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-[#c8a646] transition-colors" size={18} />
                                 <input
-                                    type="email"
+                                    type="text"
                                     value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
+                                    onChange={(e) => setEmail(e.target.value.toLowerCase().trim())}
                                     className="w-full bg-[#0f0f0f]/50 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white focus:outline-none focus:border-[#c8a646] focus:ring-4 focus:ring-[#c8a646]/10 transition-all text-sm"
-                                    placeholder="seu@email.com"
+                                    placeholder="seu.usuario"
                                     required
                                 />
                             </div>
@@ -110,17 +104,8 @@ export function Auth() {
                             className="w-full relative py-4 bg-[#c8a646] hover:bg-[#e8c666] disabled:opacity-50 text-[#0f0f0f] font-black rounded-2xl transition-all shadow-xl shadow-[#c8a646]/20 active:scale-[0.98] overflow-hidden group"
                         >
                             <span className={`inline-flex items-center justify-center space-x-2 transition-all ${loading ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
-                                {isLogin ? (
-                                    <>
-                                        <span>ENTRAR</span>
-                                        <LogIn size={20} />
-                                    </>
-                                ) : (
-                                    <>
-                                        <span>CRIAR CONTA</span>
-                                        <UserPlus size={20} />
-                                    </>
-                                )}
+                                <span>ENTRAR</span>
+                                <LogIn size={20} />
                             </span>
                             {loading && (
                                 <div className="absolute inset-0 flex items-center justify-center">
@@ -129,19 +114,6 @@ export function Auth() {
                             )}
                         </button>
                     </form>
-
-                    <div className="mt-8 pt-8 border-t border-white/5 text-center">
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setIsLogin(!isLogin);
-                                setError(null);
-                            }}
-                            className="text-gray-400 hover:text-white transition-colors text-xs font-bold uppercase tracking-widest"
-                        >
-                            {isLogin ? 'Não tem uma conta? Crie aqui' : 'Já tem uma conta? Faça login'}
-                        </button>
-                    </div>
                 </div>
             </motion.div>
         </div>

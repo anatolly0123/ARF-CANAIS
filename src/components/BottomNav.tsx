@@ -1,22 +1,26 @@
-import { LayoutDashboard, Users, Server, Settings, Database } from 'lucide-react';
-import { Tab } from '../types';
+import { LayoutDashboard, Users, Server, Settings, Database, Shield } from 'lucide-react';
+import { Tab, UserRole } from '../types';
 
 interface BottomNavProps {
   activeTab: Tab;
   setActiveTab: (tab: Tab) => void;
+  userRole: UserRole;
 }
 
-export function BottomNav({ activeTab, setActiveTab }: BottomNavProps) {
+export function BottomNav({ activeTab, setActiveTab, userRole }: BottomNavProps) {
   const navItems = [
     { id: 'dashboard' as Tab, label: 'Início', icon: LayoutDashboard },
     { id: 'customers' as Tab, label: 'Clientes', icon: Users },
     { id: 'servers' as Tab, label: 'Servidores', icon: Server },
     { id: 'plans' as Tab, label: 'Planos', icon: Settings },
-    { id: 'storage' as Tab, label: 'Dados', icon: Database },
   ];
 
+  if (userRole === 'owner' || userRole === 'admin') {
+    navItems.push({ id: 'storage' as Tab, label: 'Dados', icon: Database });
+  }
+
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-[#141414] border-t border-[#c8a646]/20 pb-safe">
+    <div className="fixed bottom-0 left-0 right-0 bg-[#141414] border-t border-[#c8a646]/20 pb-safe z-50">
       <div className="flex justify-around items-center h-16 max-w-md mx-auto">
         {navItems.map((item) => {
           const Icon = item.icon;

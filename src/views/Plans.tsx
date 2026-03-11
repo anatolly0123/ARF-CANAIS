@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plan, ManualAddition } from '../types';
+import { Plan, ManualAddition, UserRole } from '../types';
 import { Settings, Edit2, MessageSquare, PlusCircle, MinusCircle, DollarSign } from 'lucide-react';
 import { formatCurrency, parseSafeNumber } from '../utils';
 import { Modal } from '../components/Modal';
@@ -13,9 +13,10 @@ interface PlansProps {
   setRenewalMessage: (msg: string) => void;
   addManualAddition: (addition: Omit<ManualAddition, 'id'>) => void;
   manualAdditions: ManualAddition[];
+  userRole: UserRole;
 }
 
-export function Plans({ plans, updatePlan, whatsappMessage, setWhatsappMessage, renewalMessage, setRenewalMessage, addManualAddition, manualAdditions }: PlansProps) {
+export function Plans({ plans, updatePlan, whatsappMessage, setWhatsappMessage, renewalMessage, setRenewalMessage, addManualAddition, manualAdditions, userRole }: PlansProps) {
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
   const [priceInput, setPriceInput] = useState('');
 
@@ -101,12 +102,14 @@ export function Plans({ plans, updatePlan, whatsappMessage, setWhatsappMessage, 
                 <div className="text-xl font-bold text-[#c8a646]">
                   {formatCurrency(plan.defaultPrice)}
                 </div>
-                <button
-                  onClick={() => handleEditPlan(plan)}
-                  className="p-2 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 rounded-full transition-colors"
-                >
-                  <Edit2 size={18} />
-                </button>
+                {userRole !== 'observer' && (
+                  <button
+                    onClick={() => handleEditPlan(plan)}
+                    className="p-2 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+                  >
+                    <Edit2 size={18} />
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -120,20 +123,22 @@ export function Plans({ plans, updatePlan, whatsappMessage, setWhatsappMessage, 
             <DollarSign size={28} className="text-[#c8a646]" />
             <h2 className="text-xl font-bold text-white uppercase tracking-widest">Saldo Manual</h2>
           </div>
-          <div className="flex space-x-2">
-            <button
-              onClick={() => handleOpenMoneyModal('remove')}
-              className="bg-red-500/20 text-red-400 p-2 rounded-full hover:bg-red-500/30 transition-colors"
-            >
-              <MinusCircle size={24} />
-            </button>
-            <button
-              onClick={() => handleOpenMoneyModal('add')}
-              className="bg-[#c8a646] text-[#0f0f0f] p-2 rounded-full hover:bg-[#e8c666] transition-colors shadow-lg shadow-[#c8a646]/20"
-            >
-              <PlusCircle size={24} />
-            </button>
-          </div>
+          {userRole !== 'observer' && (
+            <div className="flex space-x-2">
+              <button
+                onClick={() => handleOpenMoneyModal('remove')}
+                className="bg-red-500/20 text-red-400 p-2 rounded-full hover:bg-red-500/30 transition-colors"
+              >
+                <MinusCircle size={24} />
+              </button>
+              <button
+                onClick={() => handleOpenMoneyModal('add')}
+                className="bg-[#c8a646] text-[#0f0f0f] p-2 rounded-full hover:bg-[#e8c666] transition-colors shadow-lg shadow-[#c8a646]/20"
+              >
+                <PlusCircle size={24} />
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="bg-[#1a1a1a] p-5 rounded-2xl border border-white/5 shadow-lg">
@@ -169,12 +174,14 @@ export function Plans({ plans, updatePlan, whatsappMessage, setWhatsappMessage, 
         <div className="bg-[#1a1a1a] p-5 rounded-2xl border border-white/5 shadow-lg">
           <div className="flex justify-between items-start mb-4">
             <p className="text-xs text-gray-400">Mensagem padrão enviada para clientes próximos do vencimento.</p>
-            <button
-              onClick={handleEditMessage}
-              className="p-2 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 rounded-full transition-colors shrink-0 ml-4"
-            >
-              <Edit2 size={18} />
-            </button>
+            {userRole !== 'observer' && (
+              <button
+                onClick={handleEditMessage}
+                className="p-2 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 rounded-full transition-colors shrink-0 ml-4"
+              >
+                <Edit2 size={18} />
+              </button>
+            )}
           </div>
           <div className="bg-[#0f0f0f] p-4 rounded-xl border border-white/5">
             <p className="text-white text-xs whitespace-pre-wrap">{whatsappMessage}</p>
@@ -192,16 +199,18 @@ export function Plans({ plans, updatePlan, whatsappMessage, setWhatsappMessage, 
         <div className="bg-[#1a1a1a] p-5 rounded-2xl border border-white/5 shadow-lg">
           <div className="flex justify-between items-start mb-4">
             <p className="text-xs text-gray-400">Mensagem enviada logo após confirmar uma renovação.</p>
-            <button
-              onClick={() => {
-                setMessageInput(renewalMessage);
-                setIsEditingRenewalMessage(true);
-                setIsEditingMessage(true);
-              }}
-              className="p-2 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 rounded-full transition-colors shrink-0 ml-4"
-            >
-              <Edit2 size={18} />
-            </button>
+            {userRole !== 'observer' && (
+              <button
+                onClick={() => {
+                  setMessageInput(renewalMessage);
+                  setIsEditingRenewalMessage(true);
+                  setIsEditingMessage(true);
+                }}
+                className="p-2 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 rounded-full transition-colors shrink-0 ml-4"
+              >
+                <Edit2 size={18} />
+              </button>
+            )}
           </div>
           <div className="bg-[#0f0f0f] p-4 rounded-xl border border-white/5">
             <p className="text-white text-xs whitespace-pre-wrap">{renewalMessage}</p>

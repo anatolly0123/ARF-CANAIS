@@ -5,6 +5,7 @@ import { ptBR } from 'date-fns/locale';
 import { TrendingUp, TrendingDown, DollarSign, Users, AlertCircle, MessageCircle, ChevronRight, Server as ServerIcon, Calendar, CheckCircle, Clock, RefreshCw } from 'lucide-react';
 import { formatCurrency, isCustomerActive, parseSafeNumber, parseRobustLocalTime, formatWhatsappMessage } from '../utils';
 import { RenewModal } from '../components/RenewModal';
+import { UserRole } from '../types';
 
 interface DashboardProps {
   customers: Customer[];
@@ -16,9 +17,10 @@ interface DashboardProps {
   addRenewal: (r: Omit<Renewal, 'id'>) => void;
   manualAdditions: ManualAddition[];
   renewalMessage: string;
+  userRole: UserRole;
 }
 
-export function Dashboard({ customers, servers, plans, whatsappMessage, updateCustomer, renewals, addRenewal, manualAdditions, renewalMessage }: DashboardProps) {
+export function Dashboard({ customers, servers, plans, whatsappMessage, updateCustomer, renewals, addRenewal, manualAdditions, renewalMessage, userRole }: DashboardProps) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -211,7 +213,7 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
   return (
     <div className="space-y-6 pb-24">
       {/* Pending Notifications Banner */}
-      {pendingNotifications.length > 0 && (
+      {userRole !== 'observer' && pendingNotifications.length > 0 && (
         <div className="bg-[#c8a646] p-4 rounded-2xl flex items-center justify-between shadow-lg animate-in fade-in slide-in-from-top-4 duration-500">
           <div className="flex items-center space-x-3">
             <div className="bg-[#0f0f0f] p-2 rounded-full">
@@ -327,41 +329,45 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        if (isOnCooldown) {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          return;
-                        }
-                        const message = formatWhatsappMessage(whatsappMessage, {
-                          name: c.name,
-                          amount: c.amountPaid,
-                          dueDate: c.dueDate
-                        });
-                        updateCustomer(c.id, {
-                          lastOverdueNotifiedDate: format(today, 'yyyy-MM-dd'),
-                          last_overdue_notified_date: format(today, 'yyyy-MM-dd')
-                        } as any);
-                        window.open(`https://wa.me/${c.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
-                      }}
-                      disabled={Boolean(isOnCooldown)}
-                      className={`p-2 rounded-full transition-all duration-300 ${isOnCooldown
-                        ? 'bg-gray-500/10 text-gray-600 cursor-not-allowed opacity-40 pointer-events-none'
-                        : 'bg-green-600/20 text-green-500 hover:bg-green-600/30'}`}
-                      style={{ pointerEvents: isOnCooldown ? 'none' : 'auto' }}
-                      title={isOnCooldown ? `Próximo envio em ${10 - differenceInDays(today, lastOverdueDate!)} dias` : "WhatsApp"}
-                    >
-                      <MessageCircle size={20} />
-                    </button>
-                    <button
-                      onClick={() => openRenewModal(c)}
-                      className="p-2 bg-white/5 text-gray-400 rounded-full hover:text-[#c8a646] transition-colors"
-                      title="Renovar"
-                    >
-                      <RefreshCw size={20} />
-                    </button>
+                    {userRole !== 'observer' && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            if (isOnCooldown) {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              return;
+                            }
+                            const message = formatWhatsappMessage(whatsappMessage, {
+                              name: c.name,
+                              amount: c.amountPaid,
+                              dueDate: c.dueDate
+                            });
+                            updateCustomer(c.id, {
+                              lastOverdueNotifiedDate: format(today, 'yyyy-MM-dd'),
+                              last_overdue_notified_date: format(today, 'yyyy-MM-dd')
+                            } as any);
+                            window.open(`https://wa.me/${c.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
+                          }}
+                          disabled={Boolean(isOnCooldown)}
+                          className={`p-2 rounded-full transition-all duration-300 ${isOnCooldown
+                            ? 'bg-gray-500/10 text-gray-600 cursor-not-allowed opacity-40 pointer-events-none'
+                            : 'bg-green-600/20 text-green-500 hover:bg-green-600/30'}`}
+                          style={{ pointerEvents: isOnCooldown ? 'none' : 'auto' }}
+                          title={isOnCooldown ? `Próximo envio em ${10 - differenceInDays(today, lastOverdueDate!)} dias` : "WhatsApp"}
+                        >
+                          <MessageCircle size={20} />
+                        </button>
+                        <button
+                          onClick={() => openRenewModal(c)}
+                          className="p-2 bg-white/5 text-gray-400 rounded-full hover:text-[#c8a646] transition-colors"
+                          title="Renovar"
+                        >
+                          <RefreshCw size={20} />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               );

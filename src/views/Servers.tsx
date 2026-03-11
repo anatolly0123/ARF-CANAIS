@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Server, Customer, Plan } from '../types';
+import { Server, Customer, Plan, UserRole } from '../types';
 import { Plus, Edit2, Trash2, Server as ServerIcon } from 'lucide-react';
 import { parseISO, isAfter, differenceInDays } from 'date-fns';
 import { formatCurrency } from '../utils';
@@ -13,9 +13,10 @@ interface ServersProps {
   updateServer: (id: string, s: Partial<Server>) => void;
   deleteServer: (id: string) => void;
   resetServerCounters: (id: string) => void;
+  userRole: UserRole;
 }
 
-export function Servers({ servers, customers, plans, addServer, updateServer, deleteServer, resetServerCounters }: ServersProps) {
+export function Servers({ servers, customers, plans, addServer, updateServer, deleteServer, resetServerCounters, userRole }: ServersProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingServer, setEditingServer] = useState<Server | null>(null);
   const [formData, setFormData] = useState({ name: '', costPerActive: '' });
@@ -56,12 +57,14 @@ export function Servers({ servers, customers, plans, addServer, updateServer, de
     <div className="pb-24 space-y-4">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-bold text-white uppercase tracking-widest">Servidores</h2>
-        <button
-          onClick={() => openModal()}
-          className="bg-[#c8a646] text-[#0f0f0f] p-2 rounded-full hover:bg-[#e8c666] transition-colors shadow-lg shadow-[#c8a646]/20"
-        >
-          <Plus size={24} />
-        </button>
+        {userRole !== 'observer' && (
+          <button
+            onClick={() => openModal()}
+            className="bg-[#c8a646] text-[#0f0f0f] p-2 rounded-full hover:bg-[#e8c666] transition-colors shadow-lg shadow-[#c8a646]/20"
+          >
+            <Plus size={24} />
+          </button>
+        )}
       </div>
 
       {servers.length === 0 ? (
@@ -99,22 +102,26 @@ export function Servers({ servers, customers, plans, addServer, updateServer, de
                     <p className="text-sm text-gray-400 mt-1">Custo por ativo: <span className="text-white">{formatCurrency(server.costPerActive)}</span></p>
                   </div>
                   <div className="flex space-x-2">
-                    <button onClick={() => {
-                      if (window.confirm(`Tem certeza que deseja resetar os contadores de Gerado, Pago e Lucro para o servidor ${server.name}? Isso zerará os valores do ciclo atual para todos os clientes ativos neste servidor.`)) {
-                        resetServerCounters(server.id);
-                      }
-                    }}
-                      className="p-2 text-yellow-400 hover:text-yellow-300 transition-colors bg-yellow-500/10 rounded-full"
-                      title="Resetar Contadores Mensais"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /></svg>
-                    </button>
-                    <button onClick={() => openModal(server)} className="p-2 text-gray-400 hover:text-white transition-colors bg-white/5 rounded-full">
-                      <Edit2 size={16} />
-                    </button>
-                    <button onClick={() => deleteServer(server.id)} className="p-2 text-red-400 hover:text-red-300 transition-colors bg-red-500/10 rounded-full">
-                      <Trash2 size={16} />
-                    </button>
+                    {userRole !== 'observer' && (
+                      <>
+                        <button onClick={() => {
+                          if (window.confirm(`Tem certeza que deseja resetar os contadores de Gerado, Pago e Lucro para o servidor ${server.name}? Isso zerará os valores do ciclo atual para todos os clientes ativos neste servidor.`)) {
+                            resetServerCounters(server.id);
+                          }
+                        }}
+                          className="p-2 text-yellow-400 hover:text-yellow-300 transition-colors bg-yellow-500/10 rounded-full"
+                          title="Resetar Contadores Mensais"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /></svg>
+                        </button>
+                        <button onClick={() => openModal(server)} className="p-2 text-gray-400 hover:text-white transition-colors bg-white/5 rounded-full">
+                          <Edit2 size={16} />
+                        </button>
+                        <button onClick={() => deleteServer(server.id)} className="p-2 text-red-400 hover:text-red-300 transition-colors bg-red-500/10 rounded-full">
+                          <Trash2 size={16} />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
 
