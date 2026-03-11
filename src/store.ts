@@ -71,25 +71,15 @@ export function useStore(user: User | null) {
       setUserEmail(user.email || null);
 
       try {
-        // Limit history to the last 3 months to avoid slow initial loads
-        const threeMonthsAgo = new Date();
-        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-        const threeMonthsAgoISO = threeMonthsAgo.toISOString();
-
+        // Phase 1: Essential metadata and profile
         const [
           { data: serversData },
           { data: plansData },
-          { data: customersData },
-          { data: renewalsData },
-          { data: additionsData },
           { data: settingsData },
           { data: profileData }
         ] = await Promise.all([
           supabase.from('servers').select('*').order('name'),
           supabase.from('plans').select('*').order('months'),
-          supabase.from('customers').select('*').order('name'),
-          supabase.from('renewals').select('*').gte('date', threeMonthsAgoISO).order('date', { ascending: false }),
-          supabase.from('manual_additions').select('*').gte('date', threeMonthsAgoISO).order('date', { ascending: false }),
           supabase.from('settings').select('*').single(),
           supabase.from('profiles').select('role, parent_id, avatar_url').eq('id', user.id).maybeSingle()
         ]);
@@ -123,6 +113,32 @@ export function useStore(user: User | null) {
             months: Number(p.months ?? 1)
           })));
         }
+        if (settingsData) {
+          if (settingsData.whatsapp_message || (settingsData as any).whatsappMessage) setWhatsappMessage(settingsData.whatsapp_message || (settingsData as any).whatsappMessage);
+          if (settingsData.renewal_message || (settingsData as any).renewalMessage) setRenewalMessage(settingsData.renewal_message || (settingsData as any).renewalMessage);
+          if (settingsData.app_icon || (settingsData as any).appIcon) setAppIcon(settingsData.app_icon || (settingsData as any).appIcon);
+          if (settingsData.app_cover || (settingsData as any).appCover) setAppCover(settingsData.app_cover || (settingsData as any).appCover);
+        }
+
+        // Release the main spinner early
+        setLoading(false);
+
+        // Phase 2: Transactional data (can be heavier)
+        // Limit history to the last 3 months to avoid slow initial loads
+        const threeMonthsAgo = new Date();
+        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+        const threeMonthsAgoISO = threeMonthsAgo.toISOString();
+
+        const [
+          { data: customersData },
+          { data: renewalsData },
+          { data: additionsData }
+        ] = await Promise.all([
+          supabase.from('customers').select('*').order('name'),
+          supabase.from('renewals').select('*').gte('date', threeMonthsAgoISO).order('date', { ascending: false }),
+          supabase.from('manual_additions').select('*').gte('date', threeMonthsAgoISO).order('date', { ascending: false })
+        ]);
+
         if (customersData && customersData.length > 0) {
           setCustomers(customersData.map((c: any) => ({
             id: c.id?.toString() || '',
@@ -155,18 +171,11 @@ export function useStore(user: User | null) {
             description: a.description || ''
           })));
         }
-
-        if (settingsData) {
-          if (settingsData.whatsapp_message || (settingsData as any).whatsappMessage) setWhatsappMessage(settingsData.whatsapp_message || (settingsData as any).whatsappMessage);
-          if (settingsData.renewal_message || (settingsData as any).renewalMessage) setRenewalMessage(settingsData.renewal_message || (settingsData as any).renewalMessage);
-          if (settingsData.app_icon || (settingsData as any).appIcon) setAppIcon(settingsData.app_icon || (settingsData as any).appIcon);
-          if (settingsData.app_cover || (settingsData as any).appCover) setAppCover(settingsData.app_cover || (settingsData as any).appCover);
-        }
       } catch (error) {
         console.error('Error loading data from Supabase:', error);
-      } finally {
         setLoading(false);
       }
+
     }
 
     loadData();
