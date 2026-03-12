@@ -71,18 +71,31 @@ export function useStore(user: User | null) {
       setUserEmail(user.email || null);
 
       try {
-        // Phase 1: Essential metadata and profile
+        // Start both phases concurrently
+        const phase1Promise = Promise.all([
+          supabase.from('servers').select('id, name, cost_per_active').eq('user_id', user.id).order('name'),
+          supabase.from('plans').select('id, name, default_price, months').eq('user_id', user.id).order('months'),
+          supabase.from('settings').select('whatsapp_message, renewal_message, app_icon, app_cover').eq('user_id', user.id).maybeSingle(),
+          supabase.from('profiles').select('role, avatar_url').eq('id', user.id).maybeSingle()
+        ]);
+
+        const threeMonthsAgo = new Date();
+        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+        const threeMonthsAgoISO = threeMonthsAgo.toISOString();
+
+        const phase2Promise = Promise.all([
+          supabase.from('customers').select('id, name, phone, server_id, plan_id, amount_paid, due_date, last_not_date, last_notified_date, last_overdue_not_date, last_overdue_notified_date, has_reset_counters').eq('user_id', user.id).order('name'),
+          supabase.from('renewals').select('id, customer_id, server_id, plan_id, amount, cost, date').eq('user_id', user.id).gte('date', threeMonthsAgoISO).order('date', { ascending: false }),
+          supabase.from('manual_additions').select('id, amount, date, description').eq('user_id', user.id).gte('date', threeMonthsAgoISO).order('date', { ascending: false })
+        ]);
+
+        // Wait for Phase 1 to unlock UI
         const [
           { data: serversData },
           { data: plansData },
           { data: settingsData },
           { data: profileData }
-        ] = await Promise.all([
-          supabase.from('servers').select('*').order('name'),
-          supabase.from('plans').select('*').order('months'),
-          supabase.from('settings').select('*').eq('user_id', user.id).maybeSingle(),
-          supabase.from('profiles').select('role, parent_id, avatar_url').eq('id', user.id).maybeSingle()
-        ]);
+        ] = await phase1Promise;
 
         if (profileData) {
           if (profileData.role) {
@@ -114,30 +127,21 @@ export function useStore(user: User | null) {
           })));
         }
         if (settingsData) {
-          if (settingsData.whatsapp_message || (settingsData as any).whatsappMessage) setWhatsappMessage(settingsData.whatsapp_message || (settingsData as any).whatsappMessage);
-          if (settingsData.renewal_message || (settingsData as any).renewalMessage) setRenewalMessage(settingsData.renewal_message || (settingsData as any).renewalMessage);
-          if (settingsData.app_icon || (settingsData as any).appIcon) setAppIcon(settingsData.app_icon || (settingsData as any).appIcon);
-          if (settingsData.app_cover || (settingsData as any).appCover) setAppCover(settingsData.app_cover || (settingsData as any).appCover);
+          if (settingsData.whatsapp_message) setWhatsappMessage(settingsData.whatsapp_message);
+          if (settingsData.renewal_message) setRenewalMessage(settingsData.renewal_message);
+          if (settingsData.app_icon) setAppIcon(settingsData.app_icon);
+          if (settingsData.app_cover) setAppCover(settingsData.app_cover);
         }
 
         // Release the main spinner early
         setLoading(false);
 
-        // Phase 2: Transactional data (can be heavier)
-        // Limit history to the last 3 months to avoid slow initial loads
-        const threeMonthsAgo = new Date();
-        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-        const threeMonthsAgoISO = threeMonthsAgo.toISOString();
-
+        // Wait for Phase 2 (already running in background)
         const [
           { data: customersData },
           { data: renewalsData },
           { data: additionsData }
-        ] = await Promise.all([
-          supabase.from('customers').select('*').order('name'),
-          supabase.from('renewals').select('*').gte('date', threeMonthsAgoISO).order('date', { ascending: false }),
-          supabase.from('manual_additions').select('*').gte('date', threeMonthsAgoISO).order('date', { ascending: false })
-        ]);
+        ] = await phase2Promise;
 
         if (customersData && customersData.length > 0) {
           const mappedCustomers = customersData.map((c: any) => {
@@ -150,8 +154,9 @@ export function useStore(user: User | null) {
               planId: (PLAN_ID_MAP[planId] || planId),
               amountPaid: parseSafeNumber(c.amount_paid ?? c.amountPaid),
               dueDate: c.due_date || c.dueDate || new Date().toISOString(),
-              lastNotifiedDate: c.last_not_date || c.last_notified_date || c.lastNotifiedDate,
-              lastOverdueNotifiedDate: c.last_overdue_not_date || c.last_overdue_notified_date || c.lastOverdueNotifiedDate
+              lastNotifiedDate: c.last_not_date || c.last_notified_date,
+              lastOverdueNotifiedDate: c.last_overdue_not_date || c.last_overdue_notified_date,
+              hasResetCounters: Boolean(c.has_reset_counters)
             };
           });
           setCustomers(mappedCustomers);

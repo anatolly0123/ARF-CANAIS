@@ -169,8 +169,8 @@ export default function App() {
     return (
       <div className="min-h-screen bg-[#0f0f0f] flex items-center justify-center">
         <div className="flex flex-col items-center space-y-4">
-          <div className="w-12 h-12 border-4 border-[#c8a646] border-t-transparent rounded-full animate-spin" />
-          <p className="text-[#c8a646] font-bold uppercase tracking-widest text-xs">Carregando dados...</p>
+          <div className="w-10 h-10 border-2 border-[#c8a646]/20 border-t-[#c8a646] rounded-full animate-spin" />
+          <p className="text-[#c8a646]/60 font-bold uppercase tracking-[0.2em] text-[10px]">Sincronizando...</p>
         </div>
       </div>
     );
