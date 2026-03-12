@@ -648,6 +648,29 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
           </button>
 
           <button
+            onClick={() => {
+              if (confirm('Deseja resetar os tempos de aviso de TODOS os clientes? Isso liberará todos os botões de notificação imediatamente.')) {
+                bulkUpdateCustomers(prev => prev.map(c => ({
+                  ...c,
+                  lastNotifiedDate: undefined,
+                  lastOverdueNotifiedDate: undefined
+                })));
+                alert('Tempos de aviso resetados com sucesso! Sincronizando com a nuvem...');
+                syncToCloud();
+              }
+            }}
+            className="w-full flex items-center justify-between p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl hover:bg-yellow-500/20 transition-colors group"
+          >
+            <div className="flex items-center space-x-3">
+              <History size={20} className="text-yellow-500" />
+              <div className="text-left">
+                <div className="text-sm font-bold text-yellow-500">Resetar Tempos de Aviso</div>
+                <div className="text-[10px] text-yellow-500/70 uppercase tracking-wider">Libera os botões de notificação de todos</div>
+              </div>
+            </div>
+          </button>
+
+          <button
             onClick={handleClearAll}
             className="w-full flex items-center justify-between p-4 bg-red-500/10 border border-red-500/20 rounded-2xl hover:bg-red-500/20 transition-colors group"
           >

@@ -330,28 +330,41 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
                         <button
                           type="button"
                           onClick={(e) => {
-                            if (isOnCooldown) {
+                            const isOverdue = days < 0;
+                            const currentCooldown = isOverdue ? isOnCooldown : (c.lastNotifiedDate === format(today, 'yyyy-MM-dd'));
+
+                            if (currentCooldown) {
                               e.preventDefault();
                               e.stopPropagation();
                               return;
                             }
-                            const message = formatWhatsappMessage(whatsappMessage, {
-                              name: c.name,
-                              amount: c.amountPaid,
-                              dueDate: c.dueDate
-                            });
-                            updateCustomer(c.id, {
-                              lastOverdueNotifiedDate: format(today, 'yyyy-MM-dd'),
-                              last_overdue_notified_date: format(today, 'yyyy-MM-dd')
-                            } as any);
+
+                            let message = '';
+                            if (isOverdue) {
+                              const overdueDays = Math.abs(days);
+                              message = `Olá *${c.name}*! 👋\n\nPassando para avisar que seu acesso IPTV está vencido há *${overdueDays}* ${overdueDays === 1 ? 'dia' : 'dias'}. ⚠️\n\nGostaria de renovar seu acesso com a gente agora? 😊`;
+                              updateCustomer(c.id, { lastOverdueNotifiedDate: format(today, 'yyyy-MM-dd') });
+                            } else {
+                              message = formatWhatsappMessage(whatsappMessage, {
+                                name: c.name,
+                                amount: c.amountPaid,
+                                dueDate: c.dueDate
+                              });
+                              updateCustomer(c.id, { lastNotifiedDate: format(today, 'yyyy-MM-dd') });
+                            }
+
                             window.open(`https://wa.me/${c.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
                           }}
-                          disabled={Boolean(isOnCooldown)}
-                          className={`p-2 rounded-full transition-all duration-300 ${isOnCooldown
-                            ? 'bg-gray-500/10 text-gray-600 cursor-not-allowed opacity-40 pointer-events-none'
-                            : 'bg-green-600/20 text-green-500 hover:bg-green-600/30'}`}
-                          style={{ pointerEvents: isOnCooldown ? 'none' : 'auto' }}
-                          title={isOnCooldown ? `Próximo envio em ${10 - differenceInDays(today, lastOverdueDate!)} dias` : "WhatsApp"}
+                          disabled={Boolean(days < 0 ? isOnCooldown : c.lastNotifiedDate === format(today, 'yyyy-MM-dd'))}
+                          className={`p-2 rounded-full transition-all duration-300 ${
+                            (days < 0 ? isOnCooldown : c.lastNotifiedDate === format(today, 'yyyy-MM-dd'))
+                              ? 'bg-gray-500/10 text-gray-600 cursor-not-allowed opacity-40 pointer-events-none'
+                              : days < 0 
+                                ? 'bg-red-500/20 text-red-500 hover:bg-red-500/30' 
+                                : 'bg-green-600/20 text-green-500 hover:bg-green-600/30'
+                          }`}
+                          style={{ pointerEvents: (days < 0 ? isOnCooldown : c.lastNotifiedDate === format(today, 'yyyy-MM-dd')) ? 'none' : 'auto' }}
+                          title={days < 0 && isOnCooldown ? `Próximo envio em ${10 - differenceInDays(today, lastOverdueDate!)} dias` : "WhatsApp"}
                         >
                           <MessageCircle size={20} />
                         </button>

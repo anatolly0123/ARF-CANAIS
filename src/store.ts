@@ -298,7 +298,7 @@ export function useStore(user: User | null) {
       if (data.amountPaid !== undefined) updateData.amount_paid = data.amountPaid;
       if (data.dueDate !== undefined) updateData.due_date = data.dueDate;
       if (data.lastNotifiedDate !== undefined) updateData.last_notified_date = data.lastNotifiedDate;
-      if (data.lastOverdueNotifiedDate !== undefined) updateData.last_overdue_notified_date = data.lastOverdueNotifiedDate;
+      if (data.lastOverdueNotifiedDate !== undefined) updateData.last_overdue_not_date = data.lastOverdueNotifiedDate;
       supabase.from('customers').update(updateData).eq('id', id).then(({ error }) => {
         if (error) console.error('Error updating customer in cloud:', error);
       });
