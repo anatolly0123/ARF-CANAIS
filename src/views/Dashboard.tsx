@@ -64,7 +64,7 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
       const cost = parseSafeNumber(r.cost || (r as any).cost);
       const dateStr = r.date || (r as any).date || (r as any).created_at;
       const sId = (r.serverId || (r as any).server_id || '').toString();
-      
+
       totalGross += amount;
       totalCost += cost;
 
@@ -80,7 +80,7 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
           const months = plan ? plan.months : 1;
           const dividedAmount = amount / months;
           const dividedCost = cost / months;
-          
+
           mGross += dividedAmount;
           mCost += dividedCost;
 
@@ -114,7 +114,7 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
       if (isNaN(dueDate.getTime())) return;
 
       const sId = (c.serverId || (c as any).server_id || '').toString();
-      
+
       // Active check
       dueDate.setHours(0, 0, 0, 0);
       const dueTime = dueDate.getTime();
@@ -157,8 +157,9 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
     if (selectedCustomer) {
       const plan = plans.find(p => p.id === renewData.planId);
       if (plan) {
-        const currentDueDate = parseISO(selectedCustomer.dueDate);
-        const isActive = isAfter(currentDueDate, today) || differenceInDays(currentDueDate, today) === 0;
+        const currentDueDate = parseRobustLocalTime(selectedCustomer.dueDate);
+        currentDueDate.setHours(0, 0, 0, 0);
+        const isActive = currentDueDate.getTime() >= today.getTime();
 
         // If active, add to current due date. If expired, add to today.
         const baseDate = isActive ? currentDueDate : today;
@@ -310,7 +311,9 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
           <div className="divide-y divide-white/5">
             {expiringCustomers.map(c => {
               const server = servers.find(s => s.id === (c.serverId || (c as any).server_id));
-              const days = differenceInDays(parseISO(c.dueDate || (c as any).due_date), today);
+              const dueDate = parseRobustLocalTime(c.dueDate || (c as any).due_date);
+              dueDate.setHours(0, 0, 0, 0);
+              const days = Math.round((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
               const lastOverdueNotified = c.lastOverdueNotifiedDate;
               const lastOverdueDate = lastOverdueNotified ? parseISO(lastOverdueNotified) : null;
@@ -356,13 +359,12 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
                             window.open(`https://wa.me/${c.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
                           }}
                           disabled={Boolean(days < 0 ? isOnCooldown : c.lastNotifiedDate === format(today, 'yyyy-MM-dd'))}
-                          className={`p-2 rounded-full transition-all duration-300 ${
-                            (days < 0 ? isOnCooldown : c.lastNotifiedDate === format(today, 'yyyy-MM-dd'))
+                          className={`p-2 rounded-full transition-all duration-300 ${(days < 0 ? isOnCooldown : c.lastNotifiedDate === format(today, 'yyyy-MM-dd'))
                               ? 'bg-gray-500/10 text-gray-600 cursor-not-allowed opacity-40 pointer-events-none'
-                              : days < 0 
-                                ? 'bg-red-500/20 text-red-500 hover:bg-red-500/30' 
+                              : days < 0
+                                ? 'bg-red-500/20 text-red-500 hover:bg-red-500/30'
                                 : 'bg-green-600/20 text-green-500 hover:bg-green-600/30'
-                          }`}
+                            }`}
                           style={{ pointerEvents: (days < 0 ? isOnCooldown : c.lastNotifiedDate === format(today, 'yyyy-MM-dd')) ? 'none' : 'auto' }}
                           title={days < 0 && isOnCooldown ? `Próximo envio em ${10 - differenceInDays(today, lastOverdueDate!)} dias` : "WhatsApp"}
                         >

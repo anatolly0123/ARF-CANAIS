@@ -99,11 +99,11 @@ export function useStore(user: User | null) {
         setUserEmail(null);
         return;
       }
-      
+
       if (userEmail !== user.email) {
         setUserEmail(user.email || null);
       }
-      
+
       const isSynced = !!localStorage.getItem('arf_synced');
       if (!isSynced) {
         setLoading(true);
@@ -142,7 +142,7 @@ export function useStore(user: User | null) {
 
         const phase1EndTime = performance.now();
         const settingsPayloadSize = settingsData ? JSON.stringify(settingsData).length : 0;
-        
+
         setDiagnostics(prev => ({
           ...prev,
           phase1Time: Math.round(phase1EndTime - startTime),
@@ -156,7 +156,7 @@ export function useStore(user: User | null) {
           } else {
             setUserRole('owner');
           }
-          
+
           if (profileData.avatar_url) {
             setUserAvatar(profileData.avatar_url);
           }
@@ -241,7 +241,7 @@ export function useStore(user: User | null) {
           setManualAdditions(mappedAdditions);
           localStorage.setItem('arf_manual_additions', JSON.stringify(mappedAdditions));
         }
-        
+
         const phase2EndTime = performance.now();
         setDiagnostics(prev => ({
           ...prev,
@@ -321,8 +321,6 @@ export function useStore(user: User | null) {
         return false;
       }
     }
-    const updated = [...customers, customer];
-    localStorage.setItem('arf_customers', JSON.stringify(updated));
     return true;
   };
 
@@ -341,7 +339,6 @@ export function useStore(user: User | null) {
       supabase.from('customers').update(updateData).eq('id', id).then(({ error }) => {
         if (error) console.error('Error updating customer in cloud:', error);
       });
-      localStorage.setItem('arf_customers', JSON.stringify(customers.map(c => c.id === id ? { ...c, ...data } : c)));
     }
   };
 
@@ -416,7 +413,6 @@ export function useStore(user: User | null) {
   const bulkUpdateCustomers = async (updater: (prev: Customer[]) => Customer[]) => {
     setCustomers(prev => {
       const next = updater(prev);
-      localStorage.setItem('arf_customers', JSON.stringify(next));
       return next;
     });
   };
@@ -502,6 +498,27 @@ export function useStore(user: User | null) {
       localStorage.removeItem('arf_user_avatar');
     }
   }, [userAvatar]);
+
+  // Persistent Storage Synchronization
+  useEffect(() => {
+    localStorage.setItem('arf_customers', JSON.stringify(customers));
+  }, [customers]);
+
+  useEffect(() => {
+    localStorage.setItem('arf_servers', JSON.stringify(servers));
+  }, [servers]);
+
+  useEffect(() => {
+    localStorage.setItem('arf_plans', JSON.stringify(plans));
+  }, [plans]);
+
+  useEffect(() => {
+    localStorage.setItem('arf_renewals', JSON.stringify(renewals));
+  }, [renewals]);
+
+  useEffect(() => {
+    localStorage.setItem('arf_manual_additions', JSON.stringify(manualAdditions));
+  }, [manualAdditions]);
 
   const bulkUpdateServers = (newServers: Server[]) => setServers(newServers);
   const bulkUpdatePlans = (newPlans: Plan[]) => setPlans(newPlans);

@@ -216,7 +216,7 @@ export function Customers({
         inativos++;
         return;
       }
-      
+
       dueDate.setHours(0, 0, 0, 0);
       const isActive = dueDate.getTime() >= todayTime;
 
@@ -360,9 +360,10 @@ export function Customers({
           filteredCustomers.map(customer => {
             const server = servers.find(s => s.id === customer.serverId);
             const plan = plans.find(p => p.id === customer.planId);
-            const dueDate = parseISO(customer.dueDate);
-            const daysDiff = differenceInDays(dueDate, today);
-            const isActive = isAfter(dueDate, today) || daysDiff === 0;
+            const dueDate = parseRobustLocalTime(customer.dueDate);
+            dueDate.setHours(0, 0, 0, 0);
+            const daysDiff = Math.round((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+            const isActive = dueDate.getTime() >= today.getTime();
 
             const lastOverdueNotified = customer.lastOverdueNotifiedDate || (customer as any).last_overdue_notified_date;
             const lastOverdueDate = lastOverdueNotified ? parseISO(lastOverdueNotified) : null;
