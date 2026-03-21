@@ -286,6 +286,23 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
     };
     reader.readAsText(file);
   };
+  
+  const handleExportTransactions = () => {
+    const data = monthlyStats.transactions.map(tx => ({
+      'Data': format(parseISO(tx.date), "dd/MM/yyyy HH:mm"),
+      'Descrição': tx.description,
+      'Entrada (R$)': tx.type === 'profit' ? tx.amount : 0,
+      'Saída (R$)': tx.type === 'expense' ? tx.amount : 0,
+      'Tipo': tx.type === 'profit' ? 'Receita' : 'Custo'
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Transações");
+    
+    const fileName = `relatorio_transacoes_${format(selectedMonth, 'MM_yyyy')}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+  };
 
   const handleClearAll = () => {
     if (confirm('TEM CERTEZA? Isso apagará TODOS os seus dados (Clientes, Servidores e Planos). Esta ação não pode ser desfeita.')) {
@@ -512,12 +529,21 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
           <div className="mt-8 pt-6 border-t border-white/5">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Histórico de Transações</h3>
-              <button
-                onClick={() => setIsFullHistoryOpen(true)}
-                className="text-[10px] text-[#c8a646] font-bold uppercase tracking-widest hover:underline"
-              >
-                Ver Todos
-              </button>
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={handleExportTransactions}
+                  className="flex items-center space-x-1 text-[10px] text-green-500 font-bold uppercase tracking-widest hover:underline"
+                >
+                  <Download size={12} />
+                  <span>Exportar Excel</span>
+                </button>
+                <button
+                  onClick={() => setIsFullHistoryOpen(true)}
+                  className="text-[10px] text-[#c8a646] font-bold uppercase tracking-widest hover:underline"
+                >
+                  Ver Todos
+                </button>
+              </div>
             </div>
             <div className="space-y-3">
               {monthlyStats.transactions.slice(0, 5).map(tx => (

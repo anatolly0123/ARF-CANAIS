@@ -5,9 +5,10 @@ import { v4 as uuidv4 } from 'uuid';
 import { formatCurrency, isCustomerActive, formatWhatsappMessage, parseSafeNumber, parseRobustLocalTime } from '../utils';
 import { Modal } from '../components/Modal';
 import { RenewModal } from '../components/RenewModal';
-import { Plus, Search, Filter, Phone, RefreshCw, Edit2, Trash2, Calendar, CheckCircle, XCircle, MessageCircle, Users, Award, Star, UserX, ArrowRightLeft } from 'lucide-react';
+import { Plus, Search, Filter, Phone, RefreshCw, Edit2, Trash2, Calendar, CheckCircle, XCircle, MessageCircle, Users, Award, Star, UserX, ArrowRightLeft, ChevronDown, Check } from 'lucide-react';
 import { TransferModal } from '../components/TransferModal';
 import { UserRole } from '../types';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface CustomersProps {
   customers: Customer[];
@@ -44,8 +45,8 @@ export function Customers({
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
-  const [serverFilter, setServerFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [filter, setFilter] = useState('all');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -246,15 +247,16 @@ export function Customers({
       const matchesSearch = !query || c.name.toLowerCase().includes(query) || c.phone.includes(query);
       if (!matchesSearch) return false;
 
-      const matchesServer = serverFilter === 'all' || c.serverId === serverFilter;
-      if (!matchesServer) return false;
-
-      if (statusFilter !== 'all') {
+      const [type, value] = filter.split(':');
+      
+      if (type === 'server' && c.serverId !== value) return false;
+      if (type === 'plan' && c.planId !== value) return false;
+      if (type === 'status') {
         const dueDate = parseRobustLocalTime(c.dueDate);
         dueDate.setHours(0, 0, 0, 0);
         const isActive = dueDate.getTime() >= todayTime;
         const status = isActive ? 'ativo' : 'vencido';
-        if (status !== statusFilter) return false;
+        if (status !== value) return false;
       }
 
       return true;
@@ -263,7 +265,7 @@ export function Customers({
       const dateB = new Date(b.dueDate).getTime() || 0;
       return dateA - dateB;
     });
-  }, [customers, searchQuery, serverFilter, statusFilter, today]);
+  }, [customers, searchQuery, filter, today]);
 
   return (
     <div className="pb-24 space-y-6">
@@ -326,27 +328,125 @@ export function Customers({
           />
         </div>
 
-        <div className="flex space-x-2">
-          <div className="relative flex-1">
-            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={16} />
-            <select
-              value={serverFilter}
-              onChange={e => setServerFilter(e.target.value)}
-              className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl pl-9 pr-4 py-2 text-sm text-white focus:outline-none appearance-none"
-            >
-              <option value="all">Todos Servidores</option>
-              {servers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
-          </div>
-          <select
-            value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
-            className="flex-1 bg-[#1a1a1a] border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none appearance-none"
+        <div className="relative">
+          <button
+            onClick={() => setIsFilterOpen(!isFilterOpen)}
+            className="w-full bg-[#1a1a1a] border border-[#c8a646]/30 rounded-2xl px-4 py-4 text-white flex items-center justify-between group hover:border-[#c8a646] transition-all shadow-lg"
           >
-            <option value="all">Todos Status</option>
-            <option value="ativo">Ativos</option>
-            <option value="vencido">Vencidos</option>
-          </select>
+            <div className="flex items-center space-x-3">
+              <div className="bg-[#c8a646]/10 p-2 rounded-xl text-[#c8a646]">
+                <Filter size={20} />
+              </div>
+              <div className="text-left">
+                <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest leading-none mb-1">Filtrar por</div>
+                <div className="text-sm font-bold text-white leading-none">
+                  {filter === 'all' ? 'Ver Todos' : (() => {
+                    const [type, val] = filter.split(':');
+                    if (type === 'status') return val === 'ativo' ? 'Status: Ativos' : 'Status: Vencidos';
+                    if (type === 'server') return `Servidor: ${servers.find(s => s.id === val)?.name || 'Desconhecido'}`;
+                    if (type === 'plan') return `Plano: ${plans.find(p => p.id === val)?.name || 'Desconhecido'}`;
+                    return 'Filtro Ativo';
+                  })()}
+                </div>
+              </div>
+            </div>
+            <motion.div
+              animate={{ rotate: isFilterOpen ? 180 : 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <ChevronDown size={20} className="text-[#c8a646]" />
+            </motion.div>
+          </button>
+
+          <AnimatePresence>
+            {isFilterOpen && (
+              <>
+                {/* Backdrop to close */}
+                <div 
+                  className="fixed inset-0 z-40" 
+                  onClick={() => setIsFilterOpen(false)} 
+                />
+                
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  className="absolute left-0 right-0 mt-3 bg-[#1a1a1a] border border-white/10 rounded-3xl shadow-2xl z-50 overflow-hidden backdrop-blur-xl"
+                >
+                  <div className="max-h-[400px] overflow-y-auto py-2 custom-scrollbar">
+                    {/* All Option */}
+                    <button
+                      onClick={() => { setFilter('all'); setIsFilterOpen(false); }}
+                      className={`w-full px-6 py-4 flex items-center justify-between hover:bg-white/5 transition-colors ${filter === 'all' ? 'text-[#c8a646]' : 'text-gray-400'}`}
+                    >
+                      <span className="font-bold text-sm uppercase tracking-widest">Mostrar Todos</span>
+                      {filter === 'all' && <Check size={18} />}
+                    </button>
+
+                    {/* Status Group */}
+                    <div className="px-6 py-2">
+                      <div className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em] mb-2 flex items-center space-x-2">
+                        <Calendar size={12} />
+                        <span>Status</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        {['ativo', 'vencido'].map(v => (
+                          <button
+                            key={v}
+                            onClick={() => { setFilter(`status:${v}`); setIsFilterOpen(false); }}
+                            className={`px-4 py-3 rounded-xl text-xs font-bold transition-all border ${filter === `status:${v}` ? 'bg-[#c8a646] text-[#0f0f0f] border-[#c8a646]' : 'bg-[#0f0f0f] text-gray-400 border-white/5 hover:border-white/20'}`}
+                          >
+                            {v === 'ativo' ? 'Ativos' : 'Vencidos'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Servers Group */}
+                    <div className="px-6 py-2 mt-2">
+                      <div className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em] mb-2 flex items-center space-x-2">
+                        <Filter size={12} />
+                        <span>Servidores</span>
+                      </div>
+                      <div className="space-y-1">
+                        {servers.map(s => (
+                          <button
+                            key={s.id}
+                            onClick={() => { setFilter(`server:${s.id}`); setIsFilterOpen(false); }}
+                            className={`w-full px-4 py-3 rounded-xl text-left text-sm font-bold transition-all flex items-center justify-between ${filter === `server:${s.id}` ? 'bg-[#c8a646]/10 text-[#c8a646]' : 'text-gray-400 hover:bg-white/5'}`}
+                          >
+                            <span>{s.name}</span>
+                            {filter === `server:${s.id}` && <Check size={16} />}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Plans Group */}
+                    <div className="px-6 py-2 mt-2">
+                      <div className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em] mb-2 flex items-center space-x-2">
+                        <Award size={12} />
+                        <span>Planos</span>
+                      </div>
+                      <div className="space-y-1">
+                        {plans.map(p => (
+                          <button
+                            key={p.id}
+                            onClick={() => { setFilter(`plan:${p.id}`); setIsFilterOpen(false); }}
+                            className={`w-full px-4 py-3 rounded-xl text-left text-sm font-bold transition-all flex items-center justify-between ${filter === `plan:${p.id}` ? 'bg-[#c8a646]/10 text-[#c8a646]' : 'text-gray-400 hover:bg-white/5'}`}
+                          >
+                            <span>{p.name}</span>
+                            {filter === `plan:${p.id}` && <Check size={16} />}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
