@@ -124,8 +124,8 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
         stats[sId].active += 1;
       }
 
-      const daysUntilDue = Math.round((dueTime - todayTime) / (1000 * 60 * 60 * 24));
-      if (daysUntilDue >= -3 && daysUntilDue <= 3) {
+      const daysUntilDue = Math.round((dueTime - todayTime) / (1000 * 60 * 60 * 24)) + 1;
+      if (daysUntilDue >= -2 && daysUntilDue <= 5) {
         expiring.push(c);
       }
     });
@@ -202,8 +202,8 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
       if (!dueDateStr) return false;
       const dueDate = parseRobustLocalTime(dueDateStr);
       dueDate.setHours(0, 0, 0, 0);
-      const days = Math.round((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-      return days === 7 && c.lastNotifiedDate !== format(today, 'yyyy-MM-dd');
+      const days = Math.round((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      return days === 5 && c.lastNotifiedDate !== format(today, 'yyyy-MM-dd');
     });
   }, [expiringCustomers, today]);
 
@@ -313,18 +313,19 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
               const server = servers.find(s => s.id === (c.serverId || (c as any).server_id));
               const dueDate = parseRobustLocalTime(c.dueDate || (c as any).due_date);
               dueDate.setHours(0, 0, 0, 0);
-              const days = Math.round((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+              const days = Math.round((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
               const lastOverdueNotified = c.lastOverdueNotifiedDate;
-              const lastOverdueDate = lastOverdueNotified ? parseISO(lastOverdueNotified) : null;
-              const isOnCooldown = lastOverdueDate && !isNaN(lastOverdueDate.getTime()) && differenceInDays(today, lastOverdueDate) < 10;
+              const lastOverdueDate = lastOverdueNotified ? parseRobustLocalTime(lastOverdueNotified) : null;
+              if (lastOverdueDate) lastOverdueDate.setHours(0, 0, 0, 0);
+              const isOnCooldown = lastOverdueDate && !isNaN(lastOverdueDate.getTime()) && Math.round((today.getTime() - lastOverdueDate.getTime()) / (1000 * 60 * 60 * 24)) < 10;
 
               return (
                 <div key={c.id} className="p-4 flex items-center justify-between">
                   <div>
                     <div className="font-bold text-white">{c.name}</div>
                     <div className="text-xs text-gray-400">
-                      {server?.name} • {days === 0 ? 'Vence hoje' : days < 0 ? `Vencido há ${Math.abs(days)} dias` : `Vence em ${days} dias`}
+                      {server?.name} • {days === 1 ? 'Vence hoje' : days <= 0 ? `Vencido há ${Math.abs(days - 1)} dias` : `Vence em ${days} dias`}
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
@@ -366,7 +367,7 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
                                 : 'bg-green-600/20 text-green-500 hover:bg-green-600/30'
                             }`}
                           style={{ pointerEvents: (days < 0 ? isOnCooldown : c.lastNotifiedDate === format(today, 'yyyy-MM-dd')) ? 'none' : 'auto' }}
-                          title={days < 0 && isOnCooldown ? `Próximo envio em ${10 - differenceInDays(today, lastOverdueDate!)} dias` : "WhatsApp"}
+                          title={days < 0 && isOnCooldown ? `Próximo envio em ${10 - Math.round((today.getTime() - lastOverdueDate!.getTime()) / (1000 * 60 * 60 * 24))} dias` : "WhatsApp"}
                         >
                           <MessageCircle size={20} />
                         </button>

@@ -68,8 +68,9 @@ export function Customers({
     if (selectedCustomerForRenew) {
       const plan = plans.find(p => p.id === renewData.planId);
       if (plan) {
-        const currentDueDate = parseISO(selectedCustomerForRenew.dueDate);
-        const isActive = isAfter(currentDueDate, today) || differenceInDays(currentDueDate, today) === 0;
+        const currentDueDate = parseRobustLocalTime(selectedCustomerForRenew.dueDate);
+        currentDueDate.setHours(0, 0, 0, 0);
+        const isActive = isAfter(currentDueDate, today) || Math.round((currentDueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) === 0;
 
         // If active, add to current due date. If expired, add to today.
         const baseDate = isActive ? currentDueDate : today;
@@ -462,12 +463,13 @@ export function Customers({
             const plan = plans.find(p => p.id === customer.planId);
             const dueDate = parseRobustLocalTime(customer.dueDate);
             dueDate.setHours(0, 0, 0, 0);
-            const daysDiff = Math.round((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+            const daysDiff = Math.round((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) + 1;
             const isActive = dueDate.getTime() >= today.getTime();
 
             const lastOverdueNotified = customer.lastOverdueNotifiedDate || (customer as any).last_overdue_notified_date;
-            const lastOverdueDate = lastOverdueNotified ? parseISO(lastOverdueNotified) : null;
-            const isOnCooldown = lastOverdueDate && !isNaN(lastOverdueDate.getTime()) && differenceInDays(today, lastOverdueDate) < 10;
+            const lastOverdueDate = lastOverdueNotified ? parseRobustLocalTime(lastOverdueNotified) : null;
+            if (lastOverdueDate) lastOverdueDate.setHours(0, 0, 0, 0);
+            const isOnCooldown = lastOverdueDate && !isNaN(lastOverdueDate.getTime()) && Math.round((today.getTime() - lastOverdueDate.getTime()) / (1000 * 60 * 60 * 24)) < 10;
 
             return (
               <div key={customer.id} className="bg-[#1a1a1a] rounded-2xl border border-white/5 p-4 shadow-lg">
@@ -480,7 +482,7 @@ export function Customers({
                       ) : (
                         <XCircle size={14} className="text-red-500" />
                       )}
-                      {daysDiff === 7 && customer.lastNotifiedDate !== format(today, 'yyyy-MM-dd') && (
+                      {daysDiff === 5 && customer.lastNotifiedDate !== format(today, 'yyyy-MM-dd') && (
                         <span className="bg-[#c8a646] text-[#0f0f0f] text-[10px] font-bold px-1.5 py-0.5 rounded">
                           NOTIFICAR
                         </span>
@@ -500,7 +502,7 @@ export function Customers({
                         updateCustomer(customer.id, { lastNotifiedDate: format(today, 'yyyy-MM-dd') });
                         window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
                       }}
-                      className={`p-2 rounded-full transition-colors ${daysDiff === 7 && customer.lastNotifiedDate !== format(today, 'yyyy-MM-dd') ? 'bg-green-600/30 text-green-400 animate-pulse' : 'bg-white/5 text-gray-400 hover:text-white'}`}
+                      className={`p-2 rounded-full transition-colors ${daysDiff === 5 && customer.lastNotifiedDate !== format(today, 'yyyy-MM-dd') ? 'bg-green-600/30 text-green-400 animate-pulse' : 'bg-white/5 text-gray-400 hover:text-white'}`}
                       title="WhatsApp"
                     >
                       <Phone size={16} />
@@ -513,8 +515,9 @@ export function Customers({
                             type="button"
                             onClick={(e) => {
                               const lastOverdueNotified = customer.lastOverdueNotifiedDate;
-                              const lastOverdueDate = lastOverdueNotified ? parseISO(lastOverdueNotified) : null;
-                              const isOnCooldown = lastOverdueDate && !isNaN(lastOverdueDate.getTime()) && differenceInDays(today, lastOverdueDate) < 10;
+                              const lastOverdueDate = lastOverdueNotified ? parseRobustLocalTime(lastOverdueNotified) : null;
+                              if (lastOverdueDate) lastOverdueDate.setHours(0, 0, 0, 0);
+                              const isOnCooldown = lastOverdueDate && !isNaN(lastOverdueDate.getTime()) && Math.round((today.getTime() - lastOverdueDate.getTime()) / (1000 * 60 * 60 * 24)) < 10;
 
                               if (isOnCooldown) {
                                 e.preventDefault();
@@ -522,7 +525,7 @@ export function Customers({
                                 return;
                               }
 
-                              const overdueDays = Math.abs(daysDiff);
+                              const overdueDays = Math.abs(daysDiff - 1);
                               const message = `Olá *${customer.name}*! 👋\n\nPassando para avisar que seu acesso IPTV está vencido há *${overdueDays}* ${overdueDays === 1 ? 'dia' : 'dias'}. ⚠️\n\nGostaria de renovar seu acesso com a gente agora? 😊`;
 
                               updateCustomer(customer.id, {

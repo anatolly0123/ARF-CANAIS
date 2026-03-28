@@ -41,11 +41,13 @@ export const parseRobustLocalTime = (dateStr: string) => {
   if (!dateStr) return new Date(NaN);
   let str = dateStr.toString().trim();
 
-  // Handle YYYY-MM-DD format (10 chars, has hyphens, no 'T') - Extremely common in this app
-  if (str.length === 10 && str[4] === '-' && str[7] === '-') {
-    // Replace - with / to force local date interpretation and avoid midnight-UTC-shift-backwards
-    // Using a simple slash replacement is faster than complex logic
-    return new Date(str.replace(/-/g, '/'));
+  // Handle YYYY-MM-DD or full ISO strings (YYYY-MM-DDTHH:MM:SS)
+  // We want to force LOCAL interpretation to avoid midnight-UTC shifting back a day
+  if (str.includes('-')) {
+    const parts = str.split('T')[0].split('-');
+    if (parts.length === 3 && parts[0].length === 4) {
+      return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    }
   }
 
   // Handle Brazilian DD/MM/YYYY format
@@ -89,8 +91,10 @@ export const formatWhatsappMessage = (
   }
 ) => {
   const today = new Date();
-  const dueDate = parseISO(data.dueDate);
-  const days = differenceInDays(dueDate, today);
+  today.setHours(0, 0, 0, 0);
+  const dueDate = parseRobustLocalTime(data.dueDate);
+  dueDate.setHours(0, 0, 0, 0);
+  const days = Math.round((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
   let formattedDate = 'Data Inválida';
   try {
@@ -102,7 +106,7 @@ export const formatWhatsappMessage = (
   return template
     .replace('{nome}', data.name)
     .replace('{valor}', formatCurrency(data.amount))
-    .replace('{dias}', days === 0 ? 'hoje' : days === 1 ? 'amanhã' : days < 0 ? `vencido há ${Math.abs(days)} ${Math.abs(days) === 1 ? 'dia' : 'dias'}` : `${days} dias`)
+    .replace('{dias}', days === 1 ? 'hoje' : days === 2 ? 'amanhã' : days < 1 ? `vencido há ${Math.abs(days - 1)} ${Math.abs(days - 1) === 1 ? 'dia' : 'dias'}` : `${days} dias`)
     .replace('{vencimento}', formattedDate);
 };
 export const parseCurrency = (val: any): number => {
