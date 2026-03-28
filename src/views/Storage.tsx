@@ -1,13 +1,14 @@
 import { useState, useEffect, ChangeEvent, useMemo } from 'react';
-import { Database, Download, Upload, Trash2, HardDrive, Calendar as CalendarIcon, TrendingUp, TrendingDown, DollarSign, Image as ImageIcon, History } from 'lucide-react';
+import { Database, Download, Upload, Trash2, HardDrive, Calendar as CalendarIcon, TrendingUp, TrendingDown, DollarSign, Image as ImageIcon, History, FileSpreadsheet } from 'lucide-react';
 import { Customer, Server, Plan, Renewal, ManualAddition, UserRole } from '../types';
 import { DataDiagnostics } from '../store';
 import { format, parseISO, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { formatCurrency, parseCurrency, parseExcelDate, parseSafeNumber, parseRobustLocalTime } from '../utils';
+import { formatCurrency, parseCurrency, parseExcelDate, parseSafeNumber, parseRobustLocalTime, isCustomerActive } from '../utils';
 import { Modal } from '../components/Modal';
 import * as XLSX from 'xlsx';
 import { v4 as uuidv4 } from 'uuid';
+import ExcelJS from 'exceljs';
 
 interface StorageProps {
   customers: Customer[];
@@ -302,6 +303,110 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
     
     const fileName = `relatorio_transacoes_${format(selectedMonth, 'MM_yyyy')}.xlsx`;
     XLSX.writeFile(wb, fileName);
+  };
+  
+  const handleExportCustomerListExcel = async () => {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Lista de Clientes');
+
+    // Headers
+    worksheet.columns = [
+      { header: 'NOME', key: 'name', width: 30 },
+      { header: 'ENTRADA', key: 'entrada', width: 15 },
+      { header: 'SERVIDOR', key: 'servidor', width: 15 },
+      { header: 'SAÍDA', key: 'saida', width: 15 },
+      { header: 'PAGAMENTO', key: 'pagamento', width: 15 },
+    ];
+
+    // Style Headers
+    worksheet.getRow(1).eachCell((cell) => {
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF1A1A1A' } // Dark background for header
+      };
+      cell.alignment = { horizontal: 'center' };
+    });
+
+    const start = startOfMonth(new Date());
+    const end = endOfMonth(new Date());
+
+    const activeCustomers = customers.filter(c => isCustomerActive(c.dueDate));
+
+    activeCustomers.forEach(c => {
+      const server = servers.find(s => s.id === c.serverId);
+      
+      const hasPaidThisMonth = renewals.some(r => {
+        const rCustomerId = r.customerId || (r as any).customer_id;
+        if (rCustomerId?.toString() !== c.id.toString()) return false;
+        
+        try {
+          const rDate = parseRobustLocalTime(r.date || (r as any).date || (r as any).created_at);
+          return isWithinInterval(rDate, { start, end });
+        } catch {
+          return false;
+        }
+      });
+
+      const row = worksheet.addRow({
+        name: c.name,
+        entrada: c.amountPaid,
+        servidor: server?.costPerActive || 0,
+        saida: 0,
+        pagamento: hasPaidThisMonth ? 'PAGO' : 'NÃO PAGO'
+      });
+
+      // Apply Colors as requested
+      // Column B: ENTRADA (Green)
+      row.getCell(2).font = { color: { argb: 'FF228B22' }, bold: true }; // Forest Green
+      
+      // Column C: SERVIDOR (Blue)
+      row.getCell(3).font = { color: { argb: 'FF0000FF' }, bold: true }; // Blue
+      
+      // Column D: SAÍDA (Red)
+      row.getCell(4).font = { color: { argb: 'FFFF0000' }, bold: true }; // Red
+      
+      // Column E: PAGAMENTO (Conditional)
+      const payCell = row.getCell(5);
+      if (hasPaidThisMonth) {
+          payCell.font = { color: { argb: 'FF228B22' }, bold: true };
+      } else {
+          payCell.font = { color: { argb: 'FFFF0000' }, bold: true };
+      }
+      
+      // Formatting cells as currency-like numbers
+      row.getCell(2).numFmt = '"R$ "#,##0.00';
+      row.getCell(3).numFmt = '"R$ "#,##0.00';
+      row.getCell(4).numFmt = '"R$ "#,##0.00';
+      
+      row.getCell(5).alignment = { horizontal: 'center' };
+    });
+
+    const range = activeCustomers.length + 1; // Last data row
+    
+    // Summary Row
+    worksheet.addRow([]); // Spacer
+    const totalRow = worksheet.addRow([
+      'TOTAL LÍQUIDO:',
+      { formula: `SUMIF(E2:E${range}, "PAGO", B2:B${range}) - SUM(C2:C${range}) - SUM(D2:D${range})` }
+    ]);
+    
+    totalRow.getCell(1).font = { bold: true };
+    totalRow.getCell(2).font = { bold: true, color: { argb: 'FF000000' } };
+    totalRow.getCell(2).numFmt = '"R$ "#,##0.00';
+
+    // Generate and Download
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `lista_clientes_ativos_${format(new Date(), 'dd_MM_yyyy')}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
   };
 
   const handleClearAll = () => {
@@ -685,6 +790,19 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
               <div className="text-left">
                 <div className="text-sm font-bold text-white">Exportar Backup</div>
                 <div className="text-[10px] text-gray-500 uppercase tracking-wider">Salvar tudo em arquivo .json</div>
+              </div>
+            </div>
+          </button>
+
+          <button
+            onClick={handleExportCustomerListExcel}
+            className="w-full flex items-center justify-between p-4 bg-green-500/10 border border-green-500/20 rounded-2xl hover:bg-green-500/20 transition-colors group"
+          >
+            <div className="flex items-center space-x-3">
+              <FileSpreadsheet size={20} className="text-green-500" />
+              <div className="text-left">
+                <div className="text-sm font-bold text-green-500">Exportar Lista (Excel)</div>
+                <div className="text-[10px] text-green-500/70 uppercase tracking-wider">Lista de clientes com fórmulas financeiras</div>
               </div>
             </div>
           </button>
