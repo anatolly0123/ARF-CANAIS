@@ -203,7 +203,11 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
       const dueDate = parseRobustLocalTime(dueDateStr);
       dueDate.setHours(0, 0, 0, 0);
       const days = Math.round((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-      return days === 5 && c.lastNotifiedDate !== format(today, 'yyyy-MM-dd');
+      const lastNotified = c.lastNotifiedDate ? parseRobustLocalTime(c.lastNotifiedDate) : null;
+      if (lastNotified) lastNotified.setHours(0, 0, 0, 0);
+      const isRecentlyNotified = lastNotified && !isNaN(lastNotified.getTime()) && Math.round((today.getTime() - lastNotified.getTime()) / (1000 * 60 * 60 * 24)) < 7;
+      
+      return days === 5 && !isRecentlyNotified;
     });
   }, [expiringCustomers, today]);
 
@@ -315,6 +319,10 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
               dueDate.setHours(0, 0, 0, 0);
               const days = Math.round((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
+              const lastNotified = c.lastNotifiedDate ? parseRobustLocalTime(c.lastNotifiedDate) : null;
+              if (lastNotified) lastNotified.setHours(0, 0, 0, 0);
+              const isRecentlyNotified = lastNotified && !isNaN(lastNotified.getTime()) && Math.round((today.getTime() - lastNotified.getTime()) / (1000 * 60 * 60 * 24)) < 7;
+
               const lastOverdueNotified = c.lastOverdueNotifiedDate;
               const lastOverdueDate = lastOverdueNotified ? parseRobustLocalTime(lastOverdueNotified) : null;
               if (lastOverdueDate) lastOverdueDate.setHours(0, 0, 0, 0);
@@ -335,7 +343,7 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
                           type="button"
                           onClick={(e) => {
                             const isOverdue = days < 0;
-                            const currentCooldown = isOverdue ? isOnCooldown : (c.lastNotifiedDate === format(today, 'yyyy-MM-dd'));
+                            const currentCooldown = isOverdue ? isOnCooldown : isRecentlyNotified;
 
                             if (currentCooldown) {
                               e.preventDefault();
@@ -359,15 +367,15 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
 
                             window.open(`https://wa.me/${c.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
                           }}
-                          disabled={Boolean(days < 0 ? isOnCooldown : c.lastNotifiedDate === format(today, 'yyyy-MM-dd'))}
-                          className={`p-2 rounded-full transition-all duration-300 ${(days < 0 ? isOnCooldown : c.lastNotifiedDate === format(today, 'yyyy-MM-dd'))
+                          disabled={Boolean(days < 0 ? isOnCooldown : isRecentlyNotified)}
+                          className={`p-2 rounded-full transition-all duration-300 ${(days < 0 ? isOnCooldown : isRecentlyNotified)
                               ? 'bg-gray-500/10 text-gray-600 cursor-not-allowed opacity-40 pointer-events-none'
                               : days < 0
                                 ? 'bg-red-500/20 text-red-500 hover:bg-red-500/30'
                                 : 'bg-green-600/20 text-green-500 hover:bg-green-600/30'
                             }`}
-                          style={{ pointerEvents: (days < 0 ? isOnCooldown : c.lastNotifiedDate === format(today, 'yyyy-MM-dd')) ? 'none' : 'auto' }}
-                          title={days < 0 && isOnCooldown ? `Próximo envio em ${10 - Math.round((today.getTime() - lastOverdueDate!.getTime()) / (1000 * 60 * 60 * 24))} dias` : "WhatsApp"}
+                          style={{ pointerEvents: (days < 0 ? isOnCooldown : isRecentlyNotified) ? 'none' : 'auto' }}
+                          title={days < 0 ? (isOnCooldown ? `Próximo envio em ${10 - Math.round((today.getTime() - lastOverdueDate!.getTime()) / (1000 * 60 * 60 * 24))} dias` : "WhatsApp") : (isRecentlyNotified ? "Já notificado" : "WhatsApp")}
                         >
                           <MessageCircle size={20} />
                         </button>
