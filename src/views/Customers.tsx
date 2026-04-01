@@ -80,7 +80,8 @@ export function Customers({
           serverId: renewData.serverId,
           planId: renewData.planId,
           amountPaid: parseSafeNumber(renewData.amountPaid),
-          dueDate: newDueDate
+          dueDate: newDueDate,
+          hasResetCounters: false
         });
 
         const server = servers.find(s => s.id === renewData.serverId);

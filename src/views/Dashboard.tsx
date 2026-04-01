@@ -31,7 +31,7 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
   // Calculate stats
-  const { grossValue, totalPaidToServers, netValue, serverStats, expiringCustomers, monthlyGross, monthlyNet, monthlyCost } = useMemo(() => {
+  const { grossValue, totalPaidToServers, monthlyGross, monthlyCost, serverStats, expiringCustomers, totalPlansValue } = useMemo(() => {
     const plansMap = new Map(plans.map(p => [p.id, p]));
     const tMonth = today.getMonth();
     const tYear = today.getFullYear();
@@ -136,15 +136,20 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
       return dateA - dateB;
     });
 
+    const totalPlansValue = customers.reduce((acc, c) => {
+      const dueDate = parseRobustLocalTime(c.dueDate);
+      dueDate.setHours(0, 0, 0, 0);
+      return dueDate.getTime() >= todayTime ? acc + parseSafeNumber(c.amountPaid) : acc;
+    }, 0);
+
     return {
       grossValue: totalGross,
       totalPaidToServers: totalCost,
-      netValue: (totalGross - totalCost) + totalManualAdditions,
-      monthlyGross: mGross,
+      monthlyGross: mGross + mAdditions,
       monthlyCost: mCost,
-      monthlyNet: (mGross - mCost) + mAdditions,
       serverStats: Object.values(stats),
-      expiringCustomers: expiring
+      expiringCustomers: expiring,
+      totalPlansValue
     };
   }, [customers, servers, renewals, manualAdditions, plans, today]);
 
@@ -169,7 +174,8 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
           serverId: renewData.serverId,
           planId: renewData.planId,
           amountPaid: parseFloat(renewData.amountPaid.replace(',', '.')),
-          dueDate: newDueDate
+          dueDate: newDueDate,
+          hasResetCounters: false
         });
 
         const server = servers.find(s => s.id === renewData.serverId);
@@ -244,35 +250,57 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
         </div>
       )}
 
-      {/* Main Cards */}
-      <div className="bg-gradient-to-br from-[#c8a646]/20 to-[#1a1a1a] p-6 rounded-3xl border border-[#c8a646]/30 shadow-xl relative overflow-hidden mb-4">
-        <div className="absolute top-0 right-0 p-4 opacity-20">
-          <DollarSign size={64} className="text-[#c8a646]" />
-        </div>
-        <div className="relative z-10">
-          <div className="text-[10px] font-bold uppercase tracking-widest text-[#c8a646] mb-1">Lucro Mensal ({format(today, 'MMMM', { locale: ptBR })})</div>
-          <div className="text-4xl font-black text-white">{formatCurrency(monthlyNet)}</div>
-          <div className="mt-2 text-[10px] text-gray-500 font-medium">Líquido Total: {formatCurrency(netValue)}</div>
-        </div>
-      </div>
+      {/* Unified Finance Section */}
+      <div className="mb-8 p-[1px] bg-gradient-to-br from-[#c8a646]/40 via-white/5 to-red-500/10 rounded-[32px] shadow-2xl">
+        <div className="bg-[#121212] rounded-[31px] p-8 relative overflow-hidden">
+          {/* Subtle Background Glows */}
+          <div className="absolute -top-24 -right-24 w-64 h-64 bg-[#c8a646]/10 rounded-full blur-[100px] pointer-events-none" />
+          <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-red-500/5 rounded-full blur-[100px] pointer-events-none" />
 
-      <div className="grid grid-cols-2 gap-4 mb-4">
-        <div className="bg-[#1a1a1a] p-4 rounded-2xl border border-white/5 shadow-lg">
-          <div className="flex items-center space-x-2 text-gray-400 mb-2">
-            <TrendingUp size={16} />
-            <span className="text-[10px] font-bold uppercase tracking-wider">Bruto Mensal</span>
-          </div>
-          <div className="text-xl font-bold text-white">{formatCurrency(monthlyGross)}</div>
-          <div className="mt-1 text-[8px] text-gray-600 uppercase">Acumulado: {formatCurrency(grossValue)}</div>
-        </div>
+          <div className="flex flex-col space-y-8 relative z-10">
+            {/* Header Area */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] mb-1">Resumo Financeiro</h2>
+                <div className="h-0.5 w-8 bg-[#c8a646] rounded-full" />
+              </div>
+              <div className="p-3 bg-white/5 rounded-2xl border border-white/5 backdrop-blur-md">
+                <DollarSign className="text-[#c8a646]" size={20} />
+              </div>
+            </div>
 
-        <div className="bg-[#1a1a1a] p-4 rounded-2xl border border-white/5 shadow-lg">
-          <div className="flex items-center space-x-2 text-gray-400 mb-2">
-            <TrendingDown size={16} />
-            <span className="text-[10px] font-bold uppercase tracking-wider">Custo Mensal</span>
+            {/* Metrics */}
+            <div className="grid grid-cols-1 gap-8">
+              {/* Bruto Main Metric */}
+              <div className="group">
+                <div className="flex items-center space-x-2 text-[#c8a646] font-bold text-[10px] uppercase tracking-widest mb-2 opacity-80">
+                  <TrendingUp size={12} />
+                  <span>Bruto ({format(today, 'MMMM', { locale: ptBR })})</span>
+                </div>
+                <div className="flex items-baseline space-x-2">
+                  <span className="text-5xl font-black text-white tracking-tighter transition-transform group-hover:scale-[1.02] duration-300 block">
+                    {formatCurrency(monthlyGross)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Separator */}
+              <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+
+              {/* Custo Metric */}
+              <div className="group">
+                <div className="flex items-center space-x-2 text-red-500/70 font-bold text-[10px] uppercase tracking-widest mb-2">
+                  <TrendingDown size={12} />
+                  <span>Custo Mensal</span>
+                </div>
+                <div className="flex items-baseline space-x-2">
+                  <span className="text-3xl font-black text-red-500/90 tracking-tighter group-hover:text-red-500 transition-colors">
+                    {formatCurrency(monthlyCost)}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="text-xl font-bold text-red-400">{formatCurrency(monthlyCost)}</div>
-          <div className="mt-1 text-[8px] text-gray-600 uppercase">Acumulado: {formatCurrency(totalPaidToServers)}</div>
         </div>
       </div>
 
