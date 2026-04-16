@@ -487,11 +487,7 @@ export function Customers({
                       ) : (
                         <XCircle size={14} className="text-red-500" />
                       )}
-<<<<<<< HEAD
                       {daysDiff === 3 && !isRecentlyNotified && (
-=======
-                      {daysDiff === 5 && !isRecentlyNotified && (
->>>>>>> 3b54ac8cdcfe9cfa867dc96adf584e4788da7f21
                         <span className="bg-[#c8a646] text-[#0f0f0f] text-[10px] font-bold px-1.5 py-0.5 rounded">
                           NOTIFICAR
                         </span>
@@ -511,11 +507,7 @@ export function Customers({
                         updateCustomer(customer.id, { lastNotifiedDate: format(today, 'yyyy-MM-dd') });
                         window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
                       }}
-<<<<<<< HEAD
                       className={`p-2 rounded-full transition-colors ${daysDiff === 3 && !isRecentlyNotified ? 'bg-green-600/30 text-green-400 animate-pulse' : 'bg-white/5 text-gray-400 hover:text-white'}`}
-=======
-                      className={`p-2 rounded-full transition-colors ${daysDiff === 5 && !isRecentlyNotified ? 'bg-green-600/30 text-green-400 animate-pulse' : 'bg-white/5 text-gray-400 hover:text-white'}`}
->>>>>>> 3b54ac8cdcfe9cfa867dc96adf584e4788da7f21
                       title="WhatsApp"
                     >
                       <Phone size={16} />
