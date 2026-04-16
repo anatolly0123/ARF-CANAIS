@@ -21,6 +21,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { User } from '@supabase/supabase-js';
 
 export default function App() {
+  console.log('App component rendering...');
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [user, setUser] = useState<User | null>(null);
   const store = useStore(user);
