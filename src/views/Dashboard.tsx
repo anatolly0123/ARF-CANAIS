@@ -125,7 +125,7 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
       }
 
       const daysUntilDue = Math.round((dueTime - todayTime) / (1000 * 60 * 60 * 24)) + 1;
-      if (daysUntilDue >= -2 && daysUntilDue <= 5) {
+      if (daysUntilDue >= -2 && daysUntilDue <= 3) {
         expiring.push(c);
       }
     });
