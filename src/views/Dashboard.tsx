@@ -125,7 +125,7 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
       }
 
       const daysUntilDue = Math.round((dueTime - todayTime) / (1000 * 60 * 60 * 24)) + 1;
-      if (daysUntilDue >= -2 && daysUntilDue <= 3) {
+      if (daysUntilDue >= -2 && daysUntilDue <= 2) {
         expiring.push(c);
       }
     });
@@ -213,7 +213,7 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
       if (lastNotified) lastNotified.setHours(0, 0, 0, 0);
       const isRecentlyNotified = lastNotified && !isNaN(lastNotified.getTime()) && Math.round((today.getTime() - lastNotified.getTime()) / (1000 * 60 * 60 * 24)) < 7;
       
-      return days === 3 && !isRecentlyNotified;
+      return (days === 1 || days === 2) && !isRecentlyNotified;
     });
   }, [expiringCustomers, today]);
 
