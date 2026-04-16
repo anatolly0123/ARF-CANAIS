@@ -213,7 +213,11 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
       if (lastNotified) lastNotified.setHours(0, 0, 0, 0);
       const isRecentlyNotified = lastNotified && !isNaN(lastNotified.getTime()) && Math.round((today.getTime() - lastNotified.getTime()) / (1000 * 60 * 60 * 24)) < 7;
       
+<<<<<<< HEAD
       return days === 3 && !isRecentlyNotified;
+=======
+      return days === 5 && !isRecentlyNotified;
+>>>>>>> 3b54ac8cdcfe9cfa867dc96adf584e4788da7f21
     });
   }, [expiringCustomers, today]);
 
