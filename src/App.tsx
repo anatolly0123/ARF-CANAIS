@@ -74,6 +74,7 @@ export default function App() {
             addRenewal={store.addRenewal}
             manualAdditions={store.manualAdditions}
             renewalMessage={store.renewalMessage}
+            overdueMessage={store.overdueMessage}
             userRole={store.userRole}
           />
         );
@@ -90,6 +91,7 @@ export default function App() {
             bulkUpdateCustomers={store.bulkUpdateCustomers}
             addRenewal={store.addRenewal}
             renewalMessage={store.renewalMessage}
+            overdueMessage={store.overdueMessage}
             transferCustomer={store.transferCustomer}
             userRole={store.userRole}
           />
@@ -116,6 +118,8 @@ export default function App() {
             setWhatsappMessage={store.setWhatsappMessage}
             renewalMessage={store.renewalMessage}
             setRenewalMessage={store.setRenewalMessage}
+            overdueMessage={store.overdueMessage}
+            setOverdueMessage={store.setOverdueMessage}
             addManualAddition={store.addManualAddition}
             manualAdditions={store.manualAdditions}
             userRole={store.userRole}

@@ -21,6 +21,7 @@ interface CustomersProps {
   bulkUpdateCustomers: (updater: (prev: Customer[]) => Customer[]) => void;
   addRenewal: (r: Omit<Renewal, 'id'>) => void;
   renewalMessage: string;
+  overdueMessage: string;
   transferCustomer: (customerId: string, newServerId: string) => void;
   userRole: UserRole;
 }
@@ -28,7 +29,7 @@ interface CustomersProps {
 export function Customers({
   customers, servers, plans, whatsappMessage,
   addCustomer, updateCustomer, deleteCustomer,
-  bulkUpdateCustomers, addRenewal, renewalMessage,
+  bulkUpdateCustomers, addRenewal, renewalMessage, overdueMessage,
   transferCustomer, userRole
 }: CustomersProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -531,7 +532,11 @@ export function Customers({
                               }
 
                               const overdueDays = Math.abs(daysDiff - 1);
-                              const message = `Olá *${customer.name}*! 👋\n\nPassando para avisar que seu acesso IPTV está vencido há *${overdueDays}* ${overdueDays === 1 ? 'dia' : 'dias'}. ⚠️\n\nGostaria de renovar seu acesso com a gente agora? 😊`;
+                              const message = formatWhatsappMessage(overdueMessage, {
+                                name: customer.name,
+                                amount: customer.amountPaid,
+                                dueDate: customer.dueDate
+                              });
 
                               updateCustomer(customer.id, {
                                 lastOverdueNotifiedDate: format(today, 'yyyy-MM-dd')
