@@ -84,6 +84,12 @@ export function useStore(user: User | null) {
     return saved || defaultMsg;
   });
 
+  const [overdueMessage, setOverdueMessage] = useState<string>(() => {
+    const saved = localStorage.getItem('arf_overdue_message');
+    const defaultMsg = 'Olá *{nome}*! 👋\n\nPassando para avisar que seu acesso IPTV está {dias}. ⚠️\n\nGostaria de renovar seu acesso com a gente agora? 😊';
+    return saved || defaultMsg;
+  });
+
   const [appIcon, setAppIcon] = useState<string | null>(() => {
     return localStorage.getItem('arf_app_icon');
   });
@@ -186,6 +192,7 @@ export function useStore(user: User | null) {
         if (settingsData) {
           if (settingsData.whatsapp_message || (settingsData as any).whatsappMessage) setWhatsappMessage(settingsData.whatsapp_message || (settingsData as any).whatsappMessage);
           if (settingsData.renewal_message || (settingsData as any).renewalMessage) setRenewalMessage(settingsData.renewal_message || (settingsData as any).renewalMessage);
+          if (settingsData.overdue_message || (settingsData as any).overdueMessage) setOverdueMessage(settingsData.overdue_message || (settingsData as any).overdueMessage);
           if (settingsData.app_icon || (settingsData as any).appIcon) setAppIcon(settingsData.app_icon || (settingsData as any).appIcon);
           if (settingsData.app_cover || (settingsData as any).appCover) setAppCover(settingsData.app_cover || (settingsData as any).appCover);
         }
@@ -457,19 +464,24 @@ export function useStore(user: User | null) {
         user_id: user.id,
         whatsapp_message: whatsappMessage,
         renewal_message: renewalMessage,
+        overdue_message: overdueMessage,
         app_icon: appIcon,
         app_cover: appCover
       }, { onConflict: 'user_id' });
     };
     const timer = setTimeout(syncSettings, 1000);
     return () => clearTimeout(timer);
-  }, [whatsappMessage, renewalMessage, appIcon, appCover, user, loading]);
+  }, [whatsappMessage, renewalMessage, overdueMessage, appIcon, appCover, user, loading]);
 
 
 
   useEffect(() => {
     localStorage.setItem('arf_renewal_message', renewalMessage);
   }, [renewalMessage]);
+
+  useEffect(() => {
+    localStorage.setItem('arf_overdue_message', overdueMessage);
+  }, [overdueMessage]);
 
   useEffect(() => {
     localStorage.setItem('arf_message_v2', whatsappMessage);
@@ -534,6 +546,7 @@ export function useStore(user: User | null) {
     settings?: {
       whatsappMessage?: string;
       renewalMessage?: string;
+      overdueMessage?: string;
       appIcon?: string | null;
       appCover?: string | null;
     };
@@ -550,6 +563,7 @@ export function useStore(user: User | null) {
         settings: {
           whatsappMessage: overrideData?.settings?.whatsappMessage ?? whatsappMessage,
           renewalMessage: overrideData?.settings?.renewalMessage ?? renewalMessage,
+          overdueMessage: overrideData?.settings?.overdueMessage ?? overdueMessage,
           appIcon: overrideData?.settings?.appIcon ?? appIcon,
           appCover: overrideData?.settings?.appCover ?? appCover,
         }
@@ -572,6 +586,7 @@ export function useStore(user: User | null) {
         user_id: user.id,
         whatsapp_message: dataToSync.settings.whatsappMessage,
         renewal_message: dataToSync.settings.renewalMessage,
+        overdue_message: dataToSync.settings.overdueMessage,
         app_icon: dataToSync.settings.appIcon,
         app_cover: dataToSync.settings.appCover
       }, { onConflict: 'user_id' });
@@ -669,6 +684,7 @@ export function useStore(user: User | null) {
     userAvatar, setUserAvatar,
     whatsappMessage, setWhatsappMessage,
     renewalMessage, setRenewalMessage,
+    overdueMessage, setOverdueMessage,
     appIcon, setAppIcon,
     appCover, setAppCover,
     syncToCloud: syncToCloud as (overrideData?: any, clearFirst?: boolean) => Promise<void>,

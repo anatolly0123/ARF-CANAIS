@@ -17,10 +17,11 @@ interface DashboardProps {
   addRenewal: (r: Omit<Renewal, 'id'>) => void;
   manualAdditions: ManualAddition[];
   renewalMessage: string;
+  overdueMessage: string;
   userRole: UserRole;
 }
 
-export function Dashboard({ customers, servers, plans, whatsappMessage, updateCustomer, renewals, addRenewal, manualAdditions, renewalMessage, userRole }: DashboardProps) {
+export function Dashboard({ customers, servers, plans, whatsappMessage, updateCustomer, renewals, addRenewal, manualAdditions, renewalMessage, overdueMessage, userRole }: DashboardProps) {
   const today = useMemo(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -381,8 +382,17 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
 
                             let message = '';
                             if (isOverdue) {
+<<<<<<< HEAD
                               const overdueDays = Math.abs(days - 1);
                               message = `Olá *${c.name}*! 👋\n\nPassando para avisar que seu acesso IPTV está vencido há *${overdueDays}* ${overdueDays === 1 ? 'dia' : 'dias'}. ⚠️\n\nGostaria de renovar seu acesso com a gente agora? 😊`;
+=======
+                              const overdueDays = Math.abs(days);
+                              message = formatWhatsappMessage(overdueMessage, {
+                                name: c.name,
+                                amount: c.amountPaid,
+                                dueDate: c.dueDate
+                              });
+>>>>>>> c999641f2ce57a97c1cdd9fef632f4ea321f984b
                               updateCustomer(c.id, { lastOverdueNotifiedDate: format(today, 'yyyy-MM-dd') });
                             } else {
                               message = formatWhatsappMessage(whatsappMessage, {

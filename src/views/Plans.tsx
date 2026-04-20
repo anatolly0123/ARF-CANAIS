@@ -11,17 +11,19 @@ interface PlansProps {
   setWhatsappMessage: (msg: string) => void;
   renewalMessage: string;
   setRenewalMessage: (msg: string) => void;
+  overdueMessage: string;
+  setOverdueMessage: (msg: string) => void;
   addManualAddition: (addition: Omit<ManualAddition, 'id'>) => void;
   manualAdditions: ManualAddition[];
   userRole: UserRole;
 }
 
-export function Plans({ plans, updatePlan, whatsappMessage, setWhatsappMessage, renewalMessage, setRenewalMessage, addManualAddition, manualAdditions, userRole }: PlansProps) {
+export function Plans({ plans, updatePlan, whatsappMessage, setWhatsappMessage, renewalMessage, setRenewalMessage, overdueMessage, setOverdueMessage, addManualAddition, manualAdditions, userRole }: PlansProps) {
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
   const [priceInput, setPriceInput] = useState('');
 
   const [isEditingMessage, setIsEditingMessage] = useState(false);
-  const [isEditingRenewalMessage, setIsEditingRenewalMessage] = useState(false);
+  const [editingMessageType, setEditingMessageType] = useState<'whatsapp' | 'renewal' | 'overdue'>('whatsapp');
   const [messageInput, setMessageInput] = useState('');
 
   const [isAddingMoney, setIsAddingMoney] = useState(false);
@@ -44,19 +46,23 @@ export function Plans({ plans, updatePlan, whatsappMessage, setWhatsappMessage, 
     }
   };
 
-  const handleEditMessage = () => {
-    setMessageInput(whatsappMessage);
+  const handleEditMessage = (type: 'whatsapp' | 'renewal' | 'overdue') => {
+    setEditingMessageType(type);
+    if (type === 'renewal') setMessageInput(renewalMessage);
+    else if (type === 'overdue') setMessageInput(overdueMessage);
+    else setMessageInput(whatsappMessage);
     setIsEditingMessage(true);
   };
 
   const handleSaveMessage = () => {
-    if (isEditingRenewalMessage) {
+    if (editingMessageType === 'renewal') {
       setRenewalMessage(messageInput);
+    } else if (editingMessageType === 'overdue') {
+      setOverdueMessage(messageInput);
     } else {
       setWhatsappMessage(messageInput);
     }
     setIsEditingMessage(false);
-    setIsEditingRenewalMessage(false);
   };
 
   const handleOpenMoneyModal = (action: 'add' | 'remove') => {
@@ -176,7 +182,7 @@ export function Plans({ plans, updatePlan, whatsappMessage, setWhatsappMessage, 
             <p className="text-xs text-gray-400">Mensagem padrão enviada para clientes próximos do vencimento.</p>
             {userRole !== 'observer' && (
               <button
-                onClick={handleEditMessage}
+                onClick={() => handleEditMessage('whatsapp')}
                 className="p-2 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 rounded-full transition-colors shrink-0 ml-4"
               >
                 <Edit2 size={18} />
@@ -201,11 +207,7 @@ export function Plans({ plans, updatePlan, whatsappMessage, setWhatsappMessage, 
             <p className="text-xs text-gray-400">Mensagem enviada logo após confirmar uma renovação.</p>
             {userRole !== 'observer' && (
               <button
-                onClick={() => {
-                  setMessageInput(renewalMessage);
-                  setIsEditingRenewalMessage(true);
-                  setIsEditingMessage(true);
-                }}
+                onClick={() => handleEditMessage('renewal')}
                 className="p-2 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 rounded-full transition-colors shrink-0 ml-4"
               >
                 <Edit2 size={18} />
@@ -214,6 +216,31 @@ export function Plans({ plans, updatePlan, whatsappMessage, setWhatsappMessage, 
           </div>
           <div className="bg-[#0f0f0f] p-4 rounded-xl border border-white/5">
             <p className="text-white text-xs whitespace-pre-wrap">{renewalMessage}</p>
+          </div>
+        </div>
+      </section>
+
+      {/* WhatsApp Message Section (Overdue) */}
+      <section>
+        <div className="flex items-center space-x-3 mb-6">
+          <MessageSquare size={28} className="text-red-500" />
+          <h2 className="text-xl font-bold text-white uppercase tracking-widest text-sm">Aviso Após o Vencimento</h2>
+        </div>
+
+        <div className="bg-[#1a1a1a] p-5 rounded-2xl border border-white/5 shadow-lg">
+          <div className="flex justify-between items-start mb-4">
+            <p className="text-xs text-gray-400">Mensagem que é enviada para clientes que já estão vencidos.</p>
+            {userRole !== 'observer' && (
+              <button
+                onClick={() => handleEditMessage('overdue')}
+                className="p-2 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 rounded-full transition-colors shrink-0 ml-4"
+              >
+                <Edit2 size={18} />
+              </button>
+            )}
+          </div>
+          <div className="bg-[#0f0f0f] p-4 rounded-xl border border-white/5">
+            <p className="text-white text-xs whitespace-pre-wrap">{overdueMessage}</p>
           </div>
         </div>
       </section>
@@ -257,11 +284,8 @@ export function Plans({ plans, updatePlan, whatsappMessage, setWhatsappMessage, 
       {/* Edit Message Modal */}
       <Modal
         isOpen={isEditingMessage}
-        onClose={() => {
-          setIsEditingMessage(false);
-          setIsEditingRenewalMessage(false);
-        }}
-        title={isEditingRenewalMessage ? "Mensagem de Renovação" : "Aviso de Vencimento"}
+        onClose={() => setIsEditingMessage(false)}
+        title={editingMessageType === 'renewal' ? "Mensagem de Renovação" : editingMessageType === 'overdue' ? "Aviso Após o Vencimento" : "Aviso de Vencimento"}
       >
         <p className="text-gray-400 text-xs mb-4">
           Variáveis disponíveis:<br />
@@ -283,10 +307,7 @@ export function Plans({ plans, updatePlan, whatsappMessage, setWhatsappMessage, 
 
           <div className="flex space-x-3 mt-8">
             <button
-              onClick={() => {
-                setIsEditingMessage(false);
-                setIsEditingRenewalMessage(false);
-              }}
+              onClick={() => setIsEditingMessage(false)}
               className="flex-1 py-3 rounded-xl border border-white/10 text-white font-medium hover:bg-white/5 transition-colors"
             >
               Cancelar
