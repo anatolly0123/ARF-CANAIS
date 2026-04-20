@@ -125,7 +125,7 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
       }
 
       const daysUntilDue = Math.round((dueTime - todayTime) / (1000 * 60 * 60 * 24)) + 1;
-      if (daysUntilDue >= -2 && daysUntilDue <= 2) {
+      if (daysUntilDue >= 0 && daysUntilDue <= 3) {
         expiring.push(c);
       }
     });
@@ -370,7 +370,7 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
                         <button
                           type="button"
                           onClick={(e) => {
-                            const isOverdue = days < 0;
+                            const isOverdue = days <= 0;
                             const currentCooldown = isOverdue ? isOnCooldown : isRecentlyNotified;
 
                             if (currentCooldown) {
@@ -381,7 +381,7 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
 
                             let message = '';
                             if (isOverdue) {
-                              const overdueDays = Math.abs(days);
+                              const overdueDays = Math.abs(days - 1);
                               message = `Olá *${c.name}*! 👋\n\nPassando para avisar que seu acesso IPTV está vencido há *${overdueDays}* ${overdueDays === 1 ? 'dia' : 'dias'}. ⚠️\n\nGostaria de renovar seu acesso com a gente agora? 😊`;
                               updateCustomer(c.id, { lastOverdueNotifiedDate: format(today, 'yyyy-MM-dd') });
                             } else {
@@ -395,15 +395,15 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
 
                             window.open(`https://wa.me/${c.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
                           }}
-                          disabled={Boolean(days < 0 ? isOnCooldown : isRecentlyNotified)}
-                          className={`p-2 rounded-full transition-all duration-300 ${(days < 0 ? isOnCooldown : isRecentlyNotified)
+                          disabled={Boolean(days <= 0 ? isOnCooldown : isRecentlyNotified)}
+                          className={`p-2 rounded-full transition-all duration-300 ${(days <= 0 ? isOnCooldown : isRecentlyNotified)
                               ? 'bg-gray-500/10 text-gray-600 cursor-not-allowed opacity-40 pointer-events-none'
-                              : days < 0
+                              : days <= 0
                                 ? 'bg-red-500/20 text-red-500 hover:bg-red-500/30'
                                 : 'bg-green-600/20 text-green-500 hover:bg-green-600/30'
                             }`}
-                          style={{ pointerEvents: (days < 0 ? isOnCooldown : isRecentlyNotified) ? 'none' : 'auto' }}
-                          title={days < 0 ? (isOnCooldown ? `Próximo envio em ${10 - Math.round((today.getTime() - lastOverdueDate!.getTime()) / (1000 * 60 * 60 * 24))} dias` : "WhatsApp") : (isRecentlyNotified ? "Já notificado" : "WhatsApp")}
+                          style={{ pointerEvents: (days <= 0 ? isOnCooldown : isRecentlyNotified) ? 'none' : 'auto' }}
+                          title={days <= 0 ? (isOnCooldown ? `Próximo envio em ${10 - Math.round((today.getTime() - lastOverdueDate!.getTime()) / (1000 * 60 * 60 * 24))} dias` : "WhatsApp") : (isRecentlyNotified ? "Já notificado" : "WhatsApp")}
                         >
                           <MessageCircle size={20} />
                         </button>
