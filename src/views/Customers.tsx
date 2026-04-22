@@ -305,46 +305,77 @@ export function Customers({
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div 
+        <motion.div 
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
           onClick={() => setStatsFilter(statsFilter === 'ativos' ? 'all' : 'ativos')}
-          className={`cursor-pointer transition-all duration-300 bg-[#1a1a1a] border ${statsFilter === 'ativos' ? 'border-[#c8a646] bg-[#c8a646]/5 shadow-lg shadow-[#c8a646]/10' : 'border-white/5'} p-3 rounded-2xl shadow-lg`}
+          className={`cursor-pointer transition-all duration-300 p-4 rounded-2xl border ${
+            statsFilter === 'ativos' 
+              ? 'bg-[#c8a646] border-[#c8a646] shadow-xl shadow-[#c8a646]/20' 
+              : 'bg-[#1a1a1a] border-white/5 hover:border-white/10'
+          }`}
         >
-          <div className="flex items-center space-x-2 mb-1">
-            <Users size={14} className={statsFilter === 'ativos' ? 'text-[#c8a646]' : 'text-gray-500'} />
-            <span className={`text-[10px] font-bold uppercase tracking-widest ${statsFilter === 'ativos' ? 'text-[#c8a646]' : 'text-gray-500'}`}>Ativos</span>
+          <div className="flex items-center justify-between mb-2">
+            <Users size={18} className={statsFilter === 'ativos' ? 'text-[#0f0f0f]' : 'text-[#c8a646]'} />
+            {statsFilter === 'ativos' && <Check size={14} className="text-[#0f0f0f]" />}
           </div>
-          <div className="text-xl font-bold text-white">{stats.total}</div>
-        </div>
-        <div 
+          <div className={`text-[10px] font-bold uppercase tracking-widest ${statsFilter === 'ativos' ? 'text-[#0f0f0f]/60' : 'text-gray-500'}`}>Ativos</div>
+          <div className={`text-2xl font-bold ${statsFilter === 'ativos' ? 'text-[#0f0f0f]' : 'text-white'}`}>{stats.total}</div>
+        </motion.div>
+
+        <motion.div 
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
           onClick={() => setStatsFilter(statsFilter === 'mensal' ? 'all' : 'mensal')}
-          className={`cursor-pointer transition-all duration-300 bg-[#1a1a1a] border ${statsFilter === 'mensal' ? 'border-blue-500 bg-blue-500/5 shadow-lg shadow-blue-500/10' : 'border-white/5'} p-3 rounded-2xl shadow-lg`}
+          className={`cursor-pointer transition-all duration-300 p-4 rounded-2xl border ${
+            statsFilter === 'mensal' 
+              ? 'bg-blue-600 border-blue-600 shadow-xl shadow-blue-600/20' 
+              : 'bg-[#1a1a1a] border-white/5 hover:border-white/10'
+          }`}
         >
-          <div className="flex items-center space-x-2 mb-1">
-            <Award size={14} className={statsFilter === 'mensal' ? 'text-blue-500' : 'text-gray-500'} />
-            <span className={`text-[10px] font-bold uppercase tracking-widest ${statsFilter === 'mensal' ? 'text-blue-500' : 'text-gray-500'}`}>Mensal</span>
+          <div className="flex items-center justify-between mb-2">
+            <Award size={18} className={statsFilter === 'mensal' ? 'text-white' : 'text-blue-500'} />
+            {statsFilter === 'mensal' && <Check size={14} className="text-white" />}
           </div>
-          <div className="text-xl font-bold text-white">{stats.mensalista}</div>
-        </div>
-        <div 
+          <div className={`text-[10px] font-bold uppercase tracking-widest ${statsFilter === 'mensal' ? 'text-white/70' : 'text-gray-500'}`}>Mensal</div>
+          <div className={`text-2xl font-bold ${statsFilter === 'mensal' ? 'text-white' : 'text-white'}`}>{stats.mensalista}</div>
+        </motion.div>
+
+        <motion.div 
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
           onClick={() => setStatsFilter(statsFilter === 'gratis' ? 'all' : 'gratis')}
-          className={`cursor-pointer transition-all duration-300 bg-[#1a1a1a] border ${statsFilter === 'gratis' ? 'border-green-500 bg-green-500/5 shadow-lg shadow-green-500/10' : 'border-white/5'} p-3 rounded-2xl shadow-lg`}
+          className={`cursor-pointer transition-all duration-300 p-4 rounded-2xl border ${
+            statsFilter === 'gratis' 
+              ? 'bg-green-600 border-green-600 shadow-xl shadow-green-600/20' 
+              : 'bg-[#1a1a1a] border-white/5 hover:border-white/10'
+          }`}
         >
-          <div className="flex items-center space-x-2 mb-1">
-            <Star size={14} className={statsFilter === 'gratis' ? 'text-green-500' : 'text-gray-500'} />
-            <span className={`text-[10px] font-bold uppercase tracking-widest ${statsFilter === 'gratis' ? 'text-green-500' : 'text-gray-500'}`}>Gratis</span>
+          <div className="flex items-center justify-between mb-2">
+            <Star size={18} className={statsFilter === 'gratis' ? 'text-white' : 'text-green-500'} />
+            {statsFilter === 'gratis' && <Check size={14} className="text-white" />}
           </div>
-          <div className="text-xl font-bold text-white">{stats.gratuito}</div>
-        </div>
-        <div 
+          <div className={`text-[10px] font-bold uppercase tracking-widest ${statsFilter === 'gratis' ? 'text-white/70' : 'text-gray-500'}`}>Gratis</div>
+          <div className={`text-2xl font-bold ${statsFilter === 'gratis' ? 'text-white' : 'text-white'}`}>{stats.gratuito}</div>
+        </motion.div>
+
+        <motion.div 
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
           onClick={() => setStatsFilter(statsFilter === 'inativos' ? 'all' : 'inativos')}
-          className={`cursor-pointer transition-all duration-300 bg-[#1a1a1a] border ${statsFilter === 'inativos' ? 'border-red-500 bg-red-500/5 shadow-lg shadow-red-500/10' : 'border-white/5'} p-3 rounded-2xl shadow-lg`}
+          className={`cursor-pointer transition-all duration-300 p-4 rounded-2xl border ${
+            statsFilter === 'inativos' 
+              ? 'bg-red-600 border-red-600 shadow-xl shadow-red-600/20' 
+              : 'bg-[#1a1a1a] border-white/5 hover:border-white/10'
+          }`}
         >
-          <div className="flex items-center space-x-2 mb-1">
-            <UserX size={14} className={statsFilter === 'inativos' ? 'text-red-500' : 'text-gray-500'} />
-            <span className={`text-[10px] font-bold uppercase tracking-widest ${statsFilter === 'inativos' ? 'text-red-500' : 'text-gray-500'}`}>Inativos</span>
+          <div className="flex items-center justify-between mb-2">
+            <UserX size={18} className={statsFilter === 'inativos' ? 'text-white' : 'text-red-500'} />
+            {statsFilter === 'inativos' && <Check size={14} className="text-white" />}
           </div>
-          <div className="text-xl font-bold text-white">{stats.inativos}</div>
-        </div>
+          <div className={`text-[10px] font-bold uppercase tracking-widest ${statsFilter === 'inativos' ? 'text-white/70' : 'text-gray-500'}`}>Inativos</div>
+          <div className={`text-2xl font-bold ${statsFilter === 'inativos' ? 'text-white' : 'text-white'}`}>{stats.inativos}</div>
+        </motion.div>
       </div>
 
       {/* Filters */}
