@@ -48,7 +48,7 @@ export function Customers({
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState('all');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'vencidos' | 'ativos' | 'tudo'>('tudo');
+  const [statsFilter, setStatsFilter] = useState<string>('all');
 
   // Form State
   const [formData, setFormData] = useState({
@@ -252,9 +252,15 @@ export function Customers({
       dueDate.setHours(0, 0, 0, 0);
       const isActive = dueDate.getTime() >= todayTime;
 
-      // Filter by active tab
-      if (activeTab === 'ativos' && !isActive) return false;
-      if (activeTab === 'vencidos' && isActive) return false;
+      // Filter by stats cards
+      if (statsFilter === 'ativos' && !isActive) return false;
+      if (statsFilter === 'inativos' && isActive) return false;
+      
+      const plan = plans.find(p => p.id === c.planId);
+      const isGratis = plan?.name === 'Gratuito';
+      
+      if (statsFilter === 'mensal' && (!isActive || isGratis)) return false;
+      if (statsFilter === 'gratis' && (!isActive || !isGratis)) return false;
 
       const matchesSearch = !query || c.name.toLowerCase().includes(query) || c.phone.includes(query);
       if (!matchesSearch) return false;
@@ -277,7 +283,7 @@ export function Customers({
       const dateB = new Date(b.dueDate).getTime() || 0;
       return dateA - dateB;
     });
-  }, [customers, searchQuery, filter, activeTab, today]);
+  }, [customers, searchQuery, filter, statsFilter, today, plans]);
 
   return (
     <div className="pb-24 space-y-6">
@@ -295,60 +301,54 @@ export function Customers({
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex space-x-2 bg-[#1a1a1a] p-1.5 rounded-2xl border border-white/5 mb-6">
-        {['tudo', 'ativos', 'vencidos'].map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab as any)}
-            className={`flex-1 flex justify-center py-3 text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded-xl transition-all duration-300 ${
-              activeTab === tab 
-                ? 'bg-[#c8a646] text-[#0f0f0f] shadow-lg shadow-[#c8a646]/20' 
-                : 'text-gray-500 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            {tab === 'ativos' ? 'Ativos' : tab === 'vencidos' ? 'Vencidos' : 'Geral'}
-          </button>
-        ))}
-      </div>
+
 
       {/* Stats Cards */}
-      {activeTab === 'tudo' && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <div className="bg-[#1a1a1a] border border-white/5 p-3 rounded-2xl shadow-lg">
-            <div className="flex items-center space-x-2 mb-1">
-              <Users size={14} className="text-[#c8a646]" />
-              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Ativos</span>
-            </div>
-            <div className="text-xl font-bold text-white">{stats.total}</div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div 
+          onClick={() => setStatsFilter(statsFilter === 'ativos' ? 'all' : 'ativos')}
+          className={`cursor-pointer transition-all duration-300 bg-[#1a1a1a] border ${statsFilter === 'ativos' ? 'border-[#c8a646] bg-[#c8a646]/5 shadow-lg shadow-[#c8a646]/10' : 'border-white/5'} p-3 rounded-2xl shadow-lg`}
+        >
+          <div className="flex items-center space-x-2 mb-1">
+            <Users size={14} className={statsFilter === 'ativos' ? 'text-[#c8a646]' : 'text-gray-500'} />
+            <span className={`text-[10px] font-bold uppercase tracking-widest ${statsFilter === 'ativos' ? 'text-[#c8a646]' : 'text-gray-500'}`}>Ativos</span>
           </div>
-          <div className="bg-[#1a1a1a] border border-white/5 p-3 rounded-2xl shadow-lg">
-            <div className="flex items-center space-x-2 mb-1">
-              <Award size={14} className="text-blue-500" />
-              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Mensal</span>
-            </div>
-            <div className="text-xl font-bold text-white">{stats.mensalista}</div>
-          </div>
-          <div className="bg-[#1a1a1a] border border-white/5 p-3 rounded-2xl shadow-lg">
-            <div className="flex items-center space-x-2 mb-1">
-              <Star size={14} className="text-green-500" />
-              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Gratis</span>
-            </div>
-            <div className="text-xl font-bold text-white">{stats.gratuito}</div>
-          </div>
-          <div className="bg-[#1a1a1a] border border-white/5 p-3 rounded-2xl shadow-lg">
-            <div className="flex items-center space-x-2 mb-1">
-              <UserX size={14} className="text-red-500" />
-              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Inativos</span>
-            </div>
-            <div className="text-xl font-bold text-white">{stats.inativos}</div>
-          </div>
+          <div className="text-xl font-bold text-white">{stats.total}</div>
         </div>
-      )}
+        <div 
+          onClick={() => setStatsFilter(statsFilter === 'mensal' ? 'all' : 'mensal')}
+          className={`cursor-pointer transition-all duration-300 bg-[#1a1a1a] border ${statsFilter === 'mensal' ? 'border-blue-500 bg-blue-500/5 shadow-lg shadow-blue-500/10' : 'border-white/5'} p-3 rounded-2xl shadow-lg`}
+        >
+          <div className="flex items-center space-x-2 mb-1">
+            <Award size={14} className={statsFilter === 'mensal' ? 'text-blue-500' : 'text-gray-500'} />
+            <span className={`text-[10px] font-bold uppercase tracking-widest ${statsFilter === 'mensal' ? 'text-blue-500' : 'text-gray-500'}`}>Mensal</span>
+          </div>
+          <div className="text-xl font-bold text-white">{stats.mensalista}</div>
+        </div>
+        <div 
+          onClick={() => setStatsFilter(statsFilter === 'gratis' ? 'all' : 'gratis')}
+          className={`cursor-pointer transition-all duration-300 bg-[#1a1a1a] border ${statsFilter === 'gratis' ? 'border-green-500 bg-green-500/5 shadow-lg shadow-green-500/10' : 'border-white/5'} p-3 rounded-2xl shadow-lg`}
+        >
+          <div className="flex items-center space-x-2 mb-1">
+            <Star size={14} className={statsFilter === 'gratis' ? 'text-green-500' : 'text-gray-500'} />
+            <span className={`text-[10px] font-bold uppercase tracking-widest ${statsFilter === 'gratis' ? 'text-green-500' : 'text-gray-500'}`}>Gratis</span>
+          </div>
+          <div className="text-xl font-bold text-white">{stats.gratuito}</div>
+        </div>
+        <div 
+          onClick={() => setStatsFilter(statsFilter === 'inativos' ? 'all' : 'inativos')}
+          className={`cursor-pointer transition-all duration-300 bg-[#1a1a1a] border ${statsFilter === 'inativos' ? 'border-red-500 bg-red-500/5 shadow-lg shadow-red-500/10' : 'border-white/5'} p-3 rounded-2xl shadow-lg`}
+        >
+          <div className="flex items-center space-x-2 mb-1">
+            <UserX size={14} className={statsFilter === 'inativos' ? 'text-red-500' : 'text-gray-500'} />
+            <span className={`text-[10px] font-bold uppercase tracking-widest ${statsFilter === 'inativos' ? 'text-red-500' : 'text-gray-500'}`}>Inativos</span>
+          </div>
+          <div className="text-xl font-bold text-white">{stats.inativos}</div>
+        </div>
+      </div>
 
       {/* Filters */}
-      {activeTab === 'tudo' && (
-        <div className="space-y-3">
+      <div className="space-y-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={18} />
           <input
@@ -481,7 +481,6 @@ export function Customers({
           </AnimatePresence>
         </div>
       </div>
-      )}
 
       {/* Customer List */}
       <div className="space-y-3">
