@@ -48,6 +48,8 @@ export function Customers({
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState('all');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [statsFilter, setStatsFilter] = useState<string>('all');
 
   // Form State
@@ -288,8 +290,157 @@ export function Customers({
   return (
     <div className="pb-24 space-y-6">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold text-white uppercase tracking-widest">Clientes</h2>
-        <div className="flex space-x-2">
+        <AnimatePresence mode="wait">
+          {!isSearchOpen ? (
+            <motion.h2 
+              key="title"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              className="text-xl font-bold text-white uppercase tracking-widest"
+            >
+              Clientes
+            </motion.h2>
+          ) : (
+            <motion.div 
+              key="search"
+              initial={{ opacity: 0, width: 0 }}
+              animate={{ opacity: 1, width: '100%' }}
+              exit={{ opacity: 0, width: 0 }}
+              className="flex-1 mr-4 relative"
+            >
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#c8a646]" size={18} />
+              <input
+                ref={searchInputRef}
+                type="text"
+                placeholder="Buscar..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                onBlur={() => { if (!searchQuery) setIsSearchOpen(false); }}
+                className="w-full bg-[#1a1a1a] border border-[#c8a646]/30 rounded-full pl-10 pr-4 py-2 text-white focus:outline-none focus:border-[#c8a646] transition-all"
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div className="flex items-center space-x-2">
+          {/* Search Toggle */}
+          {!isSearchOpen && (
+            <button
+              onClick={() => {
+                setIsSearchOpen(true);
+                setTimeout(() => searchInputRef.current?.focus(), 100);
+              }}
+              className="p-2 rounded-full bg-[#1a1a1a] text-gray-400 border border-white/5 hover:border-white/20 transition-all"
+            >
+              <Search size={24} />
+            </button>
+          )}
+
+          {/* Filter Button */}
+          <div className="relative">
+            <button
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className={`p-2 rounded-full transition-all duration-300 border ${
+                filter !== 'all' || isFilterOpen
+                  ? 'bg-[#c8a646] text-[#0f0f0f] border-[#c8a646] shadow-lg shadow-[#c8a646]/20'
+                  : 'bg-[#1a1a1a] text-gray-400 border-white/5 hover:border-white/20'
+              }`}
+              title="Filtrar"
+            >
+              <Filter size={24} />
+            </button>
+
+            <AnimatePresence>
+              {isFilterOpen && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-40" 
+                    onClick={() => setIsFilterOpen(false)} 
+                  />
+                  
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    className="absolute right-0 mt-3 w-72 bg-[#1a1a1a] border border-white/10 rounded-3xl shadow-2xl z-50 overflow-hidden backdrop-blur-xl"
+                  >
+                    <div className="max-h-[400px] overflow-y-auto py-2 custom-scrollbar">
+                      {/* All Option */}
+                      <button
+                        onClick={() => { setFilter('all'); setIsFilterOpen(false); }}
+                        className={`w-full px-6 py-4 flex items-center justify-between hover:bg-white/5 transition-colors ${filter === 'all' ? 'text-[#c8a646]' : 'text-gray-400'}`}
+                      >
+                        <span className="font-bold text-sm uppercase tracking-widest">Mostrar Todos</span>
+                        {filter === 'all' && <Check size={18} />}
+                      </button>
+
+                      {/* Status Group */}
+                      <div className="px-6 py-2">
+                        <div className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em] mb-2 flex items-center space-x-2">
+                          <Calendar size={12} />
+                          <span>Status</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          {['ativo', 'vencido'].map(v => (
+                            <button
+                              key={v}
+                              onClick={() => { setFilter(`status:${v}`); setIsFilterOpen(false); }}
+                              className={`px-4 py-3 rounded-xl text-xs font-bold transition-all border ${filter === `status:${v}` ? 'bg-[#c8a646] text-[#0f0f0f] border-[#c8a646]' : 'bg-[#0f0f0f] text-gray-400 border-white/5 hover:border-white/20'}`}
+                            >
+                              {v === 'ativo' ? 'Ativos' : 'Vencidos'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Servers Group */}
+                      <div className="px-6 py-2 mt-2">
+                        <div className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em] mb-2 flex items-center space-x-2">
+                          <Filter size={12} />
+                          <span>Servidores</span>
+                        </div>
+                        <div className="space-y-1">
+                          {servers.map(s => (
+                            <button
+                              key={s.id}
+                              onClick={() => { setFilter(`server:${s.id}`); setIsFilterOpen(false); }}
+                              className={`w-full px-4 py-3 rounded-xl text-left text-sm font-bold transition-all flex items-center justify-between ${filter === `server:${s.id}` ? 'bg-[#c8a646]/10 text-[#c8a646]' : 'text-gray-400 hover:bg-white/5'}`}
+                            >
+                              <span>{s.name}</span>
+                              {filter === `server:${s.id}` && <Check size={16} />}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Plans Group */}
+                      <div className="px-6 py-2 mt-2">
+                        <div className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em] mb-2 flex items-center space-x-2">
+                          <Award size={12} />
+                          <span>Planos</span>
+                        </div>
+                        <div className="space-y-1">
+                          {plans.map(p => (
+                            <button
+                              key={p.id}
+                              onClick={() => { setFilter(`plan:${p.id}`); setIsFilterOpen(false); }}
+                              className={`w-full px-4 py-3 rounded-xl text-left text-sm font-bold transition-all flex items-center justify-between ${filter === `plan:${p.id}` ? 'bg-[#c8a646]/10 text-[#c8a646]' : 'text-gray-400 hover:bg-white/5'}`}
+                            >
+                              <span>{p.name}</span>
+                              {filter === `plan:${p.id}` && <Check size={16} />}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+
           {userRole !== 'observer' && (
             <button
               onClick={() => openModal()}
@@ -376,141 +527,6 @@ export function Customers({
           <div className={`text-[7px] sm:text-[10px] font-bold uppercase tracking-tighter sm:tracking-widest ${statsFilter === 'inativos' ? 'text-white/70' : 'text-gray-500'}`}>Inativos</div>
           <div className={`text-sm sm:text-2xl font-bold ${statsFilter === 'inativos' ? 'text-white' : 'text-white'}`}>{stats.inativos}</div>
         </motion.div>
-      </div>
-
-      {/* Filters */}
-      <div className="space-y-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={18} />
-          <input
-            type="text"
-            placeholder="Buscar por nome..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white focus:outline-none focus:border-[#c8a646] transition-colors"
-          />
-        </div>
-
-        <div className="relative">
-          <button
-            onClick={() => setIsFilterOpen(!isFilterOpen)}
-            className="w-full bg-[#1a1a1a] border border-[#c8a646]/30 rounded-2xl px-4 py-4 text-white flex items-center justify-between group hover:border-[#c8a646] transition-all shadow-lg"
-          >
-            <div className="flex items-center space-x-3">
-              <div className="bg-[#c8a646]/10 p-2 rounded-xl text-[#c8a646]">
-                <Filter size={20} />
-              </div>
-              <div className="text-left">
-                <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest leading-none mb-1">Filtrar por</div>
-                <div className="text-sm font-bold text-white leading-none">
-                  {filter === 'all' ? 'Ver Todos' : (() => {
-                    const [type, val] = filter.split(':');
-                    if (type === 'status') return val === 'ativo' ? 'Status: Ativos' : 'Status: Vencidos';
-                    if (type === 'server') return `Servidor: ${servers.find(s => s.id === val)?.name || 'Desconhecido'}`;
-                    if (type === 'plan') return `Plano: ${plans.find(p => p.id === val)?.name || 'Desconhecido'}`;
-                    return 'Filtro Ativo';
-                  })()}
-                </div>
-              </div>
-            </div>
-            <motion.div
-              animate={{ rotate: isFilterOpen ? 180 : 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <ChevronDown size={20} className="text-[#c8a646]" />
-            </motion.div>
-          </button>
-
-          <AnimatePresence>
-            {isFilterOpen && (
-              <>
-                {/* Backdrop to close */}
-                <div 
-                  className="fixed inset-0 z-40" 
-                  onClick={() => setIsFilterOpen(false)} 
-                />
-                
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  transition={{ duration: 0.2, ease: "easeOut" }}
-                  className="absolute left-0 right-0 mt-3 bg-[#1a1a1a] border border-white/10 rounded-3xl shadow-2xl z-50 overflow-hidden backdrop-blur-xl"
-                >
-                  <div className="max-h-[400px] overflow-y-auto py-2 custom-scrollbar">
-                    {/* All Option */}
-                    <button
-                      onClick={() => { setFilter('all'); setIsFilterOpen(false); }}
-                      className={`w-full px-6 py-4 flex items-center justify-between hover:bg-white/5 transition-colors ${filter === 'all' ? 'text-[#c8a646]' : 'text-gray-400'}`}
-                    >
-                      <span className="font-bold text-sm uppercase tracking-widest">Mostrar Todos</span>
-                      {filter === 'all' && <Check size={18} />}
-                    </button>
-
-                    {/* Status Group */}
-                    <div className="px-6 py-2">
-                      <div className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em] mb-2 flex items-center space-x-2">
-                        <Calendar size={12} />
-                        <span>Status</span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        {['ativo', 'vencido'].map(v => (
-                          <button
-                            key={v}
-                            onClick={() => { setFilter(`status:${v}`); setIsFilterOpen(false); }}
-                            className={`px-4 py-3 rounded-xl text-xs font-bold transition-all border ${filter === `status:${v}` ? 'bg-[#c8a646] text-[#0f0f0f] border-[#c8a646]' : 'bg-[#0f0f0f] text-gray-400 border-white/5 hover:border-white/20'}`}
-                          >
-                            {v === 'ativo' ? 'Ativos' : 'Vencidos'}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Servers Group */}
-                    <div className="px-6 py-2 mt-2">
-                      <div className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em] mb-2 flex items-center space-x-2">
-                        <Filter size={12} />
-                        <span>Servidores</span>
-                      </div>
-                      <div className="space-y-1">
-                        {servers.map(s => (
-                          <button
-                            key={s.id}
-                            onClick={() => { setFilter(`server:${s.id}`); setIsFilterOpen(false); }}
-                            className={`w-full px-4 py-3 rounded-xl text-left text-sm font-bold transition-all flex items-center justify-between ${filter === `server:${s.id}` ? 'bg-[#c8a646]/10 text-[#c8a646]' : 'text-gray-400 hover:bg-white/5'}`}
-                          >
-                            <span>{s.name}</span>
-                            {filter === `server:${s.id}` && <Check size={16} />}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Plans Group */}
-                    <div className="px-6 py-2 mt-2">
-                      <div className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em] mb-2 flex items-center space-x-2">
-                        <Award size={12} />
-                        <span>Planos</span>
-                      </div>
-                      <div className="space-y-1">
-                        {plans.map(p => (
-                          <button
-                            key={p.id}
-                            onClick={() => { setFilter(`plan:${p.id}`); setIsFilterOpen(false); }}
-                            className={`w-full px-4 py-3 rounded-xl text-left text-sm font-bold transition-all flex items-center justify-between ${filter === `plan:${p.id}` ? 'bg-[#c8a646]/10 text-[#c8a646]' : 'text-gray-400 hover:bg-white/5'}`}
-                          >
-                            <span>{p.name}</span>
-                            {filter === `plan:${p.id}` && <Check size={16} />}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
-        </div>
       </div>
 
       {/* Customer List */}
