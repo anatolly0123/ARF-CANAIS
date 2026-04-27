@@ -301,6 +301,9 @@ export function useStore(user: User | null) {
     }
 
     if (user) {
+      // First delete renewals linked to this server to avoid foreign key constraint
+      await supabase.from('renewals').delete().eq('server_id', id);
+
       const { error } = await supabase.from('servers').delete().eq('id', id);
       if (error) {
         console.error('Error deleting server:', error);
@@ -308,6 +311,7 @@ export function useStore(user: User | null) {
         return;
       }
     }
+    setRenewals(prev => prev.filter(r => r.serverId !== id));
     setServers(prev => prev.filter(s => s.id !== id));
   };
 
