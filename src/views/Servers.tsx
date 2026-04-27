@@ -117,11 +117,15 @@ export function Servers({ servers, customers, plans, addServer, updateServer, de
                         <button onClick={() => openModal(server)} className="p-2 text-gray-400 hover:text-white transition-colors bg-white/5 rounded-full">
                           <Edit2 size={16} />
                         </button>
+<<<<<<< HEAD
                         <button onClick={() => {
                           if (window.confirm(`Tem certeza que deseja excluir o servidor "${server.name}"? Esta ação não pode ser desfeita.`)) {
                             deleteServer(server.id);
                           }
                         }} className="p-2 text-red-400 hover:text-red-300 transition-colors bg-red-500/10 rounded-full">
+=======
+                        <button onClick={() => deleteServer(server.id)} className="p-2 text-red-400 hover:text-red-300 transition-colors bg-red-500/10 rounded-full">
+>>>>>>> 205764228f253f9742feb77c1a77aea781422997
                           <Trash2 size={16} />
                         </button>
                       </>

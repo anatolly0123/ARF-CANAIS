@@ -293,6 +293,7 @@ export function useStore(user: User | null) {
   };
 
   const deleteServer = async (id: string) => {
+<<<<<<< HEAD
     // Check if there are customers linked to this server
     const linkedCustomers = customers.filter(c => c.serverId === id);
     if (linkedCustomers.length > 0) {
@@ -309,6 +310,12 @@ export function useStore(user: User | null) {
       }
     }
     setServers(prev => prev.filter(s => s.id !== id));
+=======
+    setServers(prev => prev.filter(s => s.id !== id));
+    if (user) {
+      await supabase.from('servers').delete().eq('id', id);
+    }
+>>>>>>> 205764228f253f9742feb77c1a77aea781422997
   };
 
   // Plan Actions

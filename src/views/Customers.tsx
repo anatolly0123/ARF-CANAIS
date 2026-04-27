@@ -506,7 +506,11 @@ export function Customers({
             <Star size={14} className={`sm:w-[18px] sm:h-[18px] ${statsFilter === 'gratis' ? 'text-white' : 'text-green-500'}`} />
             {statsFilter === 'gratis' && <Check size={10} className="sm:w-3 sm:h-3 text-white" />}
           </div>
+<<<<<<< HEAD
           <div className={`text-[7px] sm:text-[10px] font-bold uppercase tracking-tighter sm:tracking-widest ${statsFilter === 'gratis' ? 'text-white/70' : 'text-gray-500'}`}>Grátis</div>
+=======
+          <div className={`text-[7px] sm:text-[10px] font-bold uppercase tracking-tighter sm:tracking-widest ${statsFilter === 'gratis' ? 'text-white/70' : 'text-gray-500'}`}>Gratis</div>
+>>>>>>> 205764228f253f9742feb77c1a77aea781422997
           <div className={`text-sm sm:text-2xl font-bold ${statsFilter === 'gratis' ? 'text-white' : 'text-white'}`}>{stats.gratuito}</div>
         </motion.div>
 

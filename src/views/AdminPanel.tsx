@@ -80,7 +80,11 @@ export function AdminPanel({ userRole }: AdminPanelProps) {
 
     try {
       if (userRole === 'admin' && role === 'owner') {
+<<<<<<< HEAD
          throw new Error('Apenas o dono da conta (Dono) pode criar novos Painéis do Zero.');
+=======
+         throw new Error('Apenas o dono da conta (Owner) pode criar novos Painéis do Zero.');
+>>>>>>> 205764228f253f9742feb77c1a77aea781422997
       }
 
       const finalEmail = email.includes('@') ? email : `${email}@arfcanais.com`;
@@ -98,7 +102,11 @@ export function AdminPanel({ userRole }: AdminPanelProps) {
       if (funcError) throw funcError;
       if (data.error) throw new Error(data.error);
 
+<<<<<<< HEAD
       setSuccess(`Usuário ${email} criado com sucesso como ${role === 'owner' ? 'Painel do Zero' : roleLabels[role]}!`);
+=======
+      setSuccess(`Usuário ${email} criado com sucesso como ${role === 'owner' ? 'Painel do Zero' : role}!`);
+>>>>>>> 205764228f253f9742feb77c1a77aea781422997
       setEmail('');
       setPassword('');
       setRole('observer');
@@ -175,7 +183,11 @@ export function AdminPanel({ userRole }: AdminPanelProps) {
   };
 
   const roleLabels: Record<string, string> = {
+<<<<<<< HEAD
     'owner': 'Painel Líder',
+=======
+    'owner': 'Painel Lider',
+>>>>>>> 205764228f253f9742feb77c1a77aea781422997
     'admin': 'Administrador',
     'observer': 'Observador'
   };
@@ -184,7 +196,11 @@ export function AdminPanel({ userRole }: AdminPanelProps) {
     <div className="space-y-6 pb-24">
       <div className="flex items-center justify-between mb-8">
         <div>
+<<<<<<< HEAD
           <h1 className="text-2xl font-black text-white uppercase tracking-tighter">Painel Administrativo</h1>
+=======
+          <h1 className="text-2xl font-black text-white uppercase tracking-tighter">Admin Panel</h1>
+>>>>>>> 205764228f253f9742feb77c1a77aea781422997
           <p className="text-gray-500 text-xs font-medium uppercase tracking-widest mt-1">Gerencie acessos</p>
         </div>
         <div className="p-3 bg-[#c8a646]/10 rounded-2xl border border-[#c8a646]/20">
@@ -338,7 +354,11 @@ export function AdminPanel({ userRole }: AdminPanelProps) {
                        >
                          <option value="observer">Observador</option>
                          <option value="admin">Administrador</option>
+<<<<<<< HEAD
                          {userRole === 'owner' && <option value="owner">Painel Líder</option>}
+=======
+                         {userRole === 'owner' && <option value="owner">Painel Lider (Owner)</option>}
+>>>>>>> 205764228f253f9742feb77c1a77aea781422997
                        </select>
 
                        <button type="submit" className="w-full py-2 bg-[#c8a646] hover:bg-[#e8c666] text-[#1a1a1a] font-bold rounded-xl flex items-center justify-center space-x-2 text-sm transition-colors mt-2">

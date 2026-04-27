@@ -1,0 +1,9 @@
+﻿[dotenv@17.3.1] injecting env (2) from .env -- tip: ÔÜÖ´©Å  suppress all logs with { quiet: true }
+--- Performance Diagnostics ---
+Table: servers          | Rows: 0     | Size:     0.00 KB
+Table: plans            | Rows: 0     | Size:     0.00 KB
+Table: customers        | Rows: 0     | Size:     0.00 KB
+Table: renewals         | Rows: 0     | Size:     0.00 KB
+Table: manual_additions | Rows: 0     | Size:     0.00 KB
+Table: settings         | Rows: 0     | Size:     0.00 KB
+Table: profiles         | Rows: 0     | Size:     0.00 KB
