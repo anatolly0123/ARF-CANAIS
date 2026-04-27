@@ -159,22 +159,16 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
     setSelectedCustomer(customer);
   };
 
-  const confirmRenew = (renewData: { serverId: string; planId: string; amountPaid: string }) => {
+  const confirmRenew = (renewData: { serverId: string; planId: string; amountPaid: string; dueDate: string }) => {
     if (selectedCustomer) {
       const plan = plans.find(p => p.id === renewData.planId);
       if (plan) {
-        const currentDueDate = parseRobustLocalTime(selectedCustomer.dueDate);
-        currentDueDate.setHours(0, 0, 0, 0);
-        const isActive = currentDueDate.getTime() >= today.getTime();
-
-        // If active, add to current due date. If expired, add to today.
-        const baseDate = isActive ? currentDueDate : today;
-        const newDueDate = format(addMonths(baseDate, plan.months), 'yyyy-MM-dd');
+        const newDueDate = renewData.dueDate;
 
         updateCustomer(selectedCustomer.id, {
           serverId: renewData.serverId,
           planId: renewData.planId,
-          amountPaid: parseFloat(renewData.amountPaid.replace(',', '.')),
+          amountPaid: parseSafeNumber(renewData.amountPaid),
           dueDate: newDueDate,
           hasResetCounters: false
         });

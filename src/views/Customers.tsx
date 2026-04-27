@@ -68,17 +68,11 @@ export function Customers({
     return d;
   }, []);
 
-  const handleRenew = (renewData: { serverId: string; planId: string; amountPaid: string }) => {
+  const handleRenew = (renewData: { serverId: string; planId: string; amountPaid: string; dueDate: string }) => {
     if (selectedCustomerForRenew) {
       const plan = plans.find(p => p.id === renewData.planId);
       if (plan) {
-        const currentDueDate = parseRobustLocalTime(selectedCustomerForRenew.dueDate);
-        currentDueDate.setHours(0, 0, 0, 0);
-        const isActive = isAfter(currentDueDate, today) || Math.round((currentDueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) === 0;
-
-        // If active, add to current due date. If expired, add to today.
-        const baseDate = isActive ? currentDueDate : today;
-        const newDueDate = format(addMonths(baseDate, plan.months), 'yyyy-MM-dd');
+        const newDueDate = renewData.dueDate;
 
         updateCustomer(selectedCustomerForRenew.id, {
           serverId: renewData.serverId,
