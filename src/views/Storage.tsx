@@ -312,8 +312,10 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
     // Headers
     worksheet.columns = [
       { header: 'NOME', key: 'name', width: 30 },
+      { header: 'SERVIDOR', key: 'serverName', width: 20 },
+      { header: 'VENCIMENTO', key: 'dueDate', width: 15 },
       { header: 'ENTRADA', key: 'entrada', width: 15 },
-      { header: 'SERVIDOR', key: 'servidor', width: 15 },
+      { header: 'CUSTO SRV', key: 'custo', width: 15 },
       { header: 'SAÍDA', key: 'saida', width: 15 },
       { header: 'PAGAMENTO', key: 'pagamento', width: 15 },
     ];
@@ -351,24 +353,26 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
 
       const row = worksheet.addRow({
         name: c.name,
+        serverName: server?.name || 'N/A',
+        dueDate: format(parseRobustLocalTime(c.dueDate), 'dd/MM/yyyy'),
         entrada: c.amountPaid,
-        servidor: server?.costPerActive || 0,
+        custo: server?.costPerActive || 0,
         saida: 0,
         pagamento: hasPaidThisMonth ? 'PAGO' : 'NÃO PAGO'
       });
 
       // Apply Colors as requested
-      // Column B: ENTRADA (Green)
-      row.getCell(2).font = { color: { argb: 'FF228B22' }, bold: true }; // Forest Green
+      // Column D: ENTRADA (Green)
+      row.getCell(4).font = { color: { argb: 'FF228B22' }, bold: true }; // Forest Green
       
-      // Column C: SERVIDOR (Blue)
-      row.getCell(3).font = { color: { argb: 'FF0000FF' }, bold: true }; // Blue
+      // Column E: CUSTO SRV (Blue)
+      row.getCell(5).font = { color: { argb: 'FF0000FF' }, bold: true }; // Blue
       
-      // Column D: SAÍDA (Red)
-      row.getCell(4).font = { color: { argb: 'FFFF0000' }, bold: true }; // Red
+      // Column F: SAÍDA (Red)
+      row.getCell(6).font = { color: { argb: 'FFFF0000' }, bold: true }; // Red
       
-      // Column E: PAGAMENTO (Conditional)
-      const payCell = row.getCell(5);
+      // Column G: PAGAMENTO (Conditional)
+      const payCell = row.getCell(7);
       if (hasPaidThisMonth) {
           payCell.font = { color: { argb: 'FF228B22' }, bold: true };
       } else {
@@ -376,11 +380,11 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
       }
       
       // Formatting cells as currency-like numbers
-      row.getCell(2).numFmt = '"R$ "#,##0.00';
-      row.getCell(3).numFmt = '"R$ "#,##0.00';
       row.getCell(4).numFmt = '"R$ "#,##0.00';
+      row.getCell(5).numFmt = '"R$ "#,##0.00';
+      row.getCell(6).numFmt = '"R$ "#,##0.00';
       
-      row.getCell(5).alignment = { horizontal: 'center' };
+      row.getCell(7).alignment = { horizontal: 'center' };
     });
 
     const range = activeCustomers.length + 1; // Last data row
@@ -389,12 +393,14 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
     worksheet.addRow([]); // Spacer
     const totalRow = worksheet.addRow([
       'TOTAL LÍQUIDO:',
-      { formula: `SUMIF(E2:E${range}, "PAGO", B2:B${range}) - SUM(C2:C${range}) - SUM(D2:D${range})` }
+      '',
+      '',
+      { formula: `SUMIF(G2:G${range}, "PAGO", D2:D${range}) - SUM(E2:E${range}) - SUM(F2:F${range})` }
     ]);
     
     totalRow.getCell(1).font = { bold: true };
-    totalRow.getCell(2).font = { bold: true, color: { argb: 'FF000000' } };
-    totalRow.getCell(2).numFmt = '"R$ "#,##0.00';
+    totalRow.getCell(4).font = { bold: true, color: { argb: 'FF000000' } };
+    totalRow.getCell(4).numFmt = '"R$ "#,##0.00';
 
     // Generate and Download
     const buffer = await workbook.xlsx.writeBuffer();
