@@ -44,9 +44,23 @@ export const parseRobustLocalTime = (dateStr: string) => {
   // Handle YYYY-MM-DD or full ISO strings (YYYY-MM-DDTHH:MM:SS)
   // We want to force LOCAL interpretation to avoid midnight-UTC shifting back a day
   if (str.includes('-')) {
-    const parts = str.split('T')[0].split('-');
-    if (parts.length === 3 && parts[0].length === 4) {
-      return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    const parts = str.split('T');
+    const dateParts = parts[0].split('-');
+    if (dateParts.length === 3 && dateParts[0].length === 4) {
+      if (parts[1] || str.includes(':')) {
+        // Has time component
+        const timeStr = parts[1] || str.split(' ')[1] || '';
+        const timeParts = timeStr.split(':');
+        return new Date(
+          Number(dateParts[0]),
+          Number(dateParts[1]) - 1,
+          Number(dateParts[2]),
+          Number(timeParts[0] || 0),
+          Number(timeParts[1] || 0),
+          Number(timeParts[2]?.split('.')[0] || 0)
+        );
+      }
+      return new Date(Number(dateParts[0]), Number(dateParts[1]) - 1, Number(dateParts[2]));
     }
   }
 
@@ -54,8 +68,20 @@ export const parseRobustLocalTime = (dateStr: string) => {
   if (str.includes('/')) {
     const parts = str.split(' ')[0].split('/');
     if (parts.length === 3 && parts[0].length <= 2 && parts[2].length === 4) {
-      const timePart = str.includes(' ') ? ` ${str.split(' ').slice(1).join(' ')}` : '';
-      str = `${parts[2]}/${parts[1]}/${parts[0]}${timePart}`;
+      const datePart = `${parts[2]}/${parts[1]}/${parts[0]}`;
+      if (str.includes(':')) {
+        const timePart = str.split(' ')[1] || '';
+        const timeParts = timePart.split(':');
+        return new Date(
+          Number(parts[2]),
+          Number(parts[1]) - 1,
+          Number(parts[0]),
+          Number(timeParts[0] || 0),
+          Number(timeParts[1] || 0),
+          Number(timeParts[2]?.split('.')[0] || 0)
+        );
+      }
+      return new Date(datePart);
     }
   }
 
@@ -64,16 +90,21 @@ export const parseRobustLocalTime = (dateStr: string) => {
 
 export const isCustomerActive = (dueDateStr: string) => {
   if (!dueDateStr) return false;
+
   try {
     const dueDate = parseRobustLocalTime(dueDateStr);
     const dateTime = dueDate.getTime();
     if (isNaN(dateTime)) return false;
 
-    // Fast path: avoid full Date object setup if we can
+    const now = new Date();
+    
+    // If the string has a time component
+    if (dueDateStr.includes(':') || (dueDateStr.includes('T') && dueDateStr.length > 10)) {
+      return dueDate.getTime() >= now.getTime();
+    }
+    
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
-    // Ensure dueDate is also at midnight for comparison
     dueDate.setHours(0, 0, 0, 0);
     
     return dueDate.getTime() >= today.getTime();
@@ -90,23 +121,38 @@ export const formatWhatsappMessage = (
     dueDate: string;
   }
 ) => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const now = new Date();
   const dueDate = parseRobustLocalTime(data.dueDate);
-  dueDate.setHours(0, 0, 0, 0);
-  const days = Math.round((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  const hasTime = data.dueDate.includes(':') || (data.dueDate.includes('T') && data.dueDate.length > 10);
 
   let formattedDate = 'Data Inválida';
-  try {
-    if (!isNaN(dueDate.getTime())) {
+  let daysStr = '';
+
+  if (!isNaN(dueDate.getTime())) {
+    if (hasTime) {
+      formattedDate = format(dueDate, 'dd/MM/yyyy HH:mm');
+      const diffMs = dueDate.getTime() - now.getTime();
+      const diffHours = Math.round(diffMs / (1000 * 60 * 60));
+      
+      if (diffHours === 0) daysStr = 'agora';
+      else if (diffHours > 0) daysStr = `em ${diffHours} ${diffHours === 1 ? 'hora' : 'horas'}`;
+      else daysStr = `vencido há ${Math.abs(diffHours)} ${Math.abs(diffHours) === 1 ? 'hora' : 'horas'}`;
+    } else {
       formattedDate = format(dueDate, 'dd/MM/yyyy');
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const dueDateMidnight = new Date(dueDate);
+      dueDateMidnight.setHours(0, 0, 0, 0);
+      const days = Math.round((dueDateMidnight.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      
+      daysStr = days === 1 ? 'hoje' : days === 2 ? 'amanhã' : days < 1 ? `vencido há ${Math.abs(days - 1)} ${Math.abs(days - 1) === 1 ? 'dia' : 'dias'}` : `${days} dias`;
     }
-  } catch { }
+  }
 
   return template
     .replace('{nome}', data.name)
     .replace('{valor}', formatCurrency(data.amount))
-    .replace('{dias}', days === 1 ? 'hoje' : days === 2 ? 'amanhã' : days < 1 ? `vencido há ${Math.abs(days - 1)} ${Math.abs(days - 1) === 1 ? 'dia' : 'dias'}` : `${days} dias`)
+    .replace('{dias}', daysStr)
     .replace('{vencimento}', formattedDate);
 };
 export const parseCurrency = (val: any): number => {

@@ -18,10 +18,11 @@ interface DashboardProps {
   manualAdditions: ManualAddition[];
   renewalMessage: string;
   overdueMessage: string;
+  testMessage: string;
   userRole: UserRole;
 }
 
-export function Dashboard({ customers, servers, plans, whatsappMessage, updateCustomer, renewals, addRenewal, manualAdditions, renewalMessage, overdueMessage, userRole }: DashboardProps) {
+export function Dashboard({ customers, servers, plans, whatsappMessage, updateCustomer, renewals, addRenewal, manualAdditions, renewalMessage, overdueMessage, testMessage, userRole }: DashboardProps) {
   const today = useMemo(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -116,17 +117,25 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
 
       const sId = (c.serverId || (c as any).server_id || '').toString();
 
-      // Active check
-      dueDate.setHours(0, 0, 0, 0);
-      const dueTime = dueDate.getTime();
-      const isActive = dueTime >= todayTime;
+      // Active check (Excluding tests from financial/server counts)
+      const plan = plansMap.get(c.planId || (c as any).plan_id);
+      const isActive = isCustomerActive(dueDateStr);
+      const isTest = plan?.name?.toLowerCase().includes('teste');
 
-      if (isActive && stats[sId]) {
+      if (isActive && !isTest && stats[sId]) {
         stats[sId].active += 1;
       }
 
+      // Days until due (for notification banner)
+      const dueTime = new Date(dueDate).setHours(0, 0, 0, 0);
       const daysUntilDue = Math.round((dueTime - todayTime) / (1000 * 60 * 60 * 24)) + 1;
-      if (daysUntilDue >= 0 && daysUntilDue <= 2) {
+      
+      // Only show in expiring list if:
+      // 1. It's a regular customer expiring in 0-2 days
+      // 2. It's a test that has ALREADY expired (isActive is false)
+      const shouldShowInExpiring = (daysUntilDue >= 0 && daysUntilDue <= 2 && !isTest) || (isTest && !isActive);
+      
+      if (shouldShowInExpiring) {
         expiring.push(c);
       }
     });
@@ -138,9 +147,8 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
     });
 
     const totalPlansValue = customers.reduce((acc, c) => {
-      const dueDate = parseRobustLocalTime(c.dueDate);
-      dueDate.setHours(0, 0, 0, 0);
-      return dueDate.getTime() >= todayTime ? acc + parseSafeNumber(c.amountPaid) : acc;
+      const plan = plansMap.get(c.planId || (c as any).plan_id);
+      return isCustomerActive(c.dueDate, plan) ? acc + parseSafeNumber(c.amountPaid) : acc;
     }, 0);
 
     return {
@@ -351,12 +359,19 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
               if (lastOverdueDate) lastOverdueDate.setHours(0, 0, 0, 0);
               const isOnCooldown = lastOverdueDate && !isNaN(lastOverdueDate.getTime()) && Math.round((today.getTime() - lastOverdueDate.getTime()) / (1000 * 60 * 60 * 24)) < 10;
 
+              const plan = plans.find(p => p.id === c.planId);
+              const isTest = plan?.name?.toLowerCase().includes('teste');
+              const isExpiredTest = isTest && !isCustomerActive(c.dueDate);
+
               return (
                 <div key={c.id} className="p-4 flex items-center justify-between">
                   <div>
-                    <div className="font-bold text-white">{c.name}</div>
+                    <div className="font-bold text-white flex items-center space-x-2">
+                      <span>{c.name}</span>
+                      {isTest && <span className="bg-red-500/20 text-red-400 text-[8px] px-1 py-0.5 rounded font-black uppercase">Teste</span>}
+                    </div>
                     <div className="text-xs text-gray-400">
-                      {server?.name} • {days === 1 ? 'Vence hoje' : days <= 0 ? `Vencido há ${Math.abs(days - 1)} dias` : `Vence em ${days} dias`}
+                      {server?.name} • {isTest ? (isExpiredTest ? 'Teste Expirado' : 'Teste em andamento') : (days === 1 ? 'Vence hoje' : days <= 0 ? `Vencido há ${Math.abs(days - 1)} dias` : `Vence em ${days} dias`)}
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
@@ -365,7 +380,7 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
                         <button
                           type="button"
                           onClick={(e) => {
-                            const isOverdue = days <= 0;
+                            const isOverdue = days <= 0 || isExpiredTest;
                             const currentCooldown = isOverdue ? isOnCooldown : isRecentlyNotified;
 
                             if (currentCooldown) {
@@ -375,7 +390,11 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
                             }
 
                             let message = '';
-                            if (isOverdue) {
+                            if (isTest) {
+                              message = formatWhatsappMessage(testMessage || '', c);
+                              // For tests, we use the regular notification date to avoid spam
+                              updateCustomer(c.id, { lastNotifiedDate: format(today, 'yyyy-MM-dd') });
+                            } else if (isOverdue) {
                               message = formatWhatsappMessage(overdueMessage, {
                                 name: c.name,
                                 amount: c.amountPaid,

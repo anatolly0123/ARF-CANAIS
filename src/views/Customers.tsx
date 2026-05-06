@@ -1,11 +1,11 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { Customer, Server, Plan, Renewal } from '../types';
-import { format, parseISO, addMonths, isAfter, differenceInDays } from 'date-fns';
+import { format, parseISO, addMonths, addHours, isAfter, differenceInDays } from 'date-fns';
 import { v4 as uuidv4 } from 'uuid';
 import { formatCurrency, isCustomerActive, formatWhatsappMessage, parseSafeNumber, parseRobustLocalTime } from '../utils';
 import { Modal } from '../components/Modal';
 import { RenewModal } from '../components/RenewModal';
-import { Plus, Search, Filter, Phone, RefreshCw, Edit2, Trash2, Calendar, CheckCircle, XCircle, MessageCircle, Users, Award, Star, UserX, ArrowRightLeft, ChevronDown, Check } from 'lucide-react';
+import { Plus, Search, Filter, Phone, RefreshCw, Edit2, Trash2, Calendar, CheckCircle, XCircle, MessageCircle, Users, Award, Star, UserX, ArrowRightLeft, ChevronDown, Check, Clock } from 'lucide-react';
 import { TransferModal } from '../components/TransferModal';
 import { UserRole } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -24,13 +24,14 @@ interface CustomersProps {
   overdueMessage: string;
   transferCustomer: (customerId: string, newServerId: string) => void;
   userRole: UserRole;
+  testMessage: string;
 }
 
 export function Customers({
   customers, servers, plans, whatsappMessage,
   addCustomer, updateCustomer, deleteCustomer,
   bulkUpdateCustomers, addRenewal, renewalMessage, overdueMessage,
-  transferCustomer, userRole
+  transferCustomer, userRole, testMessage
 }: CustomersProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
@@ -135,24 +136,31 @@ export function Customers({
       if (success) {
         const server = servers.find(s => s.id === data.serverId);
         const plan = plans.find(p => p.id === data.planId);
-        const cost = (server?.costPerActive || 0) * (plan?.months || 1);
+        const isTest = plan?.name?.toLowerCase().includes('teste');
 
-        addRenewal({
-          customerId: newId,
-          serverId: data.serverId,
-          planId: data.planId,
-          amount: Number(data.amountPaid),
-          cost: Number(cost),
-          date: new Date().toISOString()
-        });
+        if (!isTest) {
+          const cost = (server?.costPerActive || 0) * (plan?.months || 1);
 
-        // Open Renewal Confirmation Message for NEW customer
-        const message = formatWhatsappMessage(renewalMessage, {
-          name: data.name,
-          amount: data.amountPaid,
-          dueDate: data.dueDate
-        });
-        window.open(`https://wa.me/${data.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
+          addRenewal({
+            customerId: newId,
+            serverId: data.serverId,
+            planId: data.planId,
+            amount: Number(data.amountPaid),
+            cost: Number(cost),
+            date: new Date().toISOString()
+          });
+
+          // Open Renewal Confirmation Message for NEW customer
+          const message = formatWhatsappMessage(renewalMessage, {
+            name: data.name,
+            amount: data.amountPaid,
+            dueDate: data.dueDate
+          });
+          window.open(`https://wa.me/${data.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
+        } else {
+          // For test customers, maybe send a simple welcome message or nothing
+          console.log("Test customer created, skipping renewal and confirmation message.");
+        }
       } else {
         alert("Erro ao salvar cliente no banco de dados. Verifique sua conexão.");
       }
@@ -174,13 +182,16 @@ export function Customers({
     } else {
       setEditingCustomer(null);
       const defaultPlan = plans[0];
+      const isTest = defaultPlan?.name?.toLowerCase().includes('teste');
       setFormData({
         name: '',
         phone: '',
         serverId: servers.length > 0 ? servers[0].id : '',
         planId: defaultPlan?.id || '',
         amountPaid: defaultPlan?.defaultPrice.toString() || '0',
-        dueDate: format(addMonths(new Date(), defaultPlan?.months || 1), 'yyyy-MM-dd')
+        dueDate: isTest 
+          ? format(addHours(new Date(), 4), "yyyy-MM-dd'T'HH:mm")
+          : format(addMonths(new Date(), defaultPlan?.months || 1), 'yyyy-MM-dd')
       });
     }
     setIsModalOpen(true);
@@ -212,24 +223,18 @@ export function Customers({
     const todayTime = today.getTime();
 
     customers.forEach(c => {
-      const dueDate = parseRobustLocalTime(c.dueDate);
-      if (isNaN(dueDate.getTime())) {
-        inativos++;
-        return;
-      }
+      const plan = plans.find(p => p.id === c.planId);
+      const isActive = isCustomerActive(c.dueDate);
+      const isTest = plan?.name?.toLowerCase().includes('teste');
 
-      dueDate.setHours(0, 0, 0, 0);
-      const isActive = dueDate.getTime() >= todayTime;
-
-      if (isActive) {
+      if (isActive && !isTest) {
         total++;
-        const plan = plans.find(p => p.id === c.planId);
         if (plan?.name === 'Gratuito') {
           gratuito++;
         } else {
           mensalista++;
         }
-      } else {
+      } else if (!isActive && !isTest) {
         inativos++;
       }
     });
@@ -258,7 +263,7 @@ export function Customers({
       if (statsFilter === 'mensal' && (!isActive || isGratis)) return false;
       if (statsFilter === 'gratis' && (!isActive || !isGratis)) return false;
 
-      const matchesSearch = !query || c.name.toLowerCase().includes(query) || c.phone.includes(query);
+      const matchesSearch = !query || c.name?.toLowerCase().includes(query) || c.phone?.includes(query);
       if (!matchesSearch) return false;
 
       const [type, value] = filter.split(':');
@@ -533,14 +538,16 @@ export function Customers({
           filteredCustomers.map(customer => {
             const server = servers.find(s => s.id === customer.serverId);
             const plan = plans.find(p => p.id === customer.planId);
+            const isActive = isCustomerActive(customer.dueDate);
             const dueDate = parseRobustLocalTime(customer.dueDate);
-            dueDate.setHours(0, 0, 0, 0);
             const daysDiff = Math.round((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-            const isActive = dueDate.getTime() >= today.getTime();
 
             const lastNotified = customer.lastNotifiedDate ? parseRobustLocalTime(customer.lastNotifiedDate) : null;
             if (lastNotified) lastNotified.setHours(0, 0, 0, 0);
             const isRecentlyNotified = lastNotified && !isNaN(lastNotified.getTime()) && Math.round((today.getTime() - lastNotified.getTime()) / (1000 * 60 * 60 * 24)) < 7;
+
+            const isTest = plan?.name?.toLowerCase().includes('teste');
+            const isExpiredTest = isTest && !isActive;
 
             const lastOverdueNotified = customer.lastOverdueNotifiedDate || (customer as any).last_overdue_notified_date;
             const lastOverdueDate = lastOverdueNotified ? parseRobustLocalTime(lastOverdueNotified) : null;
@@ -553,14 +560,27 @@ export function Customers({
                   <div>
                     <h3 className="text-lg font-bold text-white flex items-center space-x-2">
                       <span>{customer.name}</span>
-                      {isActive ? (
-                        <CheckCircle size={14} className="text-green-500" />
+                      {isTest ? (
+                        isActive ? (
+                          <Clock size={14} className="text-[#c8a646]" />
+                        ) : (
+                          <XCircle size={14} className="text-red-500" />
+                        )
                       ) : (
-                        <XCircle size={14} className="text-red-500" />
+                        isActive ? (
+                          <CheckCircle size={14} className="text-green-500" />
+                        ) : (
+                          <XCircle size={14} className="text-red-500" />
+                        )
                       )}
-                      {(daysDiff === 1 || daysDiff === 2) && !isRecentlyNotified && (
+                      {(daysDiff === 1 || daysDiff === 2) && !isRecentlyNotified && !isTest && (
                         <span className="bg-[#c8a646] text-[#0f0f0f] text-[10px] font-bold px-1.5 py-0.5 rounded">
                           NOTIFICAR
+                        </span>
+                      )}
+                      {isExpiredTest && (
+                        <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded animate-pulse">
+                          TESTE EXPIRADO
                         </span>
                       )}
                     </h3>
@@ -583,6 +603,23 @@ export function Customers({
                     >
                       <Phone size={16} />
                     </button>
+
+                    {isExpiredTest && (
+                      <button
+                        onClick={() => {
+                          const message = formatWhatsappMessage(testMessage, {
+                            name: customer.name,
+                            amount: customer.amountPaid,
+                            dueDate: customer.dueDate
+                          });
+                          window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
+                        }}
+                        className="p-2 bg-[#c8a646]/20 text-[#c8a646] rounded-full hover:bg-[#c8a646]/30 transition-all animate-bounce"
+                        title="Notificar Teste"
+                      >
+                        <MessageCircle size={16} />
+                      </button>
+                    )}
 
                     {userRole !== 'observer' && (
                       <>
@@ -653,7 +690,8 @@ export function Customers({
                     <span className={!isActive ? 'text-red-400 font-medium' : daysDiff <= 10 ? 'text-yellow-500 font-medium' : ''}>
                       {(() => {
                         try {
-                          return isNaN(dueDate.getTime()) ? 'Data Inválida' : format(dueDate, 'dd/MM/yyyy');
+                          if (isNaN(dueDate.getTime())) return 'Data Inválida';
+                          return isTest ? format(dueDate, 'dd/MM/yyyy HH:mm') : format(dueDate, 'dd/MM/yyyy');
                         } catch {
                           return 'Data Inválida';
                         }
@@ -768,12 +806,25 @@ export function Customers({
                 const planId = e.target.value;
                 const plan = plans.find(p => p.id === planId);
                 if (plan) {
-                  setFormData({
-                    ...formData,
-                    planId,
-                    amountPaid: plan.defaultPrice.toString(),
-                    dueDate: format(addMonths(new Date(), plan.months), 'yyyy-MM-dd')
-                  });
+                  const isTest = plan.name.toLowerCase().trim().includes('teste');
+                  const now = new Date();
+                  
+                  if (isTest) {
+                    const testDate = addHours(now, 4);
+                    setFormData({
+                      ...formData,
+                      planId,
+                      amountPaid: '0',
+                      dueDate: format(testDate, "yyyy-MM-dd'T'HH:mm")
+                    });
+                  } else {
+                    setFormData({
+                      ...formData,
+                      planId,
+                      amountPaid: plan.defaultPrice.toString(),
+                      dueDate: format(addMonths(now, plan.months), 'yyyy-MM-dd')
+                    });
+                  }
                 }
               }}
               className="w-full bg-[#0f0f0f] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#c8a646] appearance-none"
@@ -796,7 +847,7 @@ export function Customers({
             <div>
               <label className="block text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Vencimento</label>
               <input
-                type="date"
+                type={formData.planId && plans.find(p => p.id === formData.planId)?.name?.toLowerCase().includes('teste') ? "datetime-local" : "date"}
                 required
                 value={formData.dueDate}
                 onChange={e => setFormData({ ...formData, dueDate: e.target.value })}

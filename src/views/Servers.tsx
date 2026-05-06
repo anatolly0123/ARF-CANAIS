@@ -77,8 +77,10 @@ export function Servers({ servers, customers, plans, addServer, updateServer, de
           {servers.map(server => {
             const activeCustomers = customers.filter(c => {
               if (c.serverId !== server.id) return false;
-              const dueDate = parseISO(c.dueDate);
-              return isAfter(dueDate, today) || differenceInDays(dueDate, today) === 0;
+              const plan = plans.find(p => p.id === c.planId);
+              const isActive = isCustomerActive(c.dueDate);
+              const isTest = plan?.name?.toLowerCase().includes('teste');
+              return isActive && !isTest;
             });
             const totalActive = activeCustomers.length;
             const totalGenerated = activeCustomers.reduce((acc, c) => {

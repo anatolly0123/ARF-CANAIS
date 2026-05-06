@@ -75,6 +75,7 @@ export default function App() {
             manualAdditions={store.manualAdditions}
             renewalMessage={store.renewalMessage}
             overdueMessage={store.overdueMessage}
+            testMessage={store.testMessage}
             userRole={store.userRole}
           />
         );
@@ -94,6 +95,7 @@ export default function App() {
             overdueMessage={store.overdueMessage}
             transferCustomer={store.transferCustomer}
             userRole={store.userRole}
+            testMessage={store.testMessage}
           />
         );
       case 'servers':
@@ -120,6 +122,8 @@ export default function App() {
             setRenewalMessage={store.setRenewalMessage}
             overdueMessage={store.overdueMessage}
             setOverdueMessage={store.setOverdueMessage}
+            testMessage={store.testMessage}
+            setTestMessage={store.setTestMessage}
             addManualAddition={store.addManualAddition}
             manualAdditions={store.manualAdditions}
             userRole={store.userRole}
@@ -190,6 +194,9 @@ export default function App() {
         userRole={store.userRole}
         userEmail={store.userEmail}
         userAvatar={store.userAvatar}
+        customers={store.customers}
+        plans={store.plans}
+        testMessage={store.testMessage}
       />
       <main className="max-w-md mx-auto p-4 sm:p-6 pb-32 overflow-x-hidden">
         <AnimatePresence mode="wait">

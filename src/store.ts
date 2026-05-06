@@ -11,6 +11,7 @@ const DEFAULT_PLANS: Plan[] = [
   { id: '47d7c672-9657-4f40-84a1-0bd7299a4e32', name: 'Trimestral', defaultPrice: 90, months: 3 },
   { id: '628b031b-7538-4f6c-843c-6cb76e22c9e3', name: 'Semestral', defaultPrice: 160, months: 6 },
   { id: '2c5a2bc9-f538-43d9-95e5-f55a15998f82', name: 'Anual', defaultPrice: 300, months: 12 },
+  { id: 'd0e3e2b2-f538-43d9-95e5-f55a15998f82', name: 'Teste', defaultPrice: 0, months: 0 },
 ];
 
 const PLAN_ID_MAP: Record<string, string> = {
@@ -53,8 +54,19 @@ export function useStore(user: User | null) {
   });
 
   const [plans, setPlans] = useState<Plan[]>(() => {
-    const saved = localStorage.getItem('arf_plans');
-    try { return saved ? JSON.parse(saved) : DEFAULT_PLANS; } catch { return DEFAULT_PLANS; }
+    try { 
+      const saved = localStorage.getItem('arf_plans');
+      let parsed = saved ? JSON.parse(saved) : [...DEFAULT_PLANS];
+      if (!Array.isArray(parsed)) parsed = [...DEFAULT_PLANS];
+
+      if (!parsed.some((p: any) => p.name?.toLowerCase() === 'teste')) {
+        const testPlan = DEFAULT_PLANS.find(p => p.name === 'Teste');
+        if (testPlan) parsed.push(testPlan);
+      }
+      return parsed;
+    } catch { 
+      return [...DEFAULT_PLANS]; 
+    }
   });
 
   const [customers, setCustomers] = useState<Customer[]>(() => {
@@ -87,6 +99,12 @@ export function useStore(user: User | null) {
   const [overdueMessage, setOverdueMessage] = useState<string>(() => {
     const saved = localStorage.getItem('arf_overdue_message');
     const defaultMsg = 'Olá *{nome}*! 👋\n\nPassando para avisar que seu acesso IPTV está {dias}. ⚠️\n\nGostaria de renovar seu acesso com a gente agora? 😊';
+    return saved || defaultMsg;
+  });
+
+  const [testMessage, setTestMessage] = useState<string>(() => {
+    const saved = localStorage.getItem('arf_test_message');
+    const defaultMsg = 'Olá *{nome}*! 👋\n\nSeu período de teste de 4 horas expirou. ⌛\n\nO que achou dos canais? Gostaria de fechar um plano com a gente agora e garantir seu acesso? 😊';
     return saved || defaultMsg;
   });
 
@@ -186,6 +204,12 @@ export function useStore(user: User | null) {
             defaultPrice: parseSafeNumber(p.default_price ?? p.defaultPrice),
             months: Number(p.months ?? 1)
           }));
+          
+          if (!mappedPlans.some((p: any) => p.name?.toLowerCase() === 'teste')) {
+            const testPlan = DEFAULT_PLANS.find(p => p.name === 'Teste');
+            if (testPlan) mappedPlans.push(testPlan);
+          }
+
           setPlans(mappedPlans);
           localStorage.setItem('arf_plans', JSON.stringify(mappedPlans));
         }
@@ -201,6 +225,23 @@ export function useStore(user: User | null) {
         localStorage.setItem('arf_synced', 'true');
         console.timeEnd('Phase 1 Load');
         setLoading(false);
+
+        // Ensure Teste plan exists in database if user is owner/admin
+        if (user && profileData?.role !== 'observer') {
+          const testPlan = DEFAULT_PLANS.find(p => p.name === 'Teste');
+          if (testPlan && !plansData?.some((p: any) => p.name?.toLowerCase() === 'teste')) {
+            console.log('Inserting Teste plan into database...');
+            supabase.from('plans').upsert({
+              id: testPlan.id,
+              name: testPlan.name,
+              default_price: testPlan.defaultPrice,
+              months: testPlan.months,
+              user_id: user.id
+            }, { onConflict: 'id' }).then(({ error }) => {
+              if (error) console.error('Error inserting Teste plan:', error);
+            });
+          }
+        }
 
         // Process Phase 2 (Background)
         const [
@@ -504,6 +545,10 @@ export function useStore(user: User | null) {
   }, [whatsappMessage]);
 
   useEffect(() => {
+    localStorage.setItem('arf_test_message', testMessage);
+  }, [testMessage]);
+
+  useEffect(() => {
     if (appIcon) {
       localStorage.setItem('arf_app_icon', appIcon);
     } else {
@@ -580,6 +625,7 @@ export function useStore(user: User | null) {
           whatsappMessage: overrideData?.settings?.whatsappMessage ?? whatsappMessage,
           renewalMessage: overrideData?.settings?.renewalMessage ?? renewalMessage,
           overdueMessage: overrideData?.settings?.overdueMessage ?? overdueMessage,
+          testMessage: overrideData?.settings?.testMessage ?? testMessage,
           appIcon: overrideData?.settings?.appIcon ?? appIcon,
           appCover: overrideData?.settings?.appCover ?? appCover,
         }
@@ -701,6 +747,7 @@ export function useStore(user: User | null) {
     whatsappMessage, setWhatsappMessage,
     renewalMessage, setRenewalMessage,
     overdueMessage, setOverdueMessage,
+    testMessage, setTestMessage,
     appIcon, setAppIcon,
     appCover, setAppCover,
     syncToCloud: syncToCloud as (overrideData?: any, clearFirst?: boolean) => Promise<void>,

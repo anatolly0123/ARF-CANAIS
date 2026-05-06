@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Customer, Server, Plan } from '../types';
 import { Modal } from './Modal';
-import { format, addMonths, isAfter } from 'date-fns';
+import { format, addMonths, addHours, isAfter } from 'date-fns';
 import { parseRobustLocalTime } from '../utils';
 
 interface RenewModalProps {
@@ -21,23 +21,24 @@ export function RenewModal({ isOpen, onClose, customer, servers, plans, onConfir
         dueDate: ''
     });
 
-    const calculateNewDueDate = (currentDueDateStr: string, months: number) => {
+    const calculateNewDueDate = (currentDueDateStr: string, plan: Plan) => {
         const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
         const currentDueDate = parseRobustLocalTime(currentDueDateStr);
-        currentDueDate.setHours(0, 0, 0, 0);
 
         const isActive = isAfter(currentDueDate, today) || Math.round((currentDueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) === 0;
         const baseDate = isActive ? currentDueDate : today;
-        return format(addMonths(baseDate, months), 'yyyy-MM-dd');
+
+        if (plan.name?.toLowerCase().includes('teste')) {
+            return format(addHours(baseDate, 4), "yyyy-MM-dd'T'HH:mm");
+        }
+        return format(addMonths(baseDate, plan.months), 'yyyy-MM-dd');
     };
 
     useEffect(() => {
         if (customer) {
             const plan = plans.find(p => p.id === customer.planId);
             const initialDueDate = plan 
-                ? calculateNewDueDate(customer.dueDate, plan.months) 
+                ? calculateNewDueDate(customer.dueDate, plan) 
                 : customer.dueDate;
 
             setFormData({
@@ -52,7 +53,7 @@ export function RenewModal({ isOpen, onClose, customer, servers, plans, onConfir
     const handlePlanChange = (planId: string) => {
         const plan = plans.find(p => p.id === planId);
         if (plan && customer) {
-            const newDueDate = calculateNewDueDate(customer.dueDate, plan.months);
+            const newDueDate = calculateNewDueDate(customer.dueDate, plan);
             setFormData({
                 ...formData,
                 planId,
@@ -105,7 +106,7 @@ export function RenewModal({ isOpen, onClose, customer, servers, plans, onConfir
                     <div>
                         <label className="block text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Vencimento</label>
                         <input
-                            type="date"
+                            type={formData.planId && plans.find(p => p.id === formData.planId)?.name?.toLowerCase().includes('teste') ? "datetime-local" : "date"}
                             value={formData.dueDate}
                             onChange={e => setFormData({ ...formData, dueDate: e.target.value })}
                             className="w-full bg-[#0f0f0f] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#c8a646]"

@@ -13,17 +13,24 @@ interface PlansProps {
   setRenewalMessage: (msg: string) => void;
   overdueMessage: string;
   setOverdueMessage: (msg: string) => void;
+  testMessage: string;
+  setTestMessage: (msg: string) => void;
   addManualAddition: (addition: Omit<ManualAddition, 'id'>) => void;
   manualAdditions: ManualAddition[];
   userRole: UserRole;
 }
 
-export function Plans({ plans, updatePlan, whatsappMessage, setWhatsappMessage, renewalMessage, setRenewalMessage, overdueMessage, setOverdueMessage, addManualAddition, manualAdditions, userRole }: PlansProps) {
+export function Plans({ 
+  plans, updatePlan, whatsappMessage, setWhatsappMessage, 
+  renewalMessage, setRenewalMessage, overdueMessage, setOverdueMessage, 
+  testMessage, setTestMessage,
+  addManualAddition, manualAdditions, userRole 
+}: PlansProps) {
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
   const [priceInput, setPriceInput] = useState('');
 
   const [isEditingMessage, setIsEditingMessage] = useState(false);
-  const [editingMessageType, setEditingMessageType] = useState<'whatsapp' | 'renewal' | 'overdue'>('whatsapp');
+  const [editingMessageType, setEditingMessageType] = useState<'whatsapp' | 'renewal' | 'overdue' | 'test'>('whatsapp');
   const [messageInput, setMessageInput] = useState('');
 
   const [isAddingMoney, setIsAddingMoney] = useState(false);
@@ -50,6 +57,7 @@ export function Plans({ plans, updatePlan, whatsappMessage, setWhatsappMessage, 
     setEditingMessageType(type);
     if (type === 'renewal') setMessageInput(renewalMessage);
     else if (type === 'overdue') setMessageInput(overdueMessage);
+    else if (type === 'test') setMessageInput(testMessage);
     else setMessageInput(whatsappMessage);
     setIsEditingMessage(true);
   };
@@ -59,6 +67,8 @@ export function Plans({ plans, updatePlan, whatsappMessage, setWhatsappMessage, 
       setRenewalMessage(messageInput);
     } else if (editingMessageType === 'overdue') {
       setOverdueMessage(messageInput);
+    } else if (editingMessageType === 'test') {
+      setTestMessage(messageInput);
     } else {
       setWhatsappMessage(messageInput);
     }
@@ -245,6 +255,31 @@ export function Plans({ plans, updatePlan, whatsappMessage, setWhatsappMessage, 
         </div>
       </section>
 
+      {/* WhatsApp Message Section (Test) */}
+      <section>
+        <div className="flex items-center space-x-3 mb-6">
+          <MessageSquare size={28} className="text-orange-500" />
+          <h2 className="text-xl font-bold text-white uppercase tracking-widest text-sm">Aviso de Teste Expirado</h2>
+        </div>
+
+        <div className="bg-[#1a1a1a] p-5 rounded-2xl border border-white/5 shadow-lg">
+          <div className="flex justify-between items-start mb-4">
+            <p className="text-xs text-gray-400">Mensagem enviada após o vencimento do teste de 4 horas.</p>
+            {userRole !== 'observer' && (
+              <button
+                onClick={() => handleEditMessage('test')}
+                className="p-2 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 rounded-full transition-colors shrink-0 ml-4"
+              >
+                <Edit2 size={18} />
+              </button>
+            )}
+          </div>
+          <div className="bg-[#0f0f0f] p-4 rounded-xl border border-white/5">
+            <p className="text-white text-xs whitespace-pre-wrap">{testMessage}</p>
+          </div>
+        </div>
+      </section>
+
       {/* Edit Plan Modal */}
       <Modal
         isOpen={!!editingPlan}
@@ -285,7 +320,7 @@ export function Plans({ plans, updatePlan, whatsappMessage, setWhatsappMessage, 
       <Modal
         isOpen={isEditingMessage}
         onClose={() => setIsEditingMessage(false)}
-        title={editingMessageType === 'renewal' ? "Mensagem de Renovação" : editingMessageType === 'overdue' ? "Aviso Após o Vencimento" : "Aviso de Vencimento"}
+        title={editingMessageType === 'renewal' ? "Mensagem de Renovação" : editingMessageType === 'overdue' ? "Aviso Após o Vencimento" : editingMessageType === 'test' ? "Aviso de Teste Expirado" : "Aviso de Vencimento"}
       >
         <p className="text-gray-400 text-xs mb-4">
           Variáveis disponíveis:<br />

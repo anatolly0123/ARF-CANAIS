@@ -334,7 +334,12 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
     const start = startOfMonth(new Date());
     const end = endOfMonth(new Date());
 
-    const activeCustomers = customers.filter(c => isCustomerActive(c.dueDate));
+    const activeCustomers = customers.filter(c => {
+      const plan = plans.find(p => p.id === c.planId);
+      const isActive = isCustomerActive(c.dueDate);
+      const isTest = plan?.name?.toLowerCase().includes('teste');
+      return isActive && !isTest;
+    });
 
     activeCustomers.forEach(c => {
       const server = servers.find(s => s.id === c.serverId);
