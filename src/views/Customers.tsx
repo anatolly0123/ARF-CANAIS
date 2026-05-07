@@ -231,8 +231,8 @@ export function Customers({
 
     customers.forEach(c => {
       const plan = plans.find(p => p.id === c.planId);
-      const isActive = isCustomerActive(c.dueDate);
       const isTest = plan?.name?.toLowerCase().includes('teste');
+      const isActive = isCustomerActive(c.dueDate, isTest);
 
       if (isActive && !isTest) {
         total++;

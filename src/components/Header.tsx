@@ -48,8 +48,9 @@ export function Header({ activeTab, setActiveTab, userRole, userEmail, userAvata
   // Calculate Expired Tests
   const expiredTests = customers.filter(c => {
     const plan = plans.find(p => p.id === c.planId);
-    if (!plan?.name?.toLowerCase().includes('teste')) return false;
-    return !isCustomerActive(c.dueDate);
+    const isTest = plan?.name?.toLowerCase().includes('teste');
+    if (!isTest) return false;
+    return !isCustomerActive(c.dueDate, isTest);
   });
 
   return (

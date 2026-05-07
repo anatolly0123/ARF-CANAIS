@@ -78,8 +78,8 @@ export function Servers({ servers, customers, plans, addServer, updateServer, de
             const activeCustomers = customers.filter(c => {
               if (c.serverId !== server.id) return false;
               const plan = plans.find(p => p.id === c.planId);
-              const isActive = isCustomerActive(c.dueDate);
               const isTest = plan?.name?.toLowerCase().includes('teste');
+              const isActive = isCustomerActive(c.dueDate, isTest);
               return isActive && !isTest;
             });
             const totalActive = activeCustomers.length;

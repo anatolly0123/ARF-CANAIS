@@ -148,7 +148,9 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
 
     const totalPlansValue = customers.reduce((acc, c) => {
       const plan = plansMap.get(c.planId || (c as any).plan_id);
-      return isCustomerActive(c.dueDate, plan) ? acc + parseSafeNumber(c.amountPaid) : acc;
+      const p = plansMap.get(c.planId || (c as any).plan_id);
+      const isT = p?.name?.toLowerCase().includes('teste');
+      return isCustomerActive(c.dueDate, isT) ? acc + parseSafeNumber(c.amountPaid) : acc;
     }, 0);
 
     return {

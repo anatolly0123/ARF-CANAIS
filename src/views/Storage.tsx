@@ -336,8 +336,8 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
 
     const activeCustomers = customers.filter(c => {
       const plan = plans.find(p => p.id === c.planId);
-      const isActive = isCustomerActive(c.dueDate);
       const isTest = plan?.name?.toLowerCase().includes('teste');
+      const isActive = isCustomerActive(c.dueDate, isTest);
       return isActive && !isTest;
     });
 
