@@ -37,58 +37,53 @@ export const parseSafeNumber = (val: any): number => {
   return isNaN(parsed) ? 0 : parsed;
 };
 
-export const parseRobustLocalTime = (dateStr: string) => {
-  if (!dateStr) return new Date(NaN);
+export const parseRobustLocalTime = (dateStr: string): Date => {
+  if (!dateStr) return new Date();
   let str = dateStr.toString().trim();
 
-  // If it's a full ISO string from Supabase with a timezone (Z or offset),
-  // we STRIP the timezone to force local interpretation, because this app
-  // manages time locally and the DB-to-Local shift is causing the "one day back" bug.
-  if (str.includes('Z') || /[+-]\d{2}:?\d{2}$/.test(str)) {
-    str = str.replace('Z', '').replace(/[+-]\d{2}:?\d{2}$/, '');
-  }
-
-  // Handle YYYY-MM-DD or full ISO strings (YYYY-MM-DDTHH:MM:SS)
-  // We want to force LOCAL interpretation to avoid midnight-UTC shifting back a day
-  if (str.includes('-')) {
-    const parts = str.split('T');
-    const dateParts = parts[0].split('-');
-    if (dateParts.length === 3 && dateParts[0].length === 4) {
-      if (parts[1] || str.includes(':')) {
-        // Has time component
-        const timeStr = parts[1] || str.split(' ')[1] || '';
-        const timeParts = timeStr.split(':');
-        return new Date(
-          Number(dateParts[0]),
-          Number(dateParts[1]) - 1,
-          Number(dateParts[2]),
-          Number(timeParts[0] || 0),
-          Number(timeParts[1] || 0),
-          Number(timeParts[2]?.split('.')[0] || 0)
-        );
-      }
-      return new Date(Number(dateParts[0]), Number(dateParts[1]) - 1, Number(dateParts[2]));
-    }
-  }
-
-  // Handle Brazilian DD/MM/YYYY format
+  // 1. Handle Brazilian DD/MM/YYYY format
   if (str.includes('/')) {
     const parts = str.split(' ')[0].split('/');
-    if (parts.length === 3 && parts[0].length <= 2 && parts[2].length === 4) {
-      const datePart = `${parts[2]}/${parts[1]}/${parts[0]}`;
+    if (parts.length === 3) {
+      const day = Number(parts[0]);
+      const month = Number(parts[1]) - 1;
+      const year = Number(parts[2]);
+      
       if (str.includes(':')) {
         const timePart = str.split(' ')[1] || '';
         const timeParts = timePart.split(':');
-        return new Date(
-          Number(parts[2]),
-          Number(parts[1]) - 1,
-          Number(parts[0]),
-          Number(timeParts[0] || 0),
-          Number(timeParts[1] || 0),
-          Number(timeParts[2]?.split('.')[0] || 0)
-        );
+        return new Date(year, month, day, Number(timeParts[0] || 0), Number(timeParts[1] || 0));
       }
-      return new Date(datePart);
+      return new Date(year, month, day);
+    }
+  }
+
+  // 2. Handle ISO strings (Supabase/DB)
+  if (str.includes('-')) {
+    // If it's a full ISO with UTC indicator (Z)
+    if (str.includes('Z')) {
+      // If it's exactly midnight UTC (date-only plan), strip 'Z' to force local midnight
+      // This prevents the "one day back" bug.
+      if (str.includes('T00:00:00')) {
+        return new Date(str.replace('Z', ''));
+      }
+      // For test plans (specific hours), let the browser convert UTC to Local correctly
+      return new Date(str);
+    }
+    
+    // For non-Z ISO strings, parse as local
+    const parts = str.split('T');
+    const dateParts = parts[0].split('-');
+    if (dateParts.length === 3) {
+      const year = Number(dateParts[0]);
+      const month = Number(dateParts[1]) - 1;
+      const day = Number(dateParts[2]);
+      
+      if (parts[1]) {
+        const timeParts = parts[1].split(':');
+        return new Date(year, month, day, Number(timeParts[0] || 0), Number(timeParts[1] || 0));
+      }
+      return new Date(year, month, day);
     }
   }
 
