@@ -245,7 +245,8 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
               <div className="text-[#0f0f0f]/70 text-xs font-medium">
                 {(() => {
                   const testsCount = pendingNotifications.filter(c => {
-                    const plan = plans.find(p => p.id === c.planId);
+                    const pid = c.planId || (c as any).plan_id;
+                    const plan = plans.find(p => p.id === pid);
                     return plan?.name?.toLowerCase().includes('teste');
                   }).length;
                   const regularsCount = pendingNotifications.length - testsCount;
@@ -262,7 +263,8 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
           <button
             onClick={() => {
               const first = pendingNotifications[0];
-              const plan = plans.find(p => p.id === first.planId);
+              const pid = first.planId || (first as any).plan_id;
+              const plan = plans.find(p => p.id === pid);
               const isTest = plan?.name?.toLowerCase().includes('teste');
               const isOverdue = !isCustomerActive(first.dueDate, isTest);
               
