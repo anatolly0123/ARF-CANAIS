@@ -41,6 +41,16 @@ export const parseRobustLocalTime = (dateStr: string) => {
   if (!dateStr) return new Date(NaN);
   let str = dateStr.toString().trim();
 
+  // If it's a full ISO string from Supabase with a timezone (Z or offset),
+  // and it's NOT just a date-only placeholder (midnight 00:00:00),
+  // let the browser parse it correctly to local time.
+  if (str.includes('Z') || /[+-]\d{2}:?\d{2}$/.test(str)) {
+    const isMidnight = /T00:00:00/.test(str);
+    if (!isMidnight) {
+      return new Date(str);
+    }
+  }
+
   // Handle YYYY-MM-DD or full ISO strings (YYYY-MM-DDTHH:MM:SS)
   // We want to force LOCAL interpretation to avoid midnight-UTC shifting back a day
   if (str.includes('-')) {
@@ -64,6 +74,7 @@ export const parseRobustLocalTime = (dateStr: string) => {
     }
   }
 
+
   // Handle Brazilian DD/MM/YYYY format
   if (str.includes('/')) {
     const parts = str.split(' ')[0].split('/');
@@ -86,6 +97,20 @@ export const parseRobustLocalTime = (dateStr: string) => {
   }
 
   return new Date(str);
+};
+
+export const formatForDateTimeInput = (dateStr: string) => {
+  if (!dateStr) return '';
+  const date = parseRobustLocalTime(dateStr);
+  if (isNaN(date.getTime())) return '';
+  return format(date, "yyyy-MM-dd'T'HH:mm");
+};
+
+export const formatForDateInput = (dateStr: string) => {
+  if (!dateStr) return '';
+  const date = parseRobustLocalTime(dateStr);
+  if (isNaN(date.getTime())) return '';
+  return format(date, 'yyyy-MM-dd');
 };
 
 export const isCustomerActive = (dueDateStr: string) => {

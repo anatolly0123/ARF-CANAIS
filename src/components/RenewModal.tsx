@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Customer, Server, Plan } from '../types';
 import { Modal } from './Modal';
 import { format, addMonths, addHours, isAfter } from 'date-fns';
-import { parseRobustLocalTime } from '../utils';
+import { parseRobustLocalTime, formatForDateTimeInput, formatForDateInput } from '../utils';
 
 interface RenewModalProps {
     isOpen: boolean;
@@ -29,7 +29,7 @@ export function RenewModal({ isOpen, onClose, customer, servers, plans, onConfir
         const baseDate = isActive ? currentDueDate : today;
 
         if (plan.name?.toLowerCase().includes('teste')) {
-            return format(addHours(baseDate, 4), "yyyy-MM-dd'T'HH:mm");
+            return addHours(baseDate, 4).toISOString();
         }
         return format(addMonths(baseDate, plan.months), 'yyyy-MM-dd');
     };
@@ -37,9 +37,14 @@ export function RenewModal({ isOpen, onClose, customer, servers, plans, onConfir
     useEffect(() => {
         if (customer) {
             const plan = plans.find(p => p.id === customer.planId);
-            const initialDueDate = plan 
+            const rawDueDate = plan 
                 ? calculateNewDueDate(customer.dueDate, plan) 
                 : customer.dueDate;
+
+            const isTest = plan?.name?.toLowerCase().includes('teste');
+            const initialDueDate = isTest || rawDueDate.includes('Z') || rawDueDate.includes('T')
+                ? formatForDateTimeInput(rawDueDate)
+                : formatForDateInput(rawDueDate);
 
             setFormData({
                 serverId: customer.serverId,
@@ -53,7 +58,12 @@ export function RenewModal({ isOpen, onClose, customer, servers, plans, onConfir
     const handlePlanChange = (planId: string) => {
         const plan = plans.find(p => p.id === planId);
         if (plan && customer) {
-            const newDueDate = calculateNewDueDate(customer.dueDate, plan);
+            const rawDueDate = calculateNewDueDate(customer.dueDate, plan);
+            const isTest = plan.name?.toLowerCase().includes('teste');
+            const newDueDate = isTest || rawDueDate.includes('Z') || rawDueDate.includes('T')
+                ? formatForDateTimeInput(rawDueDate)
+                : formatForDateInput(rawDueDate);
+
             setFormData({
                 ...formData,
                 planId,

@@ -75,11 +75,19 @@ export function Customers({
       if (plan) {
         const newDueDate = renewData.dueDate;
 
+        const message = formatWhatsappMessage(renewalMessage, {
+          name: selectedCustomerForRenew.name,
+          amount: parseFloat(renewData.amountPaid.replace(',', '.')),
+          dueDate: renewData.dueDate
+        });
+
+        const finalDueDate = renewData.dueDate.includes('T') ? new Date(renewData.dueDate).toISOString() : renewData.dueDate;
+
         updateCustomer(selectedCustomerForRenew.id, {
           serverId: renewData.serverId,
           planId: renewData.planId,
           amountPaid: parseSafeNumber(renewData.amountPaid),
-          dueDate: newDueDate,
+          dueDate: finalDueDate,
           hasResetCounters: false
         });
 
@@ -96,11 +104,6 @@ export function Customers({
         });
 
         // Open Renewal Confirmation Message
-        const message = formatWhatsappMessage(renewalMessage, {
-          name: selectedCustomerForRenew.name,
-          amount: parseFloat(renewData.amountPaid.replace(',', '.')),
-          dueDate: newDueDate
-        });
         window.open(`https://wa.me/${selectedCustomerForRenew.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
       }
       setSelectedCustomerForRenew(null);
@@ -118,13 +121,15 @@ export function Customers({
     e.preventDefault();
     const amount = parseSafeNumber(formData.amountPaid);
 
+    const finalDueDate = formData.dueDate.includes('T') ? new Date(formData.dueDate).toISOString() : formData.dueDate;
+
     const data = {
       name: formData.name,
       phone: formData.phone,
       serverId: formData.serverId,
       planId: formData.planId,
       amountPaid: amount,
-      dueDate: formData.dueDate,
+      dueDate: finalDueDate,
     };
 
     if (editingCustomer) {
@@ -177,7 +182,9 @@ export function Customers({
         serverId: customer.serverId,
         planId: customer.planId,
         amountPaid: customer.amountPaid.toString(),
-        dueDate: customer.dueDate
+        dueDate: customer.dueDate.includes('T') || customer.dueDate.includes('Z')
+          ? formatForDateTimeInput(customer.dueDate)
+          : formatForDateInput(customer.dueDate)
       });
     } else {
       setEditingCustomer(null);
@@ -190,7 +197,7 @@ export function Customers({
         planId: defaultPlan?.id || '',
         amountPaid: defaultPlan?.defaultPrice.toString() || '0',
         dueDate: isTest 
-          ? format(addHours(new Date(), 4), "yyyy-MM-dd'T'HH:mm")
+          ? addHours(new Date(), 4).toISOString()
           : format(addMonths(new Date(), defaultPlan?.months || 1), 'yyyy-MM-dd')
       });
     }
