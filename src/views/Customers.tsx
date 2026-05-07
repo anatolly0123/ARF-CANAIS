@@ -545,15 +545,10 @@ export function Customers({
           filteredCustomers.map(customer => {
             const server = servers.find(s => s.id === customer.serverId);
             const plan = plans.find(p => p.id === customer.planId);
-            const isActive = isCustomerActive(customer.dueDate);
+            const isTest = plan?.name?.toLowerCase().includes('teste');
+            const isActive = isCustomerActive(customer.dueDate, isTest);
             const dueDate = parseRobustLocalTime(customer.dueDate);
             const daysDiff = Math.round((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-
-            const lastNotified = customer.lastNotifiedDate ? parseRobustLocalTime(customer.lastNotifiedDate) : null;
-            if (lastNotified) lastNotified.setHours(0, 0, 0, 0);
-            const isRecentlyNotified = lastNotified && !isNaN(lastNotified.getTime()) && Math.round((today.getTime() - lastNotified.getTime()) / (1000 * 60 * 60 * 24)) < 7;
-
-            const isTest = plan?.name?.toLowerCase().includes('teste');
             const isExpiredTest = isTest && !isActive;
 
             const lastOverdueNotified = customer.lastOverdueNotifiedDate || (customer as any).last_overdue_notified_date;

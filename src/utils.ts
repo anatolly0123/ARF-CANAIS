@@ -42,9 +42,10 @@ export const parseRobustLocalTime = (dateStr: string) => {
   let str = dateStr.toString().trim();
 
   // If it's a full ISO string from Supabase with a timezone (Z or offset),
-  // let the browser parse it correctly to local time.
+  // we STRIP the timezone to force local interpretation, because this app
+  // manages time locally and the DB-to-Local shift is causing the "one day back" bug.
   if (str.includes('Z') || /[+-]\d{2}:?\d{2}$/.test(str)) {
-    return new Date(str);
+    str = str.replace('Z', '').replace(/[+-]\d{2}:?\d{2}$/, '');
   }
 
   // Handle YYYY-MM-DD or full ISO strings (YYYY-MM-DDTHH:MM:SS)
@@ -118,7 +119,7 @@ export const formatForDateInput = (dateStr: string) => {
   return format(date, 'yyyy-MM-dd');
 };
 
-export const isCustomerActive = (dueDateStr: string) => {
+export const isCustomerActive = (dueDateStr: string, isTest: boolean = false) => {
   if (!dueDateStr) return false;
 
   try {
@@ -127,26 +128,20 @@ export const isCustomerActive = (dueDateStr: string) => {
 
     const now = new Date();
     
-    // Check if it has a specific time component (other than midnight 00:00)
-    // We check if the string has a time AND the parsed date is NOT at midnight local
-    const hasSpecificTime = (dueDateStr.includes(':') || (dueDateStr.includes('T') && dueDateStr.length > 10)) && 
-                            (dueDate.getHours() !== 0 || dueDate.getMinutes() !== 0);
-
-    if (hasSpecificTime) {
-      // For plans with specific hours (like 4h tests), compare exact time
-      // We add a small buffer (1 minute) to be safe
-      return dueDate.getTime() > (now.getTime() - 60000);
+    // For regular plans (not tests), they are ALWAYS active until the end of the day
+    if (!isTest) {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      
+      const dueDateStart = new Date(dueDate);
+      dueDateStart.setHours(0, 0, 0, 0);
+      
+      return dueDateStart.getTime() >= todayStart.getTime();
     }
-    
-    // For date-only plans (or midnight), valid until the end of the day
-    // Meaning: if today is 07/05 and dueDate is 07/05 00:00, it is STILL ACTIVE
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    
-    const dueDateStart = new Date(dueDate);
-    dueDateStart.setHours(0, 0, 0, 0);
-    
-    return dueDateStart.getTime() >= todayStart.getTime();
+
+    // For test plans, we use exact hour/minute precision
+    // We add a 1-minute buffer for better UX
+    return dueDate.getTime() > (now.getTime() - 60000);
   } catch {
     return false;
   }

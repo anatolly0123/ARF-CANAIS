@@ -119,8 +119,8 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
 
       // Active check (Excluding tests from financial/server counts)
       const plan = plansMap.get(c.planId || (c as any).plan_id);
-      const isActive = isCustomerActive(dueDateStr);
       const isTest = plan?.name?.toLowerCase().includes('teste');
+      const isActive = isCustomerActive(dueDateStr, isTest);
 
       if (isActive && !isTest && stats[sId]) {
         stats[sId].active += 1;
@@ -361,7 +361,7 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
 
               const plan = plans.find(p => p.id === c.planId);
               const isTest = plan?.name?.toLowerCase().includes('teste');
-              const isExpiredTest = isTest && !isCustomerActive(c.dueDate);
+              const isExpiredTest = isTest && !isCustomerActive(c.dueDate, isTest);
 
               return (
                 <div key={c.id} className="p-4 flex items-center justify-between">
