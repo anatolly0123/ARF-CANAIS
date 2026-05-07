@@ -375,9 +375,9 @@ export function useStore(user: User | null) {
         server_id: toUUID(customer.serverId),
         plan_id: toUUID(customer.planId),
         amount_paid: customer.amountPaid,
-        due_date: customer.dueDate,
-        last_notified_date: customer.lastNotifiedDate,
-        last_overdue_notified_date: customer.lastOverdueNotifiedDate,
+        due_date: ensureISO(customer.dueDate),
+        last_notified_date: customer.lastNotifiedDate ? ensureISO(customer.lastNotifiedDate) : null,
+        last_overdue_notified_date: customer.lastOverdueNotifiedDate ? ensureISO(customer.lastOverdueNotifiedDate) : null,
         user_id: user.id
       });
       if (error) {
@@ -397,9 +397,9 @@ export function useStore(user: User | null) {
       if (data.serverId !== undefined) updateData.server_id = toUUID(data.serverId);
       if (data.planId !== undefined) updateData.plan_id = toUUID(data.planId);
       if (data.amountPaid !== undefined) updateData.amount_paid = data.amountPaid;
-      if (data.dueDate !== undefined) updateData.due_date = data.dueDate;
-      if (data.lastNotifiedDate !== undefined) updateData.last_notified_date = data.lastNotifiedDate || null;
-      if (data.lastOverdueNotifiedDate !== undefined) updateData.last_overdue_notified_date = data.lastOverdueNotifiedDate || null;
+      if (data.dueDate !== undefined) updateData.due_date = ensureISO(data.dueDate);
+      if (data.lastNotifiedDate !== undefined) updateData.last_notified_date = data.lastNotifiedDate ? ensureISO(data.lastNotifiedDate) : null;
+      if (data.lastOverdueNotifiedDate !== undefined) updateData.last_overdue_notified_date = data.lastOverdueNotifiedDate ? ensureISO(data.lastOverdueNotifiedDate) : null;
       supabase.from('customers').update(updateData).eq('id', id).then(({ error }) => {
         if (error) console.error('Error updating customer in cloud:', error);
       });
@@ -492,7 +492,7 @@ export function useStore(user: User | null) {
         plan_id: toUUID(newRenewal.planId),
         amount: newRenewal.amount,
         cost: newRenewal.cost,
-        date: newRenewal.date,
+        date: ensureISO(newRenewal.date),
         user_id: user.id
       });
       if (error) console.error('Error syncing renewal to cloud:', error);
@@ -506,7 +506,7 @@ export function useStore(user: User | null) {
       await supabase.from('manual_additions').insert({
         id: newAddition.id,
         amount: newAddition.amount,
-        date: newAddition.date,
+        date: ensureISO(newAddition.date),
         description: newAddition.description,
         user_id: user.id
       });
