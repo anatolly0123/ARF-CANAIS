@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Server, Customer, Plan, UserRole } from '../types';
 import { Plus, Edit2, Trash2, Server as ServerIcon } from 'lucide-react';
 import { parseISO, isAfter, differenceInDays } from 'date-fns';
-import { formatCurrency } from '../utils';
+import { formatCurrency, isCustomerActive } from '../utils';
 import { Modal } from '../components/Modal';
 
 interface ServersProps {
@@ -77,14 +77,16 @@ export function Servers({ servers, customers, plans, addServer, updateServer, de
           {servers.map(server => {
             const activeCustomers = customers.filter(c => {
               if (c.serverId !== server.id) return false;
-              const plan = plans.find(p => p.id === c.planId);
+              const pid = c.planId || (c as any).plan_id;
+              const plan = plans.find(p => p.id === pid);
               const isTest = plan?.name?.toLowerCase().includes('teste');
               const isActive = isCustomerActive(c.dueDate, isTest);
               return isActive && !isTest;
             });
             const totalActive = activeCustomers.length;
             const totalGenerated = activeCustomers.reduce((acc, c) => {
-              const plan = plans.find(p => p.id === c.planId);
+              const pid = c.planId || (c as any).plan_id;
+              const plan = plans.find(p => p.id === pid);
               const months = plan ? plan.months : 1;
               return acc + (c.amountPaid / months);
             }, 0);
