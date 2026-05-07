@@ -123,21 +123,30 @@ export const isCustomerActive = (dueDateStr: string) => {
 
   try {
     const dueDate = parseRobustLocalTime(dueDateStr);
-    const dateTime = dueDate.getTime();
-    if (isNaN(dateTime)) return false;
+    if (isNaN(dueDate.getTime())) return false;
 
     const now = new Date();
     
-    // If the string has a time component
-    if (dueDateStr.includes(':') || (dueDateStr.includes('T') && dueDateStr.length > 10)) {
-      return dueDate.getTime() >= now.getTime();
+    // Check if it has a specific time component (other than midnight 00:00)
+    // We check if the string has a time AND the parsed date is NOT at midnight local
+    const hasSpecificTime = (dueDateStr.includes(':') || (dueDateStr.includes('T') && dueDateStr.length > 10)) && 
+                            (dueDate.getHours() !== 0 || dueDate.getMinutes() !== 0);
+
+    if (hasSpecificTime) {
+      // For plans with specific hours (like 4h tests), compare exact time
+      // We add a small buffer (1 minute) to be safe
+      return dueDate.getTime() > (now.getTime() - 60000);
     }
     
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    dueDate.setHours(0, 0, 0, 0);
+    // For date-only plans (or midnight), valid until the end of the day
+    // Meaning: if today is 07/05 and dueDate is 07/05 00:00, it is STILL ACTIVE
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
     
-    return dueDate.getTime() >= today.getTime();
+    const dueDateStart = new Date(dueDate);
+    dueDateStart.setHours(0, 0, 0, 0);
+    
+    return dueDateStart.getTime() >= todayStart.getTime();
   } catch {
     return false;
   }
