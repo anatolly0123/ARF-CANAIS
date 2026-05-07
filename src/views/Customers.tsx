@@ -197,7 +197,7 @@ export function Customers({
         planId: defaultPlan?.id || '',
         amountPaid: defaultPlan?.defaultPrice.toString() || '0',
         dueDate: isTest 
-          ? format(addHours(new Date(), 4), "yyyy-MM-dd'T'HH:mm")
+          ? format(new Date(Date.now() + 4 * 60 * 60 * 1000), "yyyy-MM-dd'T'HH:mm")
           : format(addMonths(new Date(), defaultPlan?.months || 1), 'yyyy-MM-dd')
       });
     }
@@ -816,7 +816,7 @@ export function Customers({
                   const now = new Date();
                   
                   if (isTest) {
-                    const testDate = addHours(now, 4);
+                    const testDate = new Date(Date.now() + 4 * 60 * 60 * 1000);
                     setFormData({
                       ...formData,
                       planId,
@@ -828,7 +828,7 @@ export function Customers({
                       ...formData,
                       planId,
                       amountPaid: plan.defaultPrice.toString(),
-                      dueDate: format(addMonths(now, plan.months), 'yyyy-MM-dd')
+                      dueDate: format(addMonths(new Date(), plan.months), 'yyyy-MM-dd')
                     });
                   }
                 }

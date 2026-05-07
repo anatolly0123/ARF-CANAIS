@@ -92,12 +92,20 @@ export const parseRobustLocalTime = (dateStr: string): Date => {
 
 export const ensureISO = (dateStr: string) => {
   if (!dateStr) return new Date().toISOString();
-  // If already ISO, return as is
+  
+  // If it already has a timezone indicator (Z or +/-00:00), it's already ISO-compliant
   if (dateStr.includes('Z') || /[+-]\d{2}:?\d{2}$/.test(dateStr)) return dateStr;
   
-  // Otherwise parse as local and convert to ISO
+  // Otherwise, parse as local and generate a LOCAL ISO string (with offset)
   const date = parseRobustLocalTime(dateStr);
-  return isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
+  if (isNaN(date.getTime())) return new Date().toISOString();
+
+  // Manually build ISO string with local offset to prevent UTC shifting
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  const tzo = -date.getTimezoneOffset();
+  const dif = tzo >= 0 ? '+' : '-';
+  
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}${dif}${pad(Math.floor(Math.abs(tzo) / 60))}:${pad(Math.abs(tzo) % 60)}`;
 };
 
 export const formatForDateTimeInput = (dateStr: string) => {
