@@ -242,7 +242,21 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
             </div>
             <div>
               <div className="text-[#0f0f0f] font-bold text-sm">Notificações Pendentes</div>
-              <div className="text-[#0f0f0f]/70 text-xs font-medium">{pendingNotifications.length} avisos pendentes para hoje</div>
+              <div className="text-[#0f0f0f]/70 text-xs font-medium">
+                {(() => {
+                  const testsCount = pendingNotifications.filter(c => {
+                    const plan = plans.find(p => p.id === c.planId);
+                    return plan?.name?.toLowerCase().includes('teste');
+                  }).length;
+                  const regularsCount = pendingNotifications.length - testsCount;
+                  
+                  const parts = [];
+                  if (regularsCount > 0) parts.push(`${regularsCount} ${regularsCount === 1 ? 'aviso' : 'avisos'}`);
+                  if (testsCount > 0) parts.push(`${testsCount} ${testsCount === 1 ? 'teste expirado' : 'testes expirados'}`);
+                  
+                  return parts.join(' e ') + ' para hoje';
+                })()}
+              </div>
             </div>
           </div>
           <button
