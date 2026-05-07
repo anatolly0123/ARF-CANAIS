@@ -3,7 +3,7 @@ import { Server, Plan, Customer, Renewal, ManualAddition, UserRole } from './typ
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from './lib/supabase';
 import { User } from '@supabase/supabase-js';
-import { formatCurrency, isCustomerActive, parseSafeNumber } from './utils';
+import { formatCurrency, isCustomerActive, parseSafeNumber, ensureISO } from './utils';
 
 const DEFAULT_PLANS: Plan[] = [
   { id: '702330a6-168a-4933-9114-1ce5d2f63f53', name: 'Gratuito', defaultPrice: 0, months: 1 },
@@ -688,9 +688,9 @@ export function useStore(user: User | null) {
           server_id: toUUID(c.serverId),
           plan_id: toUUID(c.planId),
           amount_paid: c.amountPaid,
-          due_date: c.dueDate,
-          last_notified_date: c.lastNotifiedDate || null,
-          last_overdue_notified_date: c.lastOverdueNotifiedDate || null,
+          due_date: ensureISO(c.dueDate),
+          last_notified_date: c.lastNotifiedDate ? ensureISO(c.lastNotifiedDate) : null,
+          last_overdue_notified_date: c.lastOverdueNotifiedDate ? ensureISO(c.lastOverdueNotifiedDate) : null,
           user_id: user.id
         })));
         if (error) throw error;
@@ -706,7 +706,7 @@ export function useStore(user: User | null) {
           plan_id: toUUID(r.planId),
           amount: r.amount,
           cost: r.cost,
-          date: r.date,
+          date: ensureISO(r.date),
           user_id: user.id
         })));
         if (error) throw error;

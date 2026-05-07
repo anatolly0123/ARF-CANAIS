@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef } from 'react';
 import { Customer, Server, Plan, Renewal } from '../types';
 import { format, parseISO, addMonths, addHours, isAfter, differenceInDays } from 'date-fns';
 import { v4 as uuidv4 } from 'uuid';
-import { formatCurrency, isCustomerActive, formatWhatsappMessage, parseSafeNumber, parseRobustLocalTime } from '../utils';
+import { formatCurrency, isCustomerActive, formatWhatsappMessage, parseSafeNumber, parseRobustLocalTime, formatForDateTimeInput, formatForDateInput, ensureISO } from '../utils';
 import { Modal } from '../components/Modal';
 import { RenewModal } from '../components/RenewModal';
 import { Plus, Search, Filter, Phone, RefreshCw, Edit2, Trash2, Calendar, CheckCircle, XCircle, MessageCircle, Users, Award, Star, UserX, ArrowRightLeft, ChevronDown, Check, Clock } from 'lucide-react';
@@ -81,7 +81,7 @@ export function Customers({
           dueDate: renewData.dueDate
         });
 
-        const finalDueDate = renewData.dueDate.includes('T') ? new Date(renewData.dueDate).toISOString() : renewData.dueDate;
+        const finalDueDate = ensureISO(renewData.dueDate);
 
         updateCustomer(selectedCustomerForRenew.id, {
           serverId: renewData.serverId,
@@ -121,7 +121,7 @@ export function Customers({
     e.preventDefault();
     const amount = parseSafeNumber(formData.amountPaid);
 
-    const finalDueDate = formData.dueDate.includes('T') ? new Date(formData.dueDate).toISOString() : formData.dueDate;
+    const finalDueDate = ensureISO(formData.dueDate);
 
     const data = {
       name: formData.name,
@@ -197,7 +197,7 @@ export function Customers({
         planId: defaultPlan?.id || '',
         amountPaid: defaultPlan?.defaultPrice.toString() || '0',
         dueDate: isTest 
-          ? addHours(new Date(), 4).toISOString()
+          ? format(addHours(new Date(), 4), "yyyy-MM-dd'T'HH:mm")
           : format(addMonths(new Date(), defaultPlan?.months || 1), 'yyyy-MM-dd')
       });
     }

@@ -29,7 +29,7 @@ export function RenewModal({ isOpen, onClose, customer, servers, plans, onConfir
         const baseDate = isActive ? currentDueDate : today;
 
         if (plan.name?.toLowerCase().includes('teste')) {
-            return addHours(baseDate, 4).toISOString();
+            return format(addHours(baseDate, 4), "yyyy-MM-dd'T'HH:mm");
         }
         return format(addMonths(baseDate, plan.months), 'yyyy-MM-dd');
     };
