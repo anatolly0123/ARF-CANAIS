@@ -5,6 +5,13 @@ import { supabase } from './lib/supabase';
 import { User } from '@supabase/supabase-js';
 import { formatCurrency, isCustomerActive, parseSafeNumber, ensureISO } from './utils';
 
+const toUUID = (id: string | null | undefined): string | null => {
+  if (!id) return null;
+  // Basic UUID validation (optional but good for debugging)
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(id) ? id : null;
+};
+
 const DEFAULT_PLANS: Plan[] = [
   { id: '702330a6-168a-4933-9114-1ce5d2f63f53', name: 'Gratuito', defaultPrice: 0, months: 1 },
   { id: '9609a562-b13c-41c3-8820-2f9540b61545', name: 'Mensal', defaultPrice: 35, months: 1 },
