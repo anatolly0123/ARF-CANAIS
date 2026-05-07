@@ -107,7 +107,6 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
     }, 0);
 
     const expiring: Customer[] = [];
-    const todayTime = today.getTime();
 
     customers.forEach(c => {
       const dueDateStr = c.dueDate || (c as any).due_date;

@@ -29,8 +29,6 @@ const PLAN_ID_MAP: Record<string, string> = {
   '4': '2c5a2bc9-f538-43d9-95e5-f55a15998f82',
 };
 
-const toUUID = (id: string | undefined | null) => (id && id.trim() !== '' ? id : null);
-
 export interface DataDiagnostics {
   phase1Time?: number;
   phase2Time?: number;
