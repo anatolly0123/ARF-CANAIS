@@ -37,6 +37,7 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
     const plansMap = new Map(plans.map(p => [p.id, p]));
     const tMonth = today.getMonth();
     const tYear = today.getFullYear();
+    const todayTime = today.getTime();
 
     let totalGross = 0;
     let totalCost = 0;
@@ -148,9 +149,8 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
 
     const totalPlansValue = customers.reduce((acc, c) => {
       const plan = plansMap.get(c.planId || (c as any).plan_id);
-      const p = plansMap.get(c.planId || (c as any).plan_id);
-      const isT = p?.name?.toLowerCase().includes('teste');
-      return isCustomerActive(c.dueDate, isT) ? acc + parseSafeNumber(c.amountPaid) : acc;
+      const isTest = plan?.name?.toLowerCase().includes('teste');
+      return isCustomerActive(c.dueDate, isTest) ? acc + parseSafeNumber(c.amountPaid) : acc;
     }, 0);
 
     return {

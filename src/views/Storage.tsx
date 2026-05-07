@@ -71,6 +71,8 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
   const [isFullHistoryOpen, setIsFullHistoryOpen] = useState(false);
   const [importPreview, setImportPreview] = useState<Customer[]>([]);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
   useEffect(() => {
     const calculateSize = () => {
