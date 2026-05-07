@@ -60,18 +60,17 @@ export const parseRobustLocalTime = (dateStr: string): Date => {
 
   // 2. Handle ISO strings (Supabase/DB)
   if (str.includes('-')) {
-    // If it's a full ISO with UTC indicator (Z)
-    if (str.includes('Z')) {
-      // If it's exactly midnight UTC (date-only plan), strip 'Z' to force local midnight
-      // This prevents the "one day back" bug.
+    // If it has a timezone indicator (Z or +/-00:00), let the browser handle it natively
+    // This ensures that 13:00-03:00 is seen as the same absolute time everywhere
+    if (str.includes('Z') || /[+-]\d{2}:?\d{2}$/.test(str)) {
+      // Exception: Exactly midnight UTC (date-only plans) - strip to force local midnight
       if (str.includes('T00:00:00')) {
-        return new Date(str.replace('Z', ''));
+        return new Date(str.replace('Z', '').replace(/[+-]\d{2}:?\d{2}$/, ''));
       }
-      // For test plans (specific hours), let the browser convert UTC to Local correctly
       return new Date(str);
     }
     
-    // For non-Z ISO strings, parse as local
+    // For ISO strings WITHOUT timezone indicators, parse manually as local
     const parts = str.split('T');
     const dateParts = parts[0].split('-');
     if (dateParts.length === 3) {
