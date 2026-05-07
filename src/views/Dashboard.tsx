@@ -207,19 +207,29 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
   };
 
   const pendingNotifications = useMemo(() => {
+    const plansMap = new Map(plans.map(p => [p.id, p]));
     return expiringCustomers.filter(c => {
+      const plan = plansMap.get(c.planId || (c as any).plan_id);
+      const isTest = plan?.name?.toLowerCase().includes('teste');
+      
       const dueDateStr = c.dueDate || (c as any).due_date;
       if (!dueDateStr) return false;
       const dueDate = parseRobustLocalTime(dueDateStr);
-      dueDate.setHours(0, 0, 0, 0);
-      const days = Math.round((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      const isActive = isCustomerActive(dueDateStr, isTest);
+      
       const lastNotified = c.lastNotifiedDate ? parseRobustLocalTime(c.lastNotifiedDate) : null;
       if (lastNotified) lastNotified.setHours(0, 0, 0, 0);
       const isRecentlyNotified = lastNotified && !isNaN(lastNotified.getTime()) && Math.round((today.getTime() - lastNotified.getTime()) / (1000 * 60 * 60 * 24)) < 7;
       
+      if (isTest) {
+        return !isActive && !isRecentlyNotified;
+      }
+
+      dueDate.setHours(0, 0, 0, 0);
+      const days = Math.round((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) + 1;
       return (days === 1 || days === 2) && !isRecentlyNotified;
     });
-  }, [expiringCustomers, today]);
+  }, [expiringCustomers, today, plans]);
 
   return (
     <div className="space-y-6 pb-24">
@@ -238,11 +248,26 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
           <button
             onClick={() => {
               const first = pendingNotifications[0];
-              const message = formatWhatsappMessage(whatsappMessage, {
-                name: first.name,
-                amount: first.amountPaid,
-                dueDate: first.dueDate
-              });
+              const plan = plans.find(p => p.id === first.planId);
+              const isTest = plan?.name?.toLowerCase().includes('teste');
+              const isOverdue = !isCustomerActive(first.dueDate, isTest);
+              
+              let message = '';
+              if (isTest) {
+                message = formatWhatsappMessage(testMessage, first);
+              } else if (isOverdue) {
+                message = formatWhatsappMessage(overdueMessage, {
+                  name: first.name,
+                  amount: first.amountPaid,
+                  dueDate: first.dueDate
+                });
+              } else {
+                message = formatWhatsappMessage(whatsappMessage, {
+                  name: first.name,
+                  amount: first.amountPaid,
+                  dueDate: first.dueDate
+                });
+              }
 
               updateCustomer(first.id, { lastNotifiedDate: format(today, 'yyyy-MM-dd') });
               window.open(`https://wa.me/${first.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
