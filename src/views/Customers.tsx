@@ -173,18 +173,20 @@ export function Customers({
     closeModal();
   };
 
-  const openModal = (customer?: Customer) => {
+  const openModal = (customer?: Customer, isActivatingTest: boolean = false) => {
     if (customer) {
       setEditingCustomer(customer);
       setFormData({
         name: customer.name,
         phone: customer.phone,
-        serverId: customer.serverId,
+        serverId: customer.serverId || (servers.length > 0 ? servers[0].id : ''),
         planId: customer.planId,
         amountPaid: customer.amountPaid.toString(),
-        dueDate: customer.dueDate.includes('T') || customer.dueDate.includes('Z')
-          ? formatForDateTimeInput(customer.dueDate)
-          : formatForDateInput(customer.dueDate)
+        dueDate: isActivatingTest
+          ? format(new Date(Date.now() + 4 * 60 * 60 * 1000), "yyyy-MM-dd'T'HH:mm")
+          : (customer.dueDate && (customer.dueDate.includes('T') || customer.dueDate.includes('Z'))
+            ? formatForDateTimeInput(customer.dueDate)
+            : formatForDateInput(customer.dueDate))
       });
     } else {
       setEditingCustomer(null);
@@ -546,10 +548,11 @@ export function Customers({
             const server = servers.find(s => s.id === customer.serverId);
             const plan = plans.find(p => p.id === customer.planId);
             const isTest = plan?.name?.toLowerCase().includes('teste');
-            const isActive = isCustomerActive(customer.dueDate, isTest);
+            const isPendingTest = isTest && !customer.dueDate;
+            const isActive = !isPendingTest && isCustomerActive(customer.dueDate, isTest);
             const dueDate = parseRobustLocalTime(customer.dueDate);
             const daysDiff = Math.round((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-            const isExpiredTest = isTest && !isActive;
+            const isExpiredTest = isTest && !isActive && !isPendingTest;
 
             const lastNotified = customer.lastNotifiedDate ? parseRobustLocalTime(customer.lastNotifiedDate) : null;
             if (lastNotified) lastNotified.setHours(0, 0, 0, 0);
@@ -567,7 +570,9 @@ export function Customers({
                     <h3 className="text-lg font-bold text-white flex items-center space-x-2">
                       <span>{customer.name}</span>
                       {isTest ? (
-                        isActive ? (
+                        isPendingTest ? (
+                          <span className="bg-blue-500/20 text-blue-400 text-[10px] font-bold px-1.5 py-0.5 rounded animate-pulse uppercase tracking-widest">Aguardando Ativação</span>
+                        ) : isActive ? (
                           <Clock size={14} className="text-[#c8a646]" />
                         ) : (
                           <XCircle size={14} className="text-red-500" />
@@ -593,7 +598,22 @@ export function Customers({
                     <div className="text-xs text-[#c8a646] uppercase tracking-wider mt-1">{server?.name} • {plan?.name}</div>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
-                    <button
+                    {isPendingTest ? (
+                      <div className="col-span-3 flex items-center space-x-2 justify-end">
+                        <button
+                          onClick={() => openModal(customer, true)}
+                          className="flex-1 py-2 bg-[#c8a646] text-[#0f0f0f] rounded-full hover:bg-[#e8c666] transition-all font-bold text-xs uppercase tracking-widest flex items-center justify-center space-x-2 shadow-lg shadow-[#c8a646]/20"
+                        >
+                          <Clock size={14} />
+                          <span>Ativar Teste</span>
+                        </button>
+                        <button onClick={() => setCustomerToDelete(customer)} className="p-2 text-red-400 hover:text-red-300 transition-colors bg-red-500/10 rounded-full flex-shrink-0" title="Excluir">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <button
                       onClick={() => {
                         const message = formatWhatsappMessage(whatsappMessage, {
                           name: customer.name,
@@ -687,14 +707,16 @@ export function Customers({
                         </button>
                       </>
                     )}
+                    </>
+                    )}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 mt-4">
                   <div className="flex items-center space-x-2 text-sm text-gray-400">
                     <Calendar size={14} />
-                    <span className={!isActive ? 'text-red-400 font-medium' : daysDiff <= 10 ? 'text-yellow-500 font-medium' : ''}>
-                      {(() => {
+                    <span className={isPendingTest ? 'text-blue-400 font-medium uppercase tracking-widest text-xs' : !isActive ? 'text-red-400 font-medium' : daysDiff <= 10 ? 'text-yellow-500 font-medium' : ''}>
+                      {isPendingTest ? 'Pendente' : (() => {
                         try {
                           if (isNaN(dueDate.getTime())) return 'Data Inválida';
                           return isTest ? format(dueDate, 'dd/MM/yyyy HH:mm') : format(dueDate, 'dd/MM/yyyy');

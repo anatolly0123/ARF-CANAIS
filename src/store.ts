@@ -263,7 +263,7 @@ export function useStore(user: User | null) {
             serverId: (c.server_id || c.serverId || '').toString(),
             planId: (PLAN_ID_MAP[c.plan_id] || PLAN_ID_MAP[c.planId] || c.plan_id || c.planId || '').toString(),
             amountPaid: parseSafeNumber(c.amount_paid ?? c.amountPaid),
-            dueDate: c.due_date || c.dueDate || new Date().toISOString(),
+            dueDate: c.due_date || c.dueDate || '',
             lastNotifiedDate: c.last_notified_date !== undefined ? c.last_notified_date : (c.last_not_date !== undefined ? c.last_not_date : c.lastNotifiedDate),
             lastOverdueNotifiedDate: c.last_overdue_notified_date !== undefined ? c.last_overdue_notified_date : c.lastOverdueNotifiedDate,
             hasResetCounters: Boolean(c.has_reset_counters !== undefined ? c.has_reset_counters : c.hasResetCounters)
