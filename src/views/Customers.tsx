@@ -79,7 +79,7 @@ export function Customers({
           name: selectedCustomerForRenew.name,
           amount: parseFloat(renewData.amountPaid.replace(',', '.')),
           dueDate: renewData.dueDate
-        });
+        }, plan?.name?.toLowerCase().includes('teste') || false);
 
         const finalDueDate = ensureISO(renewData.dueDate);
 
@@ -160,7 +160,7 @@ export function Customers({
             name: data.name,
             amount: data.amountPaid,
             dueDate: data.dueDate
-          });
+          }, isTest);
           window.open(`https://wa.me/${data.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
         } else {
           // For test customers, maybe send a simple welcome message or nothing
@@ -619,7 +619,7 @@ export function Customers({
                           name: customer.name,
                           amount: customer.amountPaid,
                           dueDate: customer.dueDate
-                        });
+                        }, isTest);
 
                         updateCustomer(customer.id, { lastNotifiedDate: format(today, 'yyyy-MM-dd') });
                         window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
@@ -637,7 +637,7 @@ export function Customers({
                             name: customer.name,
                             amount: customer.amountPaid,
                             dueDate: customer.dueDate
-                          });
+                          }, isTest);
                           window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
                         }}
                         className="p-2 bg-[#c8a646]/20 text-[#c8a646] rounded-full hover:bg-[#c8a646]/30 transition-all animate-bounce"
@@ -669,7 +669,7 @@ export function Customers({
                                 name: customer.name,
                                 amount: customer.amountPaid,
                                 dueDate: customer.dueDate
-                              });
+                              }, isTest);
 
                               updateCustomer(customer.id, {
                                 lastOverdueNotifiedDate: format(today, 'yyyy-MM-dd')

@@ -195,11 +195,12 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
         });
 
         // Open Renewal Confirmation Message
+        const isTest = plan?.name?.toLowerCase().includes('teste') || false;
         const message = formatWhatsappMessage(renewalMessage, {
           name: selectedCustomer.name,
           amount: parseFloat(renewData.amountPaid.replace(',', '.')),
           dueDate: newDueDate
-        });
+        }, isTest);
         window.open(`https://wa.me/${selectedCustomer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
       }
       setSelectedCustomer(null);
@@ -270,19 +271,19 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
               
               let message = '';
               if (isTest) {
-                message = formatWhatsappMessage(testMessage, first);
+                message = formatWhatsappMessage(testMessage, first, isTest);
               } else if (isOverdue) {
                 message = formatWhatsappMessage(overdueMessage, {
                   name: first.name,
                   amount: first.amountPaid,
                   dueDate: first.dueDate
-                });
+                }, isTest);
               } else {
                 message = formatWhatsappMessage(whatsappMessage, {
                   name: first.name,
                   amount: first.amountPaid,
                   dueDate: first.dueDate
-                });
+                }, isTest);
               }
 
               updateCustomer(first.id, { lastNotifiedDate: format(today, 'yyyy-MM-dd') });
@@ -433,7 +434,7 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
 
                             let message = '';
                             if (isTest) {
-                              message = formatWhatsappMessage(testMessage || '', c);
+                              message = formatWhatsappMessage(testMessage || '', c, isTest);
                               // For tests, we use the regular notification date to avoid spam
                               updateCustomer(c.id, { lastNotifiedDate: format(today, 'yyyy-MM-dd') });
                             } else if (isOverdue) {
@@ -441,14 +442,14 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
                                 name: c.name,
                                 amount: c.amountPaid,
                                 dueDate: c.dueDate
-                              });
+                              }, isTest);
                               updateCustomer(c.id, { lastOverdueNotifiedDate: format(today, 'yyyy-MM-dd') });
                             } else {
                               message = formatWhatsappMessage(whatsappMessage, {
                                 name: c.name,
                                 amount: c.amountPaid,
                                 dueDate: c.dueDate
-                              });
+                              }, isTest);
                               updateCustomer(c.id, { lastNotifiedDate: format(today, 'yyyy-MM-dd') });
                             }
 

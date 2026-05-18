@@ -155,11 +155,12 @@ export const formatWhatsappMessage = (
     name: string;
     amount: number;
     dueDate: string;
-  }
+  },
+  isTest: boolean = false
 ) => {
   const now = new Date();
   const dueDate = parseRobustLocalTime(data.dueDate);
-  const hasTime = data.dueDate.includes(':') || (data.dueDate.includes('T') && data.dueDate.length > 10);
+  const hasTime = isTest;
 
   let formattedDate = 'Data Inválida';
   let daysStr = '';
