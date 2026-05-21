@@ -14,6 +14,7 @@ interface CustomersProps {
   customers: Customer[];
   servers: Server[];
   plans: Plan[];
+  renewals: Renewal[];
   whatsappMessage: string;
   addCustomer: (c: Customer) => Promise<boolean>;
   updateCustomer: (id: string, c: Partial<Customer>) => void;
@@ -28,7 +29,7 @@ interface CustomersProps {
 }
 
 export function Customers({
-  customers, servers, plans, whatsappMessage,
+  customers, servers, plans, renewals, whatsappMessage,
   addCustomer, updateCustomer, deleteCustomer,
   bulkUpdateCustomers, addRenewal, renewalMessage, overdueMessage,
   transferCustomer, userRole, testMessage
@@ -198,7 +199,7 @@ export function Customers({
         serverId: servers.length > 0 ? servers[0].id : '',
         planId: defaultPlan?.id || '',
         amountPaid: defaultPlan?.defaultPrice.toString() || '0',
-        dueDate: isTest 
+        dueDate: isTest
           ? format(new Date(Date.now() + 4 * 60 * 60 * 1000), "yyyy-MM-dd'T'HH:mm")
           : format(addMonths(new Date(), defaultPlan?.months || 1), 'yyyy-MM-dd')
       });
@@ -252,6 +253,21 @@ export function Customers({
   }, [customers, plans, today]);
 
 
+  // Set of customer IDs that were renewed in the current month
+  const renewedCustomerIds = useMemo(() => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    return new Set(
+      renewals
+        .filter(r => {
+          const d = new Date(r.date);
+          return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+        })
+        .map(r => r.customerId)
+    );
+  }, [renewals]);
+
   // Filter and sort customers
   const filteredCustomers = useMemo(() => {
     const query = searchQuery.toLowerCase();
@@ -265,10 +281,10 @@ export function Customers({
       // Filter by stats cards
       if (statsFilter === 'ativos' && !isActive) return false;
       if (statsFilter === 'inativos' && isActive) return false;
-      
+
       const plan = plans.find(p => p.id === c.planId);
       const isGratis = plan?.name === 'Gratuito';
-      
+
       if (statsFilter === 'mensal' && (!isActive || isGratis)) return false;
       if (statsFilter === 'gratis' && (!isActive || !isGratis)) return false;
 
@@ -276,7 +292,7 @@ export function Customers({
       if (!matchesSearch) return false;
 
       const [type, value] = filter.split(':');
-      
+
       if (type === 'server' && c.serverId !== value) return false;
       if (type === 'plan' && c.planId !== value) return false;
       if (type === 'status') {
@@ -286,6 +302,16 @@ export function Customers({
         const status = isActive ? 'ativo' : 'vencido';
         if (status !== value) return false;
       }
+      if (type === 'renewal') {
+        const hasRenewal = renewedCustomerIds.has(c.id);
+        const dueDateObj = parseRobustLocalTime(c.dueDate);
+        const now = new Date();
+        const dueInCurrentMonth =
+          dueDateObj.getFullYear() === now.getFullYear() &&
+          dueDateObj.getMonth() === now.getMonth();
+        if (value === 'renovado' && !hasRenewal) return false;
+        if (value === 'naorenovado' && (hasRenewal || !dueInCurrentMonth)) return false;
+      }
 
       return true;
     }).sort((a, b) => {
@@ -293,14 +319,14 @@ export function Customers({
       const dateB = new Date(b.dueDate).getTime() || 0;
       return dateA - dateB;
     });
-  }, [customers, searchQuery, filter, statsFilter, today, plans]);
+  }, [customers, renewals, renewedCustomerIds, searchQuery, filter, statsFilter, today, plans]);
 
   return (
     <div className="pb-24 space-y-6">
       <div className="flex justify-between items-center mb-6">
         <AnimatePresence mode="wait">
           {!isSearchOpen ? (
-            <motion.h2 
+            <motion.h2
               key="title"
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
@@ -310,7 +336,7 @@ export function Customers({
               Clientes
             </motion.h2>
           ) : (
-            <motion.div 
+            <motion.div
               key="search"
               initial={{ opacity: 0, width: 0 }}
               animate={{ opacity: 1, width: '100%' }}
@@ -349,11 +375,10 @@ export function Customers({
           <div className="relative">
             <button
               onClick={() => setIsFilterOpen(!isFilterOpen)}
-              className={`p-2 rounded-full transition-all duration-300 border ${
-                filter !== 'all' || isFilterOpen
-                  ? 'bg-[#c8a646] text-[#0f0f0f] border-[#c8a646] shadow-lg shadow-[#c8a646]/20'
-                  : 'bg-[#1a1a1a] text-gray-400 border-white/5 hover:border-white/20'
-              }`}
+              className={`p-2 rounded-full transition-all duration-300 border ${filter !== 'all' || isFilterOpen
+                ? 'bg-[#c8a646] text-[#0f0f0f] border-[#c8a646] shadow-lg shadow-[#c8a646]/20'
+                : 'bg-[#1a1a1a] text-gray-400 border-white/5 hover:border-white/20'
+                }`}
               title="Filtrar"
             >
               <Filter size={24} />
@@ -362,11 +387,11 @@ export function Customers({
             <AnimatePresence>
               {isFilterOpen && (
                 <>
-                  <div 
-                    className="fixed inset-0 z-40" 
-                    onClick={() => setIsFilterOpen(false)} 
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setIsFilterOpen(false)}
                   />
-                  
+
                   <motion.div
                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -398,6 +423,25 @@ export function Customers({
                               className={`px-4 py-3 rounded-xl text-xs font-bold transition-all border ${filter === `status:${v}` ? 'bg-[#c8a646] text-[#0f0f0f] border-[#c8a646]' : 'bg-[#0f0f0f] text-gray-400 border-white/5 hover:border-white/20'}`}
                             >
                               {v === 'ativo' ? 'Ativos' : 'Vencidos'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Renewal Group */}
+                      <div className="px-6 py-2 mt-2">
+                        <div className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em] mb-2 flex items-center space-x-2">
+                          <RefreshCw size={12} />
+                          <span>Renovação</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          {[{ value: 'renovado', label: 'Renovados' }, { value: 'naorenovado', label: 'Não Renovados' }].map(({ value, label }) => (
+                            <button
+                              key={value}
+                              onClick={() => { setFilter(`renewal:${value}`); setIsFilterOpen(false); }}
+                              className={`px-4 py-3 rounded-xl text-xs font-bold transition-all border ${filter === `renewal:${value}` ? 'bg-[#c8a646] text-[#0f0f0f] border-[#c8a646]' : 'bg-[#0f0f0f] text-gray-400 border-white/5 hover:border-white/20'}`}
+                            >
+                              {label}
                             </button>
                           ))}
                         </div>
@@ -464,15 +508,14 @@ export function Customers({
 
       {/* Stats Cards */}
       <div className="grid grid-cols-4 gap-2 sm:gap-3">
-        <motion.div 
+        <motion.div
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => setStatsFilter(statsFilter === 'ativos' ? 'all' : 'ativos')}
-          className={`cursor-pointer transition-all duration-300 p-2 sm:p-4 rounded-xl sm:rounded-2xl border ${
-            statsFilter === 'ativos' 
-              ? 'bg-[#c8a646] border-[#c8a646] shadow-xl shadow-[#c8a646]/20' 
-              : 'bg-[#1a1a1a] border-white/5 hover:border-white/10'
-          }`}
+          className={`cursor-pointer transition-all duration-300 p-2 sm:p-4 rounded-xl sm:rounded-2xl border ${statsFilter === 'ativos'
+            ? 'bg-[#c8a646] border-[#c8a646] shadow-xl shadow-[#c8a646]/20'
+            : 'bg-[#1a1a1a] border-white/5 hover:border-white/10'
+            }`}
         >
           <div className="flex items-center justify-between mb-1 sm:mb-2">
             <Users size={14} className={`sm:w-[18px] sm:h-[18px] ${statsFilter === 'ativos' ? 'text-[#0f0f0f]' : 'text-[#c8a646]'}`} />
@@ -482,15 +525,14 @@ export function Customers({
           <div className={`text-sm sm:text-2xl font-bold ${statsFilter === 'ativos' ? 'text-[#0f0f0f]' : 'text-white'}`}>{stats.total}</div>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => setStatsFilter(statsFilter === 'mensal' ? 'all' : 'mensal')}
-          className={`cursor-pointer transition-all duration-300 p-2 sm:p-4 rounded-xl sm:rounded-2xl border ${
-            statsFilter === 'mensal' 
-              ? 'bg-blue-600 border-blue-600 shadow-xl shadow-blue-600/20' 
-              : 'bg-[#1a1a1a] border-white/5 hover:border-white/10'
-          }`}
+          className={`cursor-pointer transition-all duration-300 p-2 sm:p-4 rounded-xl sm:rounded-2xl border ${statsFilter === 'mensal'
+            ? 'bg-blue-600 border-blue-600 shadow-xl shadow-blue-600/20'
+            : 'bg-[#1a1a1a] border-white/5 hover:border-white/10'
+            }`}
         >
           <div className="flex items-center justify-between mb-1 sm:mb-2">
             <Award size={14} className={`sm:w-[18px] sm:h-[18px] ${statsFilter === 'mensal' ? 'text-white' : 'text-blue-500'}`} />
@@ -500,15 +542,14 @@ export function Customers({
           <div className={`text-sm sm:text-2xl font-bold ${statsFilter === 'mensal' ? 'text-white' : 'text-white'}`}>{stats.mensalista}</div>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => setStatsFilter(statsFilter === 'gratis' ? 'all' : 'gratis')}
-          className={`cursor-pointer transition-all duration-300 p-2 sm:p-4 rounded-xl sm:rounded-2xl border ${
-            statsFilter === 'gratis' 
-              ? 'bg-green-600 border-green-600 shadow-xl shadow-green-600/20' 
-              : 'bg-[#1a1a1a] border-white/5 hover:border-white/10'
-          }`}
+          className={`cursor-pointer transition-all duration-300 p-2 sm:p-4 rounded-xl sm:rounded-2xl border ${statsFilter === 'gratis'
+            ? 'bg-green-600 border-green-600 shadow-xl shadow-green-600/20'
+            : 'bg-[#1a1a1a] border-white/5 hover:border-white/10'
+            }`}
         >
           <div className="flex items-center justify-between mb-1 sm:mb-2">
             <Star size={14} className={`sm:w-[18px] sm:h-[18px] ${statsFilter === 'gratis' ? 'text-white' : 'text-green-500'}`} />
@@ -518,15 +559,14 @@ export function Customers({
           <div className={`text-sm sm:text-2xl font-bold ${statsFilter === 'gratis' ? 'text-white' : 'text-white'}`}>{stats.gratuito}</div>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => setStatsFilter(statsFilter === 'inativos' ? 'all' : 'inativos')}
-          className={`cursor-pointer transition-all duration-300 p-2 sm:p-4 rounded-xl sm:rounded-2xl border ${
-            statsFilter === 'inativos' 
-              ? 'bg-red-600 border-red-600 shadow-xl shadow-red-600/20' 
-              : 'bg-[#1a1a1a] border-white/5 hover:border-white/10'
-          }`}
+          className={`cursor-pointer transition-all duration-300 p-2 sm:p-4 rounded-xl sm:rounded-2xl border ${statsFilter === 'inativos'
+            ? 'bg-red-600 border-red-600 shadow-xl shadow-red-600/20'
+            : 'bg-[#1a1a1a] border-white/5 hover:border-white/10'
+            }`}
         >
           <div className="flex items-center justify-between mb-1 sm:mb-2">
             <UserX size={14} className={`sm:w-[18px] sm:h-[18px] ${statsFilter === 'inativos' ? 'text-white' : 'text-red-500'}`} />
@@ -614,100 +654,100 @@ export function Customers({
                     ) : (
                       <>
                         <button
-                      onClick={() => {
-                        const message = formatWhatsappMessage(whatsappMessage, {
-                          name: customer.name,
-                          amount: customer.amountPaid,
-                          dueDate: customer.dueDate
-                        }, isTest);
+                          onClick={() => {
+                            const message = formatWhatsappMessage(whatsappMessage, {
+                              name: customer.name,
+                              amount: customer.amountPaid,
+                              dueDate: customer.dueDate
+                            }, isTest);
 
-                        updateCustomer(customer.id, { lastNotifiedDate: format(today, 'yyyy-MM-dd') });
-                        window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
-                      }}
-                      className={`p-2 rounded-full transition-colors ${(daysDiff === 1 || daysDiff === 2) && !isRecentlyNotified ? 'bg-green-600/30 text-green-400 animate-pulse' : 'bg-white/5 text-gray-400 hover:text-white'}`}
-                      title="WhatsApp"
-                    >
-                      <Phone size={16} />
-                    </button>
+                            updateCustomer(customer.id, { lastNotifiedDate: format(today, 'yyyy-MM-dd') });
+                            window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
+                          }}
+                          className={`p-2 rounded-full transition-colors ${(daysDiff === 1 || daysDiff === 2) && !isRecentlyNotified ? 'bg-green-600/30 text-green-400 animate-pulse' : 'bg-white/5 text-gray-400 hover:text-white'}`}
+                          title="WhatsApp"
+                        >
+                          <Phone size={16} />
+                        </button>
 
-                    {isExpiredTest && (
-                      <button
-                        onClick={() => {
-                          const message = formatWhatsappMessage(testMessage, {
-                            name: customer.name,
-                            amount: customer.amountPaid,
-                            dueDate: customer.dueDate
-                          }, isTest);
-                          window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
-                        }}
-                        className="p-2 bg-[#c8a646]/20 text-[#c8a646] rounded-full hover:bg-[#c8a646]/30 transition-all animate-bounce"
-                        title="Notificar Teste"
-                      >
-                        <MessageCircle size={16} />
-                      </button>
-                    )}
-
-                    {userRole !== 'observer' && (
-                      <>
-                        {!isActive && (
+                        {isExpiredTest && (
                           <button
-                            type="button"
-                            onClick={(e) => {
-                              const lastOverdueNotified = customer.lastOverdueNotifiedDate;
-                              const lastOverdueDate = lastOverdueNotified ? parseRobustLocalTime(lastOverdueNotified) : null;
-                              if (lastOverdueDate) lastOverdueDate.setHours(0, 0, 0, 0);
-                              const isOnCooldown = lastOverdueDate && !isNaN(lastOverdueDate.getTime()) && Math.round((today.getTime() - lastOverdueDate.getTime()) / (1000 * 60 * 60 * 24)) < 10;
-
-                              if (isOnCooldown) {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                return;
-                              }
-
-                              const overdueDays = Math.abs(daysDiff - 1);
-                              const message = formatWhatsappMessage(overdueMessage, {
+                            onClick={() => {
+                              const message = formatWhatsappMessage(testMessage, {
                                 name: customer.name,
                                 amount: customer.amountPaid,
                                 dueDate: customer.dueDate
                               }, isTest);
-
-                              updateCustomer(customer.id, {
-                                lastOverdueNotifiedDate: format(today, 'yyyy-MM-dd')
-                              });
-
                               window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
                             }}
-                            disabled={Boolean(isOnCooldown)}
-                            className={`p-2 rounded-full transition-all duration-300 ${isOnCooldown
-                              ? 'bg-gray-500/10 text-gray-600 cursor-not-allowed opacity-40 pointer-events-none select-none'
-                              : 'bg-red-500/20 text-red-500 hover:bg-red-500/30 animate-bounce'
-                              }`}
-                            style={{ pointerEvents: isOnCooldown ? 'none' : 'auto' }}
-                            title={
-                              isOnCooldown
-                                ? `Próximo envio em ${10 - differenceInDays(today, lastOverdueDate!)} dias`
-                                : "Lembrar Vencimento"
-                            }
+                            className="p-2 bg-[#c8a646]/20 text-[#c8a646] rounded-full hover:bg-[#c8a646]/30 transition-all animate-bounce"
+                            title="Notificar Teste"
                           >
                             <MessageCircle size={16} />
                           </button>
                         )}
 
-                        <button onClick={() => openRenewModal(customer)} className="p-2 text-green-400 hover:text-green-300 transition-colors bg-green-500/10 rounded-full" title="Renovar">
-                          <RefreshCw size={16} />
-                        </button>
-                        <button onClick={() => setSelectedCustomerForTransfer(customer)} className="p-2 text-blue-400 hover:text-blue-300 transition-colors bg-blue-500/10 rounded-full" title="Mudar Servidor">
-                          <ArrowRightLeft size={16} />
-                        </button>
-                        <button onClick={() => openModal(customer)} className="p-2 text-gray-400 hover:text-white transition-colors bg-white/5 rounded-full" title="Editar">
-                          <Edit2 size={16} />
-                        </button>
-                        <button onClick={() => setCustomerToDelete(customer)} className="p-2 text-red-400 hover:text-red-300 transition-colors bg-red-500/10 rounded-full" title="Excluir">
-                          <Trash2 size={16} />
-                        </button>
+                        {userRole !== 'observer' && (
+                          <>
+                            {!isActive && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  const lastOverdueNotified = customer.lastOverdueNotifiedDate;
+                                  const lastOverdueDate = lastOverdueNotified ? parseRobustLocalTime(lastOverdueNotified) : null;
+                                  if (lastOverdueDate) lastOverdueDate.setHours(0, 0, 0, 0);
+                                  const isOnCooldown = lastOverdueDate && !isNaN(lastOverdueDate.getTime()) && Math.round((today.getTime() - lastOverdueDate.getTime()) / (1000 * 60 * 60 * 24)) < 10;
+
+                                  if (isOnCooldown) {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    return;
+                                  }
+
+                                  const overdueDays = Math.abs(daysDiff - 1);
+                                  const message = formatWhatsappMessage(overdueMessage, {
+                                    name: customer.name,
+                                    amount: customer.amountPaid,
+                                    dueDate: customer.dueDate
+                                  }, isTest);
+
+                                  updateCustomer(customer.id, {
+                                    lastOverdueNotifiedDate: format(today, 'yyyy-MM-dd')
+                                  });
+
+                                  window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
+                                }}
+                                disabled={Boolean(isOnCooldown)}
+                                className={`p-2 rounded-full transition-all duration-300 ${isOnCooldown
+                                  ? 'bg-gray-500/10 text-gray-600 cursor-not-allowed opacity-40 pointer-events-none select-none'
+                                  : 'bg-red-500/20 text-red-500 hover:bg-red-500/30 animate-bounce'
+                                  }`}
+                                style={{ pointerEvents: isOnCooldown ? 'none' : 'auto' }}
+                                title={
+                                  isOnCooldown
+                                    ? `Próximo envio em ${10 - differenceInDays(today, lastOverdueDate!)} dias`
+                                    : "Lembrar Vencimento"
+                                }
+                              >
+                                <MessageCircle size={16} />
+                              </button>
+                            )}
+
+                            <button onClick={() => openRenewModal(customer)} className="p-2 text-green-400 hover:text-green-300 transition-colors bg-green-500/10 rounded-full" title="Renovar">
+                              <RefreshCw size={16} />
+                            </button>
+                            <button onClick={() => setSelectedCustomerForTransfer(customer)} className="p-2 text-blue-400 hover:text-blue-300 transition-colors bg-blue-500/10 rounded-full" title="Mudar Servidor">
+                              <ArrowRightLeft size={16} />
+                            </button>
+                            <button onClick={() => openModal(customer)} className="p-2 text-gray-400 hover:text-white transition-colors bg-white/5 rounded-full" title="Editar">
+                              <Edit2 size={16} />
+                            </button>
+                            <button onClick={() => setCustomerToDelete(customer)} className="p-2 text-red-400 hover:text-red-300 transition-colors bg-red-500/10 rounded-full" title="Excluir">
+                              <Trash2 size={16} />
+                            </button>
+                          </>
+                        )}
                       </>
-                    )}
-                    </>
                     )}
                   </div>
                 </div>
@@ -836,7 +876,7 @@ export function Customers({
                 if (plan) {
                   const isTest = plan.name.toLowerCase().trim().includes('teste');
                   const now = new Date();
-                  
+
                   if (isTest) {
                     const testDate = new Date(Date.now() + 4 * 60 * 60 * 1000);
                     setFormData({

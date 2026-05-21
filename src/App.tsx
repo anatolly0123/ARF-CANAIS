@@ -85,6 +85,7 @@ export default function App() {
             customers={store.customers}
             servers={store.servers}
             plans={store.plans}
+            renewals={store.renewals}
             whatsappMessage={store.whatsappMessage}
             addCustomer={store.addCustomer}
             updateCustomer={store.updateCustomer}
@@ -188,9 +189,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#0f0f0f] text-white font-sans selection:bg-[#c8a646]/30">
-      <Header 
-        activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
+      <Header
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
         userRole={store.userRole}
         userEmail={store.userEmail}
         userAvatar={store.userAvatar}
