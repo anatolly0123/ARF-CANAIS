@@ -25,11 +25,9 @@
   }
 
   .glass-card-highlight {
-    background: linear-gradient(
-      135deg, 
-      rgba(200, 166, 70, 0.1) 0%, 
-      rgba(26, 26, 26, 0.4) 100%
-    );
+    background: linear-gradient(135deg,
+        rgba(200, 166, 70, 0.1) 0%,
+        rgba(26, 26, 26, 0.4) 100%);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(200, 166, 70, 0.2);
@@ -37,11 +35,19 @@
   }
 }
 
+html,
+body,
+#root {
+  background-color: #0f0f0f;
+  min-height: 100%;
+}
+
 body {
   background: radial-gradient(circle at top left, #1a1a1a 0%, #0f0f0f 100%);
   color: #ffffff;
   -webkit-tap-highlight-color: transparent;
   min-height: 100vh;
+  overscroll-behavior-y: none;
 }
 
 /* Hide scrollbar for Chrome, Safari and Opera */
@@ -51,6 +57,8 @@ body {
 
 /* Hide scrollbar for IE, Edge and Firefox */
 .no-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }

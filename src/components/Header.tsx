@@ -43,7 +43,7 @@ export function Header({ activeTab, setActiveTab, userRole, userEmail, userAvata
 
 
   return (
-    <header className="sticky top-0 z-50 bg-[#0f0f0f]/90 backdrop-blur-md border-b border-[#c8a646]/20 py-4 px-6">
+    <header className="sticky top-0 z-50 bg-[#0f0f0f]/90 backdrop-blur-md border-b border-[#c8a646]/20 py-4 px-6 pt-[calc(1rem+env(safe-area-inset-top))] md:pt-4">
       <div className="max-w-md mx-auto flex items-center justify-between">
         <div className="flex flex-col group cursor-default">
           <h1 className="text-2xl font-black italic tracking-tighter leading-none flex items-center">
