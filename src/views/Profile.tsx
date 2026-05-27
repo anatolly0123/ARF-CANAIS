@@ -99,7 +99,7 @@ export function Profile({
         <h2 className="text-2xl font-bold text-white uppercase tracking-wider">Meu Perfil</h2>
       </div>
 
-      <div className="bg-[#1a1a1a] rounded-3xl border border-white/5 shadow-2xl p-6 md:p-8 max-w-sm mx-auto mt-12 relative">
+      <div className="glass-card rounded-3xl p-6 md:p-8 max-w-sm mx-auto mt-12 relative">
         {/* Avatar Overlaying Top */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2">
           <div className="relative group">

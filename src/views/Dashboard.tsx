@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { Customer, Server, Plan, Renewal, ManualAddition } from '../types';
 import { format, parseISO, isAfter, differenceInDays, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { TrendingUp, TrendingDown, DollarSign, Users, AlertCircle, MessageCircle, ChevronRight, Server as ServerIcon, Calendar, CheckCircle, Clock, RefreshCw } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, Users, MessageCircle, ChevronRight, Server as ServerIcon, Calendar, CheckCircle, Clock, RefreshCw } from 'lucide-react';
 import { formatCurrency, isCustomerActive, parseSafeNumber, parseRobustLocalTime, formatWhatsappMessage } from '../utils';
 import { RenewModal } from '../components/RenewModal';
 import { UserRole } from '../types';
@@ -33,7 +33,7 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
   // Calculate stats
-  const { grossValue, totalPaidToServers, monthlyGross, monthlyCost, serverStats, expiringCustomers, totalPlansValue } = useMemo(() => {
+  const { grossValue, totalPaidToServers, monthlyGross, monthlyCost, serverStats, expiringCustomers, totalPlansValue, chartData } = useMemo(() => {
     const plansMap = new Map(plans.map(p => [p.id, p]));
     const tMonth = today.getMonth();
     const tYear = today.getFullYear();
@@ -57,6 +57,18 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
       };
     });
 
+    // Chart Data Calculation (Last 6 months)
+    const monthsData: Record<string, { month: string; total: number; timestamp: number }> = {};
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(tYear, tMonth - i, 1);
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      monthsData[key] = {
+        month: format(d, 'MMM', { locale: ptBR }),
+        total: 0,
+        timestamp: d.getTime()
+      };
+    }
+
     // Helper for monthly check - avoids repeated extraction of month/year
     const isCurrentMonth = (d: Date) => {
       return d.getMonth() === tMonth && d.getFullYear() === tYear;
@@ -77,19 +89,27 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
 
       if (dateStr) {
         const d = parseRobustLocalTime(dateStr);
-        if (!isNaN(d.getTime()) && isCurrentMonth(d)) {
-          const planId = r.planId || (r as any).plan_id;
-          const plan = plansMap.get(planId);
-          const months = plan && plan.months > 0 ? plan.months : 1;
-          const dividedAmount = amount / months;
-          const dividedCost = cost / months;
+        if (!isNaN(d.getTime())) {
+          // Add to chart
+          const key = `${d.getFullYear()}-${d.getMonth()}`;
+          if (monthsData[key]) {
+            monthsData[key].total += amount;
+          }
 
-          mGross += dividedAmount;
-          mCost += dividedCost;
+          if (isCurrentMonth(d)) {
+            const planId = r.planId || (r as any).plan_id;
+            const plan = plansMap.get(planId);
+            const months = plan && plan.months > 0 ? plan.months : 1;
+            const dividedAmount = amount / months;
+            const dividedCost = cost / months;
 
-          if (stats[sId]) {
-            stats[sId].monthlyGross += dividedAmount;
-            stats[sId].monthlyCost += dividedCost;
+            mGross += dividedAmount;
+            mCost += dividedCost;
+
+            if (stats[sId]) {
+              stats[sId].monthlyGross += dividedAmount;
+              stats[sId].monthlyCost += dividedCost;
+            }
           }
         }
       }
@@ -100,8 +120,16 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
       const dateStr = a.date || (a as any).date || (a as any).created_at;
       if (!dateStr) return acc;
       const d = parseRobustLocalTime(dateStr);
-      if (!isNaN(d.getTime()) && isCurrentMonth(d)) {
-        return acc + parseSafeNumber(a.amount || (a as any).amount);
+      if (!isNaN(d.getTime())) {
+        // Add to chart
+        const key = `${d.getFullYear()}-${d.getMonth()}`;
+        if (monthsData[key]) {
+          monthsData[key].total += parseSafeNumber(a.amount || (a as any).amount);
+        }
+
+        if (isCurrentMonth(d)) {
+          return acc + parseSafeNumber(a.amount || (a as any).amount);
+        }
       }
       return acc;
     }, 0);
@@ -129,12 +157,12 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
       // Days until due (for notification banner)
       const dueTime = new Date(dueDate).setHours(0, 0, 0, 0);
       const daysUntilDue = Math.round((dueTime - todayTime) / (1000 * 60 * 60 * 24)) + 1;
-      
+
       // Only show in expiring list if:
       // 1. It's a regular customer expiring in 0-2 days
       // 2. It's a test that has ALREADY expired (isActive is false)
       const shouldShowInExpiring = (daysUntilDue >= 0 && daysUntilDue <= 2 && !isTest) || (isTest && !isActive);
-      
+
       if (shouldShowInExpiring) {
         expiring.push(c);
       }
@@ -159,7 +187,8 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
       monthlyCost: mCost,
       serverStats: Object.values(stats),
       expiringCustomers: expiring,
-      totalPlansValue
+      totalPlansValue,
+      chartData: Object.values(monthsData).sort((a, b) => a.timestamp - b.timestamp)
     };
   }, [customers, servers, renewals, manualAdditions, plans, today]);
 
@@ -212,16 +241,16 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
     return expiringCustomers.filter(c => {
       const plan = plansMap.get(c.planId || (c as any).plan_id);
       const isTest = plan?.name?.toLowerCase().includes('teste');
-      
+
       const dueDateStr = c.dueDate || (c as any).due_date;
       if (!dueDateStr) return false;
       const dueDate = parseRobustLocalTime(dueDateStr);
       const isActive = isCustomerActive(dueDateStr, isTest);
-      
+
       const lastNotified = c.lastNotifiedDate ? parseRobustLocalTime(c.lastNotifiedDate) : null;
       if (lastNotified) lastNotified.setHours(0, 0, 0, 0);
       const isRecentlyNotified = lastNotified && !isNaN(lastNotified.getTime()) && Math.round((today.getTime() - lastNotified.getTime()) / (1000 * 60 * 60 * 24)) < 7;
-      
+
       if (isTest) {
         return !isActive && !isRecentlyNotified;
       }
@@ -251,11 +280,11 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
                     return plan?.name?.toLowerCase().includes('teste');
                   }).length;
                   const regularsCount = pendingNotifications.length - testsCount;
-                  
+
                   const parts = [];
                   if (regularsCount > 0) parts.push(`${regularsCount} ${regularsCount === 1 ? 'aviso' : 'avisos'}`);
                   if (testsCount > 0) parts.push(`${testsCount} ${testsCount === 1 ? 'teste expirado' : 'testes expirados'}`);
-                  
+
                   return parts.join(' e ') + ' para hoje';
                 })()}
               </div>
@@ -268,7 +297,7 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
               const plan = plans.find(p => p.id === pid);
               const isTest = plan?.name?.toLowerCase().includes('teste');
               const isOverdue = !isCustomerActive(first.dueDate, isTest);
-              
+
               let message = '';
               if (isTest) {
                 message = formatWhatsappMessage(testMessage, first, isTest);
@@ -296,55 +325,44 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
         </div>
       )}
 
-      {/* Unified Finance Section */}
-      <div className="mb-8 p-[1px] bg-gradient-to-br from-[#c8a646]/40 via-white/5 to-red-500/10 rounded-[32px] shadow-2xl">
-        <div className="bg-[#121212] rounded-[31px] p-8 relative overflow-hidden">
-          {/* Subtle Background Glows */}
-          <div className="absolute -top-24 -right-24 w-64 h-64 bg-[#c8a646]/10 rounded-full blur-[100px] pointer-events-none" />
-          <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-red-500/5 rounded-full blur-[100px] pointer-events-none" />
+      {/* Glass Wallet - Modernized Financial View */}
+      <div className="glass-card-highlight rounded-[32px] p-6 sm:p-8 shadow-2xl relative overflow-hidden group">
+        <div className="absolute -top-12 -right-12 w-48 h-48 bg-[#c8a646]/10 rounded-full blur-[60px] pointer-events-none group-hover:scale-110 transition-transform duration-700" />
+        <div className="absolute -bottom-12 -left-12 w-48 h-48 bg-red-500/5 rounded-full blur-[60px] pointer-events-none" />
 
-          <div className="flex flex-col space-y-8 relative z-10">
-            {/* Header Area */}
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] mb-1">Resumo Financeiro</h2>
-                <div className="h-0.5 w-8 bg-[#c8a646] rounded-full" />
+        <div className="relative z-10 space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <div className="p-2 bg-[#c8a646]/10 rounded-xl border border-[#c8a646]/20">
+                <DollarSign size={16} className="text-[#c8a646]" />
               </div>
-              <div className="p-3 bg-white/5 rounded-2xl border border-white/5 backdrop-blur-md">
-                <DollarSign className="text-[#c8a646]" size={20} />
-              </div>
+              <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">Faturamento Bruto</h2>
             </div>
+            <div className="text-[10px] font-bold text-[#c8a646] uppercase bg-[#c8a646]/5 px-3 py-1 rounded-full border border-[#c8a646]/10">
+              {format(today, 'MMMM', { locale: ptBR })}
+            </div>
+          </div>
 
-            {/* Metrics */}
-            <div className="grid grid-cols-1 gap-8">
-              {/* Bruto Main Metric */}
-              <div className="group">
-                <div className="flex items-center space-x-2 text-[#c8a646] font-bold text-[10px] uppercase tracking-widest mb-2 opacity-80">
-                  <TrendingUp size={12} />
-                  <span>Bruto ({format(today, 'MMMM', { locale: ptBR })})</span>
-                </div>
-                <div className="flex items-baseline space-x-2">
-                  <span className="text-5xl font-black text-white tracking-tighter transition-transform group-hover:scale-[1.02] duration-300 block">
-                    {formatCurrency(monthlyGross)}
-                  </span>
-                </div>
-              </div>
+          <div className="flex flex-col space-y-1">
+            <div className="text-5xl sm:text-6xl font-black text-white tracking-tighter flex items-baseline">
+              {formatCurrency(monthlyGross)}
+              <span className="ml-2 w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_15px_rgba(34,197,94,0.6)]" />
+            </div>
+            <div className="flex items-center space-x-2 text-red-500/60 font-bold text-[10px] uppercase tracking-widest pl-1">
+              <TrendingDown size={14} />
+              <span>Saída Operacional: {formatCurrency(monthlyCost)}</span>
+            </div>
+          </div>
 
-              {/* Separator */}
-              <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-
-              {/* Custo Metric */}
-              <div className="group">
-                <div className="flex items-center space-x-2 text-red-500/70 font-bold text-[10px] uppercase tracking-widest mb-2">
-                  <TrendingDown size={12} />
-                  <span>Custo Mensal</span>
-                </div>
-                <div className="flex items-baseline space-x-2">
-                  <span className="text-3xl font-black text-red-500/90 tracking-tighter group-hover:text-red-500 transition-colors">
-                    {formatCurrency(monthlyCost)}
-                  </span>
-                </div>
-              </div>
+          {/* Quick Stats Bar */}
+          <div className="grid grid-cols-2 gap-3 pt-4 border-t border-white/5">
+            <div className="flex flex-col">
+              <span className="text-[8px] text-gray-500 font-black uppercase">Ativos Totais</span>
+              <span className="text-xl font-bold text-white tracking-tight">{customers.filter(c => isCustomerActive(c.dueDate, false)).length}</span>
+            </div>
+            <div className="flex flex-col text-right">
+              <span className="text-[8px] text-gray-500 font-black uppercase">Servidores Online</span>
+              <span className="text-xl font-bold text-white tracking-tight">{servers.length}</span>
             </div>
           </div>
         </div>
@@ -379,103 +397,71 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
         </div>
       )}
 
-      {/* Expiring Customers */}
+      {/* Renewal Radar - Priority Actions */}
       {expiringCustomers.length > 0 && (
-        <div className="bg-[#1a1a1a] rounded-2xl border border-white/5 overflow-hidden shadow-lg">
-          <div className="p-4 border-b border-white/5 flex items-center space-x-2">
-            <AlertCircle size={18} className="text-yellow-500" />
-            <h3 className="text-sm font-medium uppercase tracking-wider text-white">Clientes vencendo</h3>
+        <div className="mt-8 space-y-3">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-[10px] font-black text-[#c8a646] uppercase tracking-[0.3em]">Radar de Renovação</h2>
+            <span className="bg-[#c8a646]/10 text-[#c8a646] text-[8px] font-bold px-2 py-0.5 rounded-full border border-[#c8a646]/20">Prioridade Máxima</span>
           </div>
-          <div className="divide-y divide-white/5">
+
+          <div className="flex space-x-4 overflow-x-auto pb-4 no-scrollbar -mx-4 px-4 snap-x">
             {expiringCustomers.map(c => {
-              const server = servers.find(s => s.id === (c.serverId || (c as any).server_id));
-              const dueDate = parseRobustLocalTime(c.dueDate || (c as any).due_date);
-              dueDate.setHours(0, 0, 0, 0);
-              const days = Math.round((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-
-              const lastNotified = c.lastNotifiedDate ? parseRobustLocalTime(c.lastNotifiedDate) : null;
-              if (lastNotified) lastNotified.setHours(0, 0, 0, 0);
-              const isRecentlyNotified = lastNotified && !isNaN(lastNotified.getTime()) && Math.round((today.getTime() - lastNotified.getTime()) / (1000 * 60 * 60 * 24)) < 7;
-
-              const lastOverdueNotified = c.lastOverdueNotifiedDate;
-              const lastOverdueDate = lastOverdueNotified ? parseRobustLocalTime(lastOverdueNotified) : null;
-              if (lastOverdueDate) lastOverdueDate.setHours(0, 0, 0, 0);
-              const isOnCooldown = lastOverdueDate && !isNaN(lastOverdueDate.getTime()) && Math.round((today.getTime() - lastOverdueDate.getTime()) / (1000 * 60 * 60 * 24)) < 10;
-
-              const plan = plans.find(p => p.id === c.planId);
+              const pid = c.planId || (c as any).plan_id;
+              const plan = plans.find(p => p.id === pid);
               const isTest = plan?.name?.toLowerCase().includes('teste');
-              const isExpiredTest = isTest && !isCustomerActive(c.dueDate, isTest);
+              const dueDate = parseRobustLocalTime(c.dueDate || (c as any).due_date);
+              const days = Math.round((dueDate.setHours(0, 0, 0, 0) - today.setHours(0, 0, 0, 0)) / (1000 * 60 * 60 * 24));
+              const isExpired = days <= 0;
 
               return (
-                <div key={c.id} className="p-4 flex items-center justify-between">
-                  <div>
-                    <div className="font-bold text-white flex items-center space-x-2">
-                      <span>{c.name}</span>
-                      {isTest && <span className="bg-red-500/20 text-red-400 text-[8px] px-1 py-0.5 rounded font-black uppercase">Teste</span>}
-                    </div>
-                    <div className="text-xs text-gray-400">
-                      {server?.name} • {isTest ? (isExpiredTest ? 'Teste Expirado' : 'Teste em andamento') : (days === 1 ? 'Vence hoje' : days <= 0 ? `Vencido há ${Math.abs(days - 1)} dias` : `Vence em ${days} dias`)}
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    {userRole !== 'observer' && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            const isOverdue = days <= 0 || isExpiredTest;
-                            const currentCooldown = isOverdue ? isOnCooldown : isRecentlyNotified;
+                <div key={c.id} className="flex-shrink-0 w-[280px] snap-center">
+                  <div className={`p-5 rounded-[28px] border border-white/5 shadow-2xl glass-card relative overflow-hidden group active:scale-95 transition-transform`}>
+                    <div className={`absolute top-0 right-0 w-20 h-20 ${isExpired ? 'bg-red-500/10' : 'bg-[#c8a646]/5'} rounded-full -mr-10 -mt-10 blur-2xl pointer-events-none`} />
 
-                            if (currentCooldown) {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              return;
-                            }
+                    <div className="relative z-10 flex flex-col space-y-4">
+                      <div className="flex justify-between items-start">
+                        <div className="max-w-[180px]">
+                          <div className="font-bold text-white truncate text-base leading-tight">{c.name}</div>
+                          <div className="text-[10px] text-[#c8a646] font-black uppercase tracking-wider mt-0.5">{plan?.name || 'Plano'}</div>
+                        </div>
+                        <div className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter shadow-lg ${isExpired ? 'bg-red-600 text-white shadow-red-600/20' : 'bg-[#c8a646]/20 text-[#c8a646]'}`}>
+                          {isExpired ? 'Vencido' : `Vence em ${days}d`}
+                        </div>
+                      </div>
 
-                            let message = '';
-                            if (isTest) {
-                              message = formatWhatsappMessage(testMessage || '', c, isTest);
-                              // For tests, we use the regular notification date to avoid spam
-                              updateCustomer(c.id, { lastNotifiedDate: format(today, 'yyyy-MM-dd') });
-                            } else if (isOverdue) {
-                              message = formatWhatsappMessage(overdueMessage, {
-                                name: c.name,
-                                amount: c.amountPaid,
-                                dueDate: c.dueDate
-                              }, isTest);
-                              updateCustomer(c.id, { lastOverdueNotifiedDate: format(today, 'yyyy-MM-dd') });
-                            } else {
-                              message = formatWhatsappMessage(whatsappMessage, {
+                      <div className="flex items-center justify-between pt-1">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => {
+                              const message = formatWhatsappMessage(isExpired ? overdueMessage : whatsappMessage, {
                                 name: c.name,
                                 amount: c.amountPaid,
                                 dueDate: c.dueDate
                               }, isTest);
                               updateCustomer(c.id, { lastNotifiedDate: format(today, 'yyyy-MM-dd') });
-                            }
-
-                            window.open(`https://wa.me/${c.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
-                          }}
-                          disabled={Boolean(days <= 0 ? isOnCooldown : isRecentlyNotified)}
-                          className={`p-2 rounded-full transition-all duration-300 ${(days <= 0 ? isOnCooldown : isRecentlyNotified)
-                              ? 'bg-gray-500/10 text-gray-600 cursor-not-allowed opacity-40 pointer-events-none'
-                              : days <= 0
-                                ? 'bg-red-500/20 text-red-500 hover:bg-red-500/30'
-                                : 'bg-green-600/20 text-green-500 hover:bg-green-600/30'
-                            }`}
-                          style={{ pointerEvents: (days <= 0 ? isOnCooldown : isRecentlyNotified) ? 'none' : 'auto' }}
-                          title={days <= 0 ? (isOnCooldown ? `Próximo envio em ${10 - Math.round((today.getTime() - lastOverdueDate!.getTime()) / (1000 * 60 * 60 * 24))} dias` : "WhatsApp") : (isRecentlyNotified ? "Já notificado" : "WhatsApp")}
-                        >
-                          <MessageCircle size={20} />
-                        </button>
-                        <button
-                          onClick={() => openRenewModal(c)}
-                          className="p-2 bg-white/5 text-gray-400 rounded-full hover:text-[#c8a646] transition-colors"
-                          title="Renovar"
-                        >
-                          <RefreshCw size={20} />
-                        </button>
-                      </>
-                    )}
+                              window.open(`https://wa.me/${c.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
+                            }}
+                            className={`w-12 h-12 flex items-center justify-center rounded-2xl transition-all border ${isExpired ? 'bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20' : 'bg-green-500/10 text-green-400 border-green-500/10 hover:bg-green-500/20'}`}
+                          >
+                            <MessageCircle size={20} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              // @ts-ignore
+                              openRenewModal(c);
+                            }}
+                            className="w-12 h-12 flex items-center justify-center bg-white/5 text-gray-400 rounded-2xl hover:text-white transition-all border border-white/10"
+                          >
+                            <RefreshCw size={20} />
+                          </button>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-[9px] text-gray-500 uppercase font-black tracking-widest">Valor</div>
+                          <div className="text-lg font-black text-white">{formatCurrency(c.amountPaid)}</div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               );
@@ -483,6 +469,7 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
           </div>
         </div>
       )}
+
 
       {/* Renew Modal */}
       <RenewModal

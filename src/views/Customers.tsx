@@ -577,6 +577,7 @@ export function Customers({
         </motion.div>
       </div>
 
+
       {/* Customer List */}
       <div className="space-y-3">
         {filteredCustomers.length === 0 ? (
@@ -603,8 +604,25 @@ export function Customers({
             if (lastOverdueDate) lastOverdueDate.setHours(0, 0, 0, 0);
             const isOnCooldown = lastOverdueDate && !isNaN(lastOverdueDate.getTime()) && Math.round((today.getTime() - lastOverdueDate.getTime()) / (1000 * 60 * 60 * 24)) < 10;
 
+            const statusColor = isPendingTest ? '#3b82f6' : !isActive ? '#ef4444' : (daysDiff <= 2 ? '#c8a646' : '#22c55e');
+
             return (
-              <div key={customer.id} className="bg-[#1a1a1a] rounded-2xl border border-white/5 p-4 shadow-lg">
+              <motion.div
+                key={customer.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className="glass-card rounded-2xl p-4 shadow-lg group relative overflow-hidden active:scale-[0.98] transition-transform"
+              >
+                {/* Status Glow Background */}
+                <div
+                  className="absolute -top-10 -right-10 w-24 h-24 rounded-full blur-[40px] opacity-20 pointer-events-none transition-colors duration-500"
+                  style={{ backgroundColor: statusColor }}
+                />
+
+                {/* Visual Accent */}
+                <div className="absolute top-0 left-0 w-1 h-full opacity-60 transition-colors duration-500" style={{ backgroundColor: statusColor }} />
+
                 <div className="flex justify-between items-start mb-3">
                   <div>
                     <h3 className="text-lg font-bold text-white flex items-center space-x-2">
@@ -625,7 +643,7 @@ export function Customers({
                         )
                       )}
                       {(daysDiff === 1 || daysDiff === 2) && !isRecentlyNotified && !isTest && (
-                        <span className="bg-[#c8a646] text-[#0f0f0f] text-[10px] font-bold px-1.5 py-0.5 rounded">
+                        <span className="bg-[#c8a646] text-[#0f0f0f] text-[10px] font-bold px-1.5 py-0.5 rounded shadow-lg shadow-[#c8a646]/20">
                           NOTIFICAR
                         </span>
                       )}
@@ -635,19 +653,19 @@ export function Customers({
                         </span>
                       )}
                     </h3>
-                    <div className="text-xs text-[#c8a646] uppercase tracking-wider mt-1">{server?.name} • {plan?.name}</div>
+                    <div className="text-xs text-[#c8a646] uppercase tracking-wider mt-1 opacity-80">{server?.name} • {plan?.name}</div>
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="flex items-center space-x-1.5">
                     {isPendingTest ? (
-                      <div className="col-span-3 flex items-center space-x-2 justify-end">
+                      <div className="flex items-center space-x-2">
                         <button
                           onClick={() => openModal(customer, true)}
-                          className="flex-1 py-2 bg-[#c8a646] text-[#0f0f0f] rounded-full hover:bg-[#e8c666] transition-all font-bold text-xs uppercase tracking-widest flex items-center justify-center space-x-2 shadow-lg shadow-[#c8a646]/20"
+                          className="px-4 py-2 bg-[#c8a646] text-[#0f0f0f] rounded-full hover:bg-[#e8c666] transition-all font-bold text-[10px] uppercase tracking-widest flex items-center space-x-2 shadow-lg shadow-[#c8a646]/20"
                         >
-                          <Clock size={14} />
-                          <span>Ativar Teste</span>
+                          <Clock size={12} />
+                          <span>Ativar</span>
                         </button>
-                        <button onClick={() => setCustomerToDelete(customer)} className="p-2 text-red-400 hover:text-red-300 transition-colors bg-red-500/10 rounded-full flex-shrink-0" title="Excluir">
+                        <button onClick={() => setCustomerToDelete(customer)} className="p-2 text-red-400 hover:text-red-300 transition-colors bg-red-500/10 rounded-full" title="Excluir">
                           <Trash2 size={16} />
                         </button>
                       </div>
@@ -664,7 +682,7 @@ export function Customers({
                             updateCustomer(customer.id, { lastNotifiedDate: format(today, 'yyyy-MM-dd') });
                             window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
                           }}
-                          className={`p-2 rounded-full transition-colors ${(daysDiff === 1 || daysDiff === 2) && !isRecentlyNotified ? 'bg-green-600/30 text-green-400 animate-pulse' : 'bg-white/5 text-gray-400 hover:text-white'}`}
+                          className={`p-2 rounded-full transition-all duration-300 ${(daysDiff === 1 || daysDiff === 2) && !isRecentlyNotified ? 'bg-green-600/30 text-green-400 shadow-lg shadow-green-600/20' : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'}`}
                           title="WhatsApp"
                         >
                           <Phone size={16} />
@@ -680,7 +698,7 @@ export function Customers({
                               }, isTest);
                               window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
                             }}
-                            className="p-2 bg-[#c8a646]/20 text-[#c8a646] rounded-full hover:bg-[#c8a646]/30 transition-all animate-bounce"
+                            className="p-2 bg-[#c8a646]/20 text-[#c8a646] rounded-full hover:bg-[#c8a646]/30 transition-all shadow-lg shadow-[#c8a646]/20"
                             title="Notificar Teste"
                           >
                             <MessageCircle size={16} />
@@ -688,7 +706,7 @@ export function Customers({
                         )}
 
                         {userRole !== 'observer' && (
-                          <>
+                          <div className="flex items-center space-x-1.5">
                             {!isActive && (
                               <button
                                 type="button"
@@ -698,79 +716,67 @@ export function Customers({
                                   if (lastOverdueDate) lastOverdueDate.setHours(0, 0, 0, 0);
                                   const isOnCooldown = lastOverdueDate && !isNaN(lastOverdueDate.getTime()) && Math.round((today.getTime() - lastOverdueDate.getTime()) / (1000 * 60 * 60 * 24)) < 10;
 
-                                  if (isOnCooldown) {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    return;
-                                  }
+                                  if (isOnCooldown) { e.preventDefault(); e.stopPropagation(); return; }
 
-                                  const overdueDays = Math.abs(daysDiff - 1);
                                   const message = formatWhatsappMessage(overdueMessage, {
                                     name: customer.name,
                                     amount: customer.amountPaid,
                                     dueDate: customer.dueDate
                                   }, isTest);
 
-                                  updateCustomer(customer.id, {
-                                    lastOverdueNotifiedDate: format(today, 'yyyy-MM-dd')
-                                  });
-
+                                  updateCustomer(customer.id, { lastOverdueNotifiedDate: format(today, 'yyyy-MM-dd') });
                                   window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
                                 }}
                                 disabled={Boolean(isOnCooldown)}
                                 className={`p-2 rounded-full transition-all duration-300 ${isOnCooldown
-                                  ? 'bg-gray-500/10 text-gray-600 cursor-not-allowed opacity-40 pointer-events-none select-none'
-                                  : 'bg-red-500/20 text-red-500 hover:bg-red-500/30 animate-bounce'
+                                  ? 'bg-gray-500/10 text-gray-600 opacity-40 cursor-not-allowed'
+                                  : 'bg-red-500/10 text-red-500 hover:bg-red-500/20'
                                   }`}
-                                style={{ pointerEvents: isOnCooldown ? 'none' : 'auto' }}
-                                title={
-                                  isOnCooldown
-                                    ? `Próximo envio em ${10 - differenceInDays(today, lastOverdueDate!)} dias`
-                                    : "Lembrar Vencimento"
-                                }
+                                title="Lembrar"
                               >
                                 <MessageCircle size={16} />
                               </button>
                             )}
 
-                            <button onClick={() => openRenewModal(customer)} className="p-2 text-green-400 hover:text-green-300 transition-colors bg-green-500/10 rounded-full" title="Renovar">
+                            <button onClick={() => openRenewModal(customer)} className="p-2 text-green-400 hover:text-green-300 transition-colors bg-white/5 hover:bg-green-500/10 rounded-full" title="Renovar">
                               <RefreshCw size={16} />
                             </button>
-                            <button onClick={() => setSelectedCustomerForTransfer(customer)} className="p-2 text-blue-400 hover:text-blue-300 transition-colors bg-blue-500/10 rounded-full" title="Mudar Servidor">
-                              <ArrowRightLeft size={16} />
-                            </button>
-                            <button onClick={() => openModal(customer)} className="p-2 text-gray-400 hover:text-white transition-colors bg-white/5 rounded-full" title="Editar">
-                              <Edit2 size={16} />
-                            </button>
-                            <button onClick={() => setCustomerToDelete(customer)} className="p-2 text-red-400 hover:text-red-300 transition-colors bg-red-500/10 rounded-full" title="Excluir">
-                              <Trash2 size={16} />
-                            </button>
-                          </>
+
+                            <div className="flex bg-white/5 rounded-full p-1 border border-white/5">
+                              <button onClick={() => setSelectedCustomerForTransfer(customer)} className="p-1.5 text-blue-400 hover:text-blue-300 transition-colors hover:bg-blue-500/10 rounded-full" title="Mudar Servidor">
+                                <ArrowRightLeft size={14} />
+                              </button>
+                              <button onClick={() => openModal(customer)} className="p-1.5 text-gray-400 hover:text-white transition-colors hover:bg-white/10 rounded-full" title="Editar">
+                                <Edit2 size={14} />
+                              </button>
+                              <button onClick={() => setCustomerToDelete(customer)} className="p-1.5 text-red-400 hover:text-red-300 transition-colors hover:bg-red-500/10 rounded-full" title="Excluir">
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </div>
                         )}
                       </>
                     )}
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 mt-4">
-                  <div className="flex items-center space-x-2 text-sm text-gray-400">
-                    <Calendar size={14} />
-                    <span className={isPendingTest ? 'text-blue-400 font-medium uppercase tracking-widest text-xs' : !isActive ? 'text-red-400 font-medium' : daysDiff <= 10 ? 'text-yellow-500 font-medium' : ''}>
+                <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/5">
+                  <div className="flex items-center space-x-2 text-sm">
+                    <Calendar size={14} className="text-gray-500" />
+                    <span className={`font-bold ${isPendingTest ? 'text-blue-400' : !isActive ? 'text-red-500' : daysDiff <= 10 ? 'text-[#c8a646]' : 'text-gray-300'}`}>
                       {isPendingTest ? 'Pendente' : (() => {
                         try {
-                          if (isNaN(dueDate.getTime())) return 'Data Inválida';
-                          return isTest ? format(dueDate, 'dd/MM/yyyy HH:mm') : format(dueDate, 'dd/MM/yyyy');
-                        } catch {
-                          return 'Data Inválida';
-                        }
+                          if (isNaN(dueDate.getTime())) return 'Inválida';
+                          return isTest ? format(dueDate, 'dd/MM HH:mm') : format(dueDate, 'dd/MM/yyyy');
+                        } catch { return 'Erro'; }
                       })()}
                     </span>
                   </div>
-                  <div className="flex items-center justify-end space-x-2 text-sm font-medium text-white">
+                  <div className="text-sm font-black text-white bg-[#c8a646]/10 px-3 py-1 rounded-full border border-[#c8a646]/20">
                     {formatCurrency(customer.amountPaid)}
                   </div>
                 </div>
-              </div>
+              </motion.div>
             );
           })
         )}
