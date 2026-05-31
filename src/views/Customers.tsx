@@ -682,7 +682,14 @@ export function Customers({
                             updateCustomer(customer.id, { lastNotifiedDate: format(today, 'yyyy-MM-dd') });
                             window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
                           }}
-                          className={`p-2 rounded-full transition-all duration-300 ${(daysDiff === 1 || daysDiff === 2) && !isRecentlyNotified ? 'bg-green-600/30 text-green-400 shadow-lg shadow-green-600/20' : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'}`}
+                          disabled={(daysDiff === 1 || daysDiff === 2) && isRecentlyNotified}
+                          className={`p-2 rounded-full transition-all duration-300 ${
+                            (daysDiff === 1 || daysDiff === 2) && isRecentlyNotified
+                              ? 'bg-green-500/5 text-green-500/30 cursor-not-allowed border border-green-500/5'
+                              : (daysDiff === 1 || daysDiff === 2) && !isRecentlyNotified 
+                                ? 'bg-green-600/30 text-green-400 shadow-lg shadow-green-600/20' 
+                                : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'
+                          }`}
                           title="WhatsApp"
                         >
                           <Phone size={16} />

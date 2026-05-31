@@ -405,7 +405,7 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
             <span className="bg-[#c8a646]/10 text-[#c8a646] text-[8px] font-bold px-2 py-0.5 rounded-full border border-[#c8a646]/20">Prioridade Máxima</span>
           </div>
 
-          <div className="flex space-x-4 overflow-x-auto pb-4 no-scrollbar -mx-4 px-4 snap-x">
+          <div className="flex flex-col space-y-3 pb-4">
             {expiringCustomers.map(c => {
               const pid = c.planId || (c as any).plan_id;
               const plan = plans.find(p => p.id === pid);
@@ -414,23 +414,37 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
               const days = Math.round((dueDate.setHours(0, 0, 0, 0) - today.setHours(0, 0, 0, 0)) / (1000 * 60 * 60 * 24));
               const isExpired = days <= 0;
 
+              const lastNotified = c.lastNotifiedDate ? parseRobustLocalTime(c.lastNotifiedDate) : null;
+              if (lastNotified) lastNotified.setHours(0, 0, 0, 0);
+              const isRecentlyNotified = lastNotified && !isNaN(lastNotified.getTime()) && Math.round((today.getTime() - lastNotified.getTime()) / (1000 * 60 * 60 * 24)) < 7;
+
+              // Do not disable if it's expired, only if it's green (not expired) and already notified recently
+              const isGreenButtonDisabled = !isExpired && isRecentlyNotified;
+
               return (
-                <div key={c.id} className="flex-shrink-0 w-[280px] snap-center">
-                  <div className={`p-5 rounded-[28px] border border-white/5 shadow-2xl glass-card relative overflow-hidden group active:scale-95 transition-transform`}>
+                <div key={c.id} className="w-full">
+                  <div className={`p-4 sm:p-5 rounded-[20px] border border-white/5 shadow-2xl glass-card relative overflow-hidden group transition-transform`}>
                     <div className={`absolute top-0 right-0 w-20 h-20 ${isExpired ? 'bg-red-500/10' : 'bg-[#c8a646]/5'} rounded-full -mr-10 -mt-10 blur-2xl pointer-events-none`} />
 
-                    <div className="relative z-10 flex flex-col space-y-4">
-                      <div className="flex justify-between items-start">
-                        <div className="max-w-[180px]">
-                          <div className="font-bold text-white truncate text-base leading-tight">{c.name}</div>
-                          <div className="text-[10px] text-[#c8a646] font-black uppercase tracking-wider mt-0.5">{plan?.name || 'Plano'}</div>
-                        </div>
-                        <div className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter shadow-lg ${isExpired ? 'bg-red-600 text-white shadow-red-600/20' : 'bg-[#c8a646]/20 text-[#c8a646]'}`}>
-                          {isExpired ? 'Vencido' : `Vence em ${days}d`}
+                    <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0">
+                      <div className="flex justify-between items-start sm:items-center sm:w-auto">
+                        <div className="flex flex-col">
+                          <div className="mb-2">
+                            <span className={`inline-block whitespace-nowrap px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-lg ${isExpired ? 'bg-red-600 text-white shadow-red-600/20' : 'bg-[#c8a646]/20 text-[#c8a646]'}`}>
+                              {isExpired ? 'Vencido' : `Vence em ${days}d`}
+                            </span>
+                          </div>
+                          <div className="font-bold text-white text-base sm:text-lg leading-tight mb-1">{c.name}</div>
+                          <div className="text-[10px] text-[#c8a646] font-black uppercase tracking-wider">{plan?.name || 'Plano'}</div>
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between pt-1">
+                      <div className="flex items-center justify-between sm:justify-end space-x-4 w-full sm:w-auto pt-1 sm:pt-0">
+                        <div className="text-left sm:text-right mr-2">
+                          <div className="text-[9px] text-gray-500 uppercase font-black tracking-widest">Valor</div>
+                          <div className="text-lg font-black text-white">{formatCurrency(c.amountPaid)}</div>
+                        </div>
+                        
                         <div className="flex space-x-2">
                           <button
                             onClick={() => {
@@ -442,23 +456,26 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
                               updateCustomer(c.id, { lastNotifiedDate: format(today, 'yyyy-MM-dd') });
                               window.open(`https://wa.me/${c.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
                             }}
-                            className={`w-12 h-12 flex items-center justify-center rounded-2xl transition-all border ${isExpired ? 'bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20' : 'bg-green-500/10 text-green-400 border-green-500/10 hover:bg-green-500/20'}`}
+                            disabled={isGreenButtonDisabled}
+                            className={`w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-xl sm:rounded-2xl transition-all border ${
+                              isExpired 
+                                ? 'bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20' 
+                                : isGreenButtonDisabled 
+                                  ? 'bg-green-500/5 text-green-500/30 border-green-500/5 cursor-not-allowed'
+                                  : 'bg-green-500/10 text-green-400 border-green-500/10 hover:bg-green-500/20'
+                            }`}
                           >
-                            <MessageCircle size={20} />
+                            <MessageCircle size={18} />
                           </button>
                           <button
                             onClick={() => {
                               // @ts-ignore
                               openRenewModal(c);
                             }}
-                            className="w-12 h-12 flex items-center justify-center bg-white/5 text-gray-400 rounded-2xl hover:text-white transition-all border border-white/10"
+                            className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-white/5 text-gray-400 rounded-xl sm:rounded-2xl hover:text-white transition-all border border-white/10"
                           >
-                            <RefreshCw size={20} />
+                            <RefreshCw size={18} />
                           </button>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-[9px] text-gray-500 uppercase font-black tracking-widest">Valor</div>
-                          <div className="text-lg font-black text-white">{formatCurrency(c.amountPaid)}</div>
                         </div>
                       </div>
                     </div>
