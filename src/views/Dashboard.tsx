@@ -410,9 +410,31 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
               const pid = c.planId || (c as any).plan_id;
               const plan = plans.find(p => p.id === pid);
               const isTest = plan?.name?.toLowerCase().includes('teste');
-              const dueDate = parseRobustLocalTime(c.dueDate || (c as any).due_date);
-              const days = Math.round((dueDate.setHours(0, 0, 0, 0) - today.setHours(0, 0, 0, 0)) / (1000 * 60 * 60 * 24));
-              const isExpired = days <= 0;
+              const dueDateStr = c.dueDate || (c as any).due_date;
+              const dueDate = parseRobustLocalTime(dueDateStr);
+              const isExpired = !isCustomerActive(dueDateStr, isTest);
+              const dueTime = new Date(dueDate).setHours(0, 0, 0, 0);
+              const days = Math.round((dueTime - today.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+              
+              let daysText = '';
+              if (isTest) {
+                if (isExpired) {
+                  daysText = 'Vencido';
+                } else {
+                  const diffHours = Math.round((dueDate.getTime() - new Date().getTime()) / (1000 * 60 * 60));
+                  daysText = diffHours <= 0 ? 'Vence agora' : `Vence em ${diffHours}h`;
+                }
+              } else {
+                if (isExpired) {
+                  daysText = 'Vencido';
+                } else if (days === 1) {
+                  daysText = 'Vence hoje';
+                } else if (days === 2) {
+                  daysText = 'Vence amanhã';
+                } else {
+                  daysText = `Vence em ${days}d`;
+                }
+              }
 
               const lastNotified = c.lastNotifiedDate ? parseRobustLocalTime(c.lastNotifiedDate) : null;
               if (lastNotified) lastNotified.setHours(0, 0, 0, 0);
@@ -431,7 +453,7 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
                         <div className="flex flex-col">
                           <div className="mb-2">
                             <span className={`inline-block whitespace-nowrap px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-lg ${isExpired ? 'bg-red-600 text-white shadow-red-600/20' : 'bg-[#c8a646]/20 text-[#c8a646]'}`}>
-                              {isExpired ? 'Vencido' : `Vence em ${days}d`}
+                              {daysText}
                             </span>
                           </div>
                           <div className="font-bold text-white text-base sm:text-lg leading-tight mb-1">{c.name}</div>
