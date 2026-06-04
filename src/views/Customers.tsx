@@ -597,7 +597,7 @@ export function Customers({
 
             const lastNotified = customer.lastNotifiedDate ? parseRobustLocalTime(customer.lastNotifiedDate) : null;
             if (lastNotified) lastNotified.setHours(0, 0, 0, 0);
-            const isRecentlyNotified = lastNotified && !isNaN(lastNotified.getTime()) && Math.round((today.getTime() - lastNotified.getTime()) / (1000 * 60 * 60 * 24)) < 7;
+            const isRecentlyNotified = lastNotified && !isNaN(lastNotified.getTime()) && Math.round((today.getTime() - lastNotified.getTime()) / (1000 * 60 * 60 * 24)) < 10;
 
             const lastOverdueNotified = customer.lastOverdueNotifiedDate || (customer as any).last_overdue_notified_date;
             const lastOverdueDate = lastOverdueNotified ? parseRobustLocalTime(lastOverdueNotified) : null;

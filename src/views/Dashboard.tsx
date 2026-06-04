@@ -249,7 +249,7 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
 
       const lastNotified = c.lastNotifiedDate ? parseRobustLocalTime(c.lastNotifiedDate) : null;
       if (lastNotified) lastNotified.setHours(0, 0, 0, 0);
-      const isRecentlyNotified = lastNotified && !isNaN(lastNotified.getTime()) && Math.round((today.getTime() - lastNotified.getTime()) / (1000 * 60 * 60 * 24)) < 7;
+      const isRecentlyNotified = lastNotified && !isNaN(lastNotified.getTime()) && Math.round((today.getTime() - lastNotified.getTime()) / (1000 * 60 * 60 * 24)) < 10;
 
       if (isTest) {
         return !isActive && !isRecentlyNotified;
@@ -409,6 +409,8 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
             {expiringCustomers.map(c => {
               const pid = c.planId || (c as any).plan_id;
               const plan = plans.find(p => p.id === pid);
+              const sId = c.serverId || (c as any).server_id;
+              const server = servers.find(s => s.id === sId);
               const isTest = plan?.name?.toLowerCase().includes('teste');
               const dueDateStr = c.dueDate || (c as any).due_date;
               const dueDate = parseRobustLocalTime(dueDateStr);
@@ -436,12 +438,13 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
                 }
               }
 
-              const lastNotified = c.lastNotifiedDate ? parseRobustLocalTime(c.lastNotifiedDate) : null;
+              const relevantDateStr = isExpired ? (c.lastOverdueNotifiedDate || (c as any).last_overdue_notified_date) : c.lastNotifiedDate;
+              const lastNotified = relevantDateStr ? parseRobustLocalTime(relevantDateStr) : null;
               if (lastNotified) lastNotified.setHours(0, 0, 0, 0);
-              const isRecentlyNotified = lastNotified && !isNaN(lastNotified.getTime()) && Math.round((today.getTime() - lastNotified.getTime()) / (1000 * 60 * 60 * 24)) < 7;
+              const isRecentlyNotified = lastNotified && !isNaN(lastNotified.getTime()) && Math.round((today.getTime() - lastNotified.getTime()) / (1000 * 60 * 60 * 24)) < 10;
 
-              // Do not disable if it's expired, only if it's green (not expired) and already notified recently
-              const isGreenButtonDisabled = !isExpired && isRecentlyNotified;
+              // Disable if it's already notified recently
+              const isButtonDisabled = isRecentlyNotified;
 
               return (
                 <div key={c.id} className="w-full">
@@ -457,7 +460,9 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
                             </span>
                           </div>
                           <div className="font-bold text-white text-base sm:text-lg leading-tight mb-1">{c.name}</div>
-                          <div className="text-[10px] text-[#c8a646] font-black uppercase tracking-wider">{plan?.name || 'Plano'}</div>
+                          <div className="text-[10px] text-[#c8a646] font-black uppercase tracking-wider">
+                            {plan?.name || 'Plano'} • {server?.name || 'Servidor'}
+                          </div>
                         </div>
                       </div>
 
@@ -475,15 +480,18 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
                                 amount: c.amountPaid,
                                 dueDate: c.dueDate
                               }, isTest);
-                              updateCustomer(c.id, { lastNotifiedDate: format(today, 'yyyy-MM-dd') });
+                              const updateData = isExpired ? { lastOverdueNotifiedDate: format(today, 'yyyy-MM-dd') } : { lastNotifiedDate: format(today, 'yyyy-MM-dd') };
+                              updateCustomer(c.id, updateData);
                               window.open(`https://wa.me/${c.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
                             }}
-                            disabled={isGreenButtonDisabled}
+                            disabled={isButtonDisabled}
                             className={`w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-xl sm:rounded-2xl transition-all border ${
-                              isExpired 
-                                ? 'bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20' 
-                                : isGreenButtonDisabled 
-                                  ? 'bg-green-500/5 text-green-500/30 border-green-500/5 cursor-not-allowed'
+                              isButtonDisabled
+                                ? isExpired 
+                                  ? 'bg-red-500/5 text-red-500/30 border-red-500/5 cursor-not-allowed'
+                                  : 'bg-green-500/5 text-green-500/30 border-green-500/5 cursor-not-allowed'
+                                : isExpired 
+                                  ? 'bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20' 
                                   : 'bg-green-500/10 text-green-400 border-green-500/10 hover:bg-green-500/20'
                             }`}
                           >
