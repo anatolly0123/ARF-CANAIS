@@ -13,6 +13,8 @@ interface PlansProps {
   setRenewalMessage: (msg: string) => void;
   overdueMessage: string;
   setOverdueMessage: (msg: string) => void;
+  todayMessage: string;
+  setTodayMessage: (msg: string) => void;
   testMessage: string;
   setTestMessage: (msg: string) => void;
   addManualAddition: (addition: Omit<ManualAddition, 'id'>) => void;
@@ -23,6 +25,7 @@ interface PlansProps {
 export function Plans({ 
   plans, updatePlan, whatsappMessage, setWhatsappMessage, 
   renewalMessage, setRenewalMessage, overdueMessage, setOverdueMessage, 
+  todayMessage, setTodayMessage,
   testMessage, setTestMessage,
   addManualAddition, manualAdditions, userRole 
 }: PlansProps) {
@@ -30,7 +33,7 @@ export function Plans({
   const [priceInput, setPriceInput] = useState('');
 
   const [isEditingMessage, setIsEditingMessage] = useState(false);
-  const [editingMessageType, setEditingMessageType] = useState<'whatsapp' | 'renewal' | 'overdue' | 'test'>('whatsapp');
+  const [editingMessageType, setEditingMessageType] = useState<'whatsapp' | 'renewal' | 'overdue' | 'test' | 'today'>('whatsapp');
   const [messageInput, setMessageInput] = useState('');
 
   const [isAddingMoney, setIsAddingMoney] = useState(false);
@@ -53,11 +56,12 @@ export function Plans({
     }
   };
 
-  const handleEditMessage = (type: 'whatsapp' | 'renewal' | 'overdue' | 'test') => {
+  const handleEditMessage = (type: 'whatsapp' | 'renewal' | 'overdue' | 'test' | 'today') => {
     setEditingMessageType(type);
     if (type === 'renewal') setMessageInput(renewalMessage);
     else if (type === 'overdue') setMessageInput(overdueMessage);
     else if (type === 'test') setMessageInput(testMessage);
+    else if (type === 'today') setMessageInput(todayMessage);
     else setMessageInput(whatsappMessage);
     setIsEditingMessage(true);
   };
@@ -69,6 +73,8 @@ export function Plans({
       setOverdueMessage(messageInput);
     } else if (editingMessageType === 'test') {
       setTestMessage(messageInput);
+    } else if (editingMessageType === 'today') {
+      setTodayMessage(messageInput);
     } else {
       setWhatsappMessage(messageInput);
     }
@@ -189,7 +195,7 @@ export function Plans({
 
         <div className="bg-[#1a1a1a] p-5 rounded-2xl border border-white/5 shadow-lg">
           <div className="flex justify-between items-start mb-4">
-            <p className="text-xs text-gray-400">Mensagem padrão enviada para clientes próximos do vencimento.</p>
+            <p className="text-xs text-gray-400">Mensagem padrão enviada para clientes próximos do vencimento (ex: 3 dias antes).</p>
             {userRole !== 'observer' && (
               <button
                 onClick={() => handleEditMessage('whatsapp')}
@@ -201,6 +207,31 @@ export function Plans({
           </div>
           <div className="bg-[#0f0f0f] p-4 rounded-xl border border-white/5">
             <p className="text-white text-xs whitespace-pre-wrap">{whatsappMessage}</p>
+          </div>
+        </div>
+      </section>
+
+      {/* WhatsApp Message Section (Expiring Today) */}
+      <section>
+        <div className="flex items-center space-x-3 mb-6">
+          <MessageSquare size={28} className="text-[#c8a646]" />
+          <h2 className="text-xl font-bold text-white uppercase tracking-widest text-sm">Aviso de Vencimento (Hoje)</h2>
+        </div>
+
+        <div className="bg-[#1a1a1a] p-5 rounded-2xl border border-white/5 shadow-lg">
+          <div className="flex justify-between items-start mb-4">
+            <p className="text-xs text-gray-400">Mensagem padrão enviada para clientes que vencem no dia atual.</p>
+            {userRole !== 'observer' && (
+              <button
+                onClick={() => handleEditMessage('today')}
+                className="p-2 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 rounded-full transition-colors shrink-0 ml-4"
+              >
+                <Edit2 size={18} />
+              </button>
+            )}
+          </div>
+          <div className="bg-[#0f0f0f] p-4 rounded-xl border border-white/5">
+            <p className="text-white text-xs whitespace-pre-wrap">{todayMessage}</p>
           </div>
         </div>
       </section>
@@ -320,7 +351,7 @@ export function Plans({
       <Modal
         isOpen={isEditingMessage}
         onClose={() => setIsEditingMessage(false)}
-        title={editingMessageType === 'renewal' ? "Mensagem de Renovação" : editingMessageType === 'overdue' ? "Aviso Após o Vencimento" : editingMessageType === 'test' ? "Aviso de Teste Expirado" : "Aviso de Vencimento"}
+        title={editingMessageType === 'renewal' ? "Mensagem de Renovação" : editingMessageType === 'overdue' ? "Aviso Após o Vencimento" : editingMessageType === 'test' ? "Aviso de Teste Expirado" : editingMessageType === 'today' ? "Aviso de Vencimento (Hoje)" : "Aviso de Vencimento"}
       >
         <p className="text-gray-400 text-xs mb-4">
           Variáveis disponíveis:<br />

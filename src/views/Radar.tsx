@@ -10,6 +10,7 @@ interface RadarProps {
   servers: Server[];
   plans: Plan[];
   whatsappMessage: string;
+  todayMessage: string;
   updateCustomer: (id: string, c: Partial<Customer>) => void;
   addRenewal: (r: Omit<Renewal, 'id'>) => void;
   renewalMessage: string;
@@ -25,6 +26,7 @@ export function Radar({
   servers,
   plans,
   whatsappMessage,
+  todayMessage,
   updateCustomer,
   addRenewal,
   renewalMessage,
@@ -337,7 +339,8 @@ export function Radar({
                         {/* Notify Button */}
                         <button
                           onClick={() => {
-                            const message = formatWhatsappMessage(whatsappMessage, {
+                            const template = days === 1 ? todayMessage : whatsappMessage;
+                            const message = formatWhatsappMessage(template, {
                               name: c.name,
                               amount: c.amountPaid,
                               dueDate: c.dueDate

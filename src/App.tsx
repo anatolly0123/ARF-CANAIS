@@ -87,6 +87,7 @@ export default function App() {
             servers={store.servers}
             plans={store.plans}
             whatsappMessage={store.whatsappMessage}
+            todayMessage={store.todayMessage}
             updateCustomer={store.updateCustomer}
             addRenewal={store.addRenewal}
             renewalMessage={store.renewalMessage}
@@ -139,6 +140,8 @@ export default function App() {
             setRenewalMessage={store.setRenewalMessage}
             overdueMessage={store.overdueMessage}
             setOverdueMessage={store.setOverdueMessage}
+            todayMessage={store.todayMessage}
+            setTodayMessage={store.setTodayMessage}
             testMessage={store.testMessage}
             setTestMessage={store.setTestMessage}
             addManualAddition={store.addManualAddition}
