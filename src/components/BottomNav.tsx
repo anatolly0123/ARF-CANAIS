@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Server, Settings, Database, Shield, Radar, Megaphone } from 'lucide-react';
+import { LayoutDashboard, Users, Server, Settings, Database, Shield, Radar } from 'lucide-react';
 import { Tab, UserRole } from '../types';
 
 interface BottomNavProps {
@@ -12,7 +12,6 @@ export function BottomNav({ activeTab, setActiveTab, userRole }: BottomNavProps)
     { id: 'dashboard' as Tab, label: 'Início', icon: LayoutDashboard },
     { id: 'customers' as Tab, label: 'Clientes', icon: Users },
     { id: 'radar' as Tab, label: 'Radar', icon: Radar },
-    { id: 'broadcast' as Tab, label: 'Disparos', icon: Megaphone },
     { id: 'servers' as Tab, label: 'Servidores', icon: Server },
   ];
 
