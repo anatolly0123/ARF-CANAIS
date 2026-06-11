@@ -1,12 +1,9 @@
 import { useState, useMemo } from 'react';
 import { Customer, Server, Plan, Renewal, UserRole } from '../types';
 import { format } from 'date-fns';
-import { MessageCircle, RefreshCw, Search, Calendar, Clock, Play, Settings } from 'lucide-react';
+import { MessageCircle, RefreshCw, Search, Calendar, Clock } from 'lucide-react';
 import { formatCurrency, isCustomerActive, parseSafeNumber, parseRobustLocalTime, formatWhatsappMessage } from '../utils';
 import { RenewModal } from '../components/RenewModal';
-import { BulkSendModal } from '../components/BulkSendModal';
-import { WhatsappApiSettingsModal, getWhatsappApiConfig } from '../components/WhatsappApiSettingsModal';
-import { AutomaticBulkSendModal } from '../components/AutomaticBulkSendModal';
 
 interface RadarProps {
   customers: Customer[];
@@ -38,9 +35,6 @@ export function Radar({
   const [activeSubTab, setActiveSubTab] = useState<SubTab>('threeDays');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [isBulkSendOpen, setIsBulkSendOpen] = useState(false);
-  const [isApiSettingsOpen, setIsApiSettingsOpen] = useState(false);
-  const [isAutoBulkSendOpen, setIsAutoBulkSendOpen] = useState(false);
 
   const today = useMemo(() => {
     const d = new Date();
@@ -232,20 +226,6 @@ export function Radar({
     return `Vence em ${days} dias`;
   };
 
-  const handleBulkSendNotification = (c: Customer) => {
-    const plan = plansMap.get(c.planId || (c as any).plan_id);
-    const isTest = plan?.name?.toLowerCase().includes('teste') || false;
-    const message = formatWhatsappMessage(whatsappMessage, {
-      name: c.name,
-      amount: c.amountPaid,
-      dueDate: c.dueDate
-    }, isTest);
-
-    // Update notified timestamp
-    updateCustomer(c.id, { lastNotifiedDate: format(today, 'yyyy-MM-dd') });
-    window.open(`https://wa.me/${c.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
-  };
-
   const currentList = activeSubTab === 'threeDays' ? filteredThreeDays : filteredToday;
 
   return (
@@ -257,15 +237,6 @@ export function Radar({
             <Clock size={28} className="text-[#c8a646]" />
             <h2 className="text-xl font-bold text-white uppercase tracking-widest text-sm">Radar de Renovação</h2>
           </div>
-          {userRole !== 'observer' && (
-            <button
-              onClick={() => setIsApiSettingsOpen(true)}
-              className="p-3 bg-[#161616] border border-white/5 hover:bg-white/5 hover:border-white/10 text-gray-400 hover:text-white rounded-2xl transition-all active:scale-95 flex items-center justify-center shadow-lg"
-              title="Configurar WhatsApp API"
-            >
-              <Settings size={18} />
-            </button>
-          )}
         </div>
 
         {/* Search bar */}
@@ -314,24 +285,7 @@ export function Radar({
           </button>
         </div>
 
-        {/* Bulk Send Button */}
-        {notifiableList.length > 0 && userRole !== 'observer' && (
-          <button
-            onClick={() => {
-              const config = getWhatsappApiConfig();
-              if (config.apiType === 'manual') {
-                setIsBulkSendOpen(true);
-              } else {
-                setIsAutoBulkSendOpen(true);
-              }
-            }}
-            className="w-full bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/15 py-3.5 rounded-2xl text-xs font-bold uppercase tracking-wider flex items-center justify-center space-x-2 transition-all active:scale-98 shadow-lg shadow-green-500/5 animate-in fade-in slide-in-from-top-2 duration-300"
-          >
-            <Play size={12} fill="currentColor" />
-            <span>Enviar Notificações em Massa ({notifiableList.length})</span>
-          </button>
-        )}
-      </div>
+        </div>
 
       {/* Customer List */}
       <div className="flex flex-col space-y-4">
@@ -447,43 +401,6 @@ export function Radar({
           </div>
         )}
       </div>
-
-      {/* Bulk Send Modal */}
-      <BulkSendModal
-        isOpen={isBulkSendOpen}
-        onClose={() => setIsBulkSendOpen(false)}
-        customers={notifiableList}
-        servers={servers}
-        plans={plans}
-        whatsappMessage={whatsappMessage}
-        onSend={handleBulkSendNotification}
-      />
-
-      {/* Automatic Bulk Send Modal */}
-      <AutomaticBulkSendModal
-        isOpen={isAutoBulkSendOpen}
-        onClose={() => setIsAutoBulkSendOpen(false)}
-        customers={notifiableList}
-        plans={plans}
-        servers={servers}
-        formatMessage={(c) => {
-          const plan = plansMap.get(c.planId || (c as any).plan_id);
-          const isTest = plan?.name?.toLowerCase().includes('teste') || false;
-          return formatWhatsappMessage(whatsappMessage, {
-            name: c.name,
-            amount: c.amountPaid,
-            dueDate: c.dueDate
-          }, isTest);
-        }}
-        imagePreview={null}
-        updateCustomer={updateCustomer}
-      />
-
-      {/* WhatsApp API Settings Modal */}
-      <WhatsappApiSettingsModal
-        isOpen={isApiSettingsOpen}
-        onClose={() => setIsApiSettingsOpen(false)}
-      />
 
       {/* Renew Modal */}
       <RenewModal
