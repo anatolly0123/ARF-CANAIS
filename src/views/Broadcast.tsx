@@ -1,9 +1,11 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { Customer, Server, Plan, UserRole } from '../types';
-import { Megaphone, MessageSquare, Play, SkipForward, CheckCircle2, AlertCircle, Copy, Trash2, Image as ImageIcon, Sparkles, ChevronRight } from 'lucide-react';
+import { Megaphone, MessageSquare, Play, SkipForward, CheckCircle2, AlertCircle, Copy, Trash2, Image as ImageIcon, Sparkles, ChevronRight, Settings } from 'lucide-react';
 import { format } from 'date-fns';
 import { formatCurrency, isCustomerActive, parseRobustLocalTime } from '../utils';
 import { Modal } from '../components/Modal';
+import { WhatsappApiSettingsModal, getWhatsappApiConfig } from '../components/WhatsappApiSettingsModal';
+import { AutomaticBulkSendModal } from '../components/AutomaticBulkSendModal';
 
 interface BroadcastProps {
   customers: Customer[];
@@ -27,6 +29,9 @@ export function Broadcast({ customers, servers, plans, userRole }: BroadcastProp
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [currentWizardIndex, setCurrentWizardIndex] = useState(0);
   const [wizardCompleted, setWizardCompleted] = useState(false);
+
+  const [isApiSettingsOpen, setIsApiSettingsOpen] = useState(false);
+  const [isAutoBulkSendOpen, setIsAutoBulkSendOpen] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -166,9 +171,20 @@ export function Broadcast({ customers, servers, plans, userRole }: BroadcastProp
   return (
     <div className="space-y-6 pb-24">
       {/* Title */}
-      <div className="flex items-center space-x-3 px-1">
-        <Megaphone size={28} className="text-[#c8a646]" />
-        <h2 className="text-xl font-bold text-white uppercase tracking-widest">Disparos de Mensagem</h2>
+      <div className="flex items-center justify-between px-1">
+        <div className="flex items-center space-x-3">
+          <Megaphone size={28} className="text-[#c8a646]" />
+          <h2 className="text-xl font-bold text-white uppercase tracking-widest">Disparos de Mensagem</h2>
+        </div>
+        {userRole !== 'observer' && (
+          <button
+            onClick={() => setIsApiSettingsOpen(true)}
+            className="p-3 bg-[#161616] border border-white/5 hover:bg-white/5 hover:border-white/10 text-gray-400 hover:text-white rounded-2xl transition-all active:scale-95 flex items-center justify-center shadow-lg"
+            title="Configurar WhatsApp API"
+          >
+            <Settings size={18} />
+          </button>
+        )}
       </div>
 
       {/* Target Audience Filter Card */}
@@ -318,7 +334,14 @@ export function Broadcast({ customers, servers, plans, userRole }: BroadcastProp
       {/* Start Button */}
       {userRole !== 'observer' && (
         <button
-          onClick={startWizard}
+          onClick={() => {
+            const config = getWhatsappApiConfig();
+            if (config.apiType === 'manual') {
+              startWizard();
+            } else {
+              setIsAutoBulkSendOpen(true);
+            }
+          }}
           disabled={filteredCustomers.length === 0}
           className={`w-full py-4 rounded-[22px] font-extrabold uppercase tracking-widest text-xs flex items-center justify-center space-x-2.5 transition-all active:scale-98 ${
             filteredCustomers.length > 0
@@ -448,6 +471,24 @@ export function Broadcast({ customers, servers, plans, userRole }: BroadcastProp
           )
         )}
       </Modal>
+
+      {/* Automatic Bulk Send Modal */}
+      <AutomaticBulkSendModal
+        isOpen={isAutoBulkSendOpen}
+        onClose={() => setIsAutoBulkSendOpen(false)}
+        customers={filteredCustomers}
+        plans={plans}
+        servers={servers}
+        formatMessage={(c) => formatMessageForCustomer(messageText, c)}
+        imagePreview={imagePreview}
+        updateCustomer={() => {}} // Broadcast doesn't update specific customer state since it's general campaign
+      />
+
+      {/* WhatsApp API Settings Modal */}
+      <WhatsappApiSettingsModal
+        isOpen={isApiSettingsOpen}
+        onClose={() => setIsApiSettingsOpen(false)}
+      />
     </div>
   );
 }
