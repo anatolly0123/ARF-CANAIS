@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react';
 import { Customer, Server, Plan, Renewal, UserRole } from '../types';
 import { format } from 'date-fns';
-import { MessageCircle, RefreshCw, Search, Calendar, Clock } from 'lucide-react';
+import { MessageCircle, RefreshCw, Search, Calendar, Clock, RotateCcw } from 'lucide-react';
 import { formatCurrency, isCustomerActive, parseSafeNumber, parseRobustLocalTime, formatWhatsappMessage } from '../utils';
 import { RenewModal } from '../components/RenewModal';
+import { Modal } from '../components/Modal';
 
 interface RadarProps {
   customers: Customer[];
@@ -37,6 +38,8 @@ export function Radar({
   const [activeSubTab, setActiveSubTab] = useState<SubTab>('threeDays');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [resetOption, setResetOption] = useState<'threeDays' | 'today' | 'overdue' | 'all'>('threeDays');
 
   const today = useMemo(() => {
     const d = new Date();
@@ -228,6 +231,55 @@ export function Radar({
     return `Vence em ${days} dias`;
   };
 
+  const handleExecuteReset = () => {
+    let targetCount = 0;
+    
+    customers.forEach(c => {
+      const plan = plansMap.get(c.planId || (c as any).plan_id);
+      const isTest = plan?.name?.toLowerCase().includes('teste') || false;
+      const dueDateStr = c.dueDate || (c as any).due_date;
+      if (!dueDateStr) return;
+
+      const dueDate = parseRobustLocalTime(dueDateStr.toString());
+      if (isNaN(dueDate.getTime())) return;
+
+      const dueTime = new Date(dueDate).setHours(0, 0, 0, 0);
+      const days = Math.round((dueTime - today.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      const isActive = isCustomerActive(dueDateStr, isTest);
+
+      let shouldReset = false;
+      let updates: Partial<Customer> = {};
+
+      if (resetOption === 'threeDays') {
+        if (!isTest && days === 3) {
+          shouldReset = true;
+          updates = { lastNotifiedDate: undefined };
+        }
+      } else if (resetOption === 'today') {
+        if (days === 1) {
+          shouldReset = true;
+          updates = { lastNotifiedDate: undefined };
+        }
+      } else if (resetOption === 'overdue') {
+        if (!isActive) {
+          shouldReset = true;
+          updates = { lastNotifiedDate: undefined, lastOverdueNotifiedDate: undefined };
+        }
+      } else if (resetOption === 'all') {
+        shouldReset = true;
+        updates = { lastNotifiedDate: undefined, lastOverdueNotifiedDate: undefined };
+      }
+
+      if (shouldReset) {
+        updateCustomer(c.id, updates);
+        targetCount++;
+      }
+    });
+
+    alert(`Sucesso! Tempo de aviso resetado para ${targetCount} clientes.`);
+    setIsResetModalOpen(false);
+  };
+
   const currentList = activeSubTab === 'threeDays' ? filteredThreeDays : filteredToday;
 
   return (
@@ -239,6 +291,16 @@ export function Radar({
             <Clock size={28} className="text-[#c8a646]" />
             <h2 className="text-xl font-bold text-white uppercase tracking-widest text-sm">Radar de Renovação</h2>
           </div>
+          {userRole !== 'observer' && (
+            <button
+              onClick={() => setIsResetModalOpen(true)}
+              className="px-3 py-1.5 bg-[#161616] border border-white/5 hover:bg-white/5 hover:border-white/10 text-gray-400 hover:text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center space-x-1.5 active:scale-95 shadow-lg"
+              title="Resetar Tempos de Aviso"
+            >
+              <RotateCcw size={12} />
+              <span>Resetar Avisos</span>
+            </button>
+          )}
         </div>
 
         {/* Search bar */}
@@ -404,6 +466,56 @@ export function Radar({
           </div>
         )}
       </div>
+
+      {/* Reset Warnings Modal */}
+      <Modal
+        isOpen={isResetModalOpen}
+        onClose={() => setIsResetModalOpen(false)}
+        title="Resetar Tempos de Aviso"
+        maxWidth="max-w-md"
+      >
+        <p className="text-gray-400 text-xs mb-5">
+          Escolha quais avisos de notificação você deseja limpar para permitir o reenvio hoje:
+        </p>
+
+        <div className="space-y-3">
+          {[
+            { id: 'threeDays', label: 'Alerta de 3 Dias', desc: 'Reseta o cooldown dos clientes que vencem em 3 dias' },
+            { id: 'today', label: 'Alerta de Vence Hoje', desc: 'Reseta o cooldown dos clientes que vencem hoje' },
+            { id: 'overdue', label: 'Alerta de Vencidos', desc: 'Reseta o cooldown de cobrança dos clientes inativos' },
+            { id: 'all', label: 'Todos os Avisos', desc: 'Limpa o histórico de avisos de todos os clientes' }
+          ].map(opt => (
+            <label
+              key={opt.id}
+              onClick={() => setResetOption(opt.id as any)}
+              className={`relative flex flex-col p-4 cursor-pointer rounded-2xl border transition-all ${
+                resetOption === opt.id
+                  ? 'bg-[#c8a646]/10 border-[#c8a646]'
+                  : 'bg-[#0f0f0f]/50 border-white/10 hover:border-white/20'
+              }`}
+            >
+              <input type="radio" name="resetOption" value={opt.id} checked={resetOption === opt.id} onChange={() => {}} className="sr-only" />
+              <span className="font-bold text-white text-xs mb-1">{opt.label}</span>
+              <span className="text-[10px] text-gray-400 leading-normal">{opt.desc}</span>
+            </label>
+          ))}
+        </div>
+
+        <div className="flex space-x-3 mt-6">
+          <button
+            onClick={() => setIsResetModalOpen(false)}
+            className="flex-1 py-3 rounded-xl border border-white/10 text-white font-medium hover:bg-white/5 transition-colors text-xs uppercase tracking-wider"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handleExecuteReset}
+            className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold transition-all shadow-lg shadow-red-600/10 text-xs uppercase tracking-wider"
+          >
+            Confirmar Reset
+          </button>
+        </div>
+      </Modal>
 
       {/* Renew Modal */}
       <RenewModal

@@ -410,8 +410,8 @@ export function useStore(user: User | null) {
       if (data.planId !== undefined) updateData.plan_id = toUUID(data.planId);
       if (data.amountPaid !== undefined) updateData.amount_paid = data.amountPaid;
       if (data.dueDate !== undefined) updateData.due_date = ensureISO(data.dueDate);
-      if (data.lastNotifiedDate !== undefined) updateData.last_notified_date = data.lastNotifiedDate ? ensureISO(data.lastNotifiedDate) : null;
-      if (data.lastOverdueNotifiedDate !== undefined) updateData.last_overdue_notified_date = data.lastOverdueNotifiedDate ? ensureISO(data.lastOverdueNotifiedDate) : null;
+      if ('lastNotifiedDate' in data) updateData.last_notified_date = data.lastNotifiedDate ? ensureISO(data.lastNotifiedDate) : null;
+      if ('lastOverdueNotifiedDate' in data) updateData.last_overdue_notified_date = data.lastOverdueNotifiedDate ? ensureISO(data.lastOverdueNotifiedDate) : null;
       supabase.from('customers').update(updateData).eq('id', id).then(({ error }) => {
         if (error) console.error('Error updating customer in cloud:', error);
       });
