@@ -10,6 +10,8 @@ import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
 import { Dashboard } from './views/Dashboard';
 import { Customers } from './views/Customers';
+import { Radar } from './views/Radar';
+import { Broadcast } from './views/Broadcast';
 import { Servers } from './views/Servers';
 import { Plans } from './views/Plans';
 import { Storage } from './views/Storage';
@@ -76,6 +78,30 @@ export default function App() {
             renewalMessage={store.renewalMessage}
             overdueMessage={store.overdueMessage}
             testMessage={store.testMessage}
+            userRole={store.userRole}
+          />
+        );
+      case 'radar':
+        return (
+          <Radar
+            customers={store.customers}
+            servers={store.servers}
+            plans={store.plans}
+            whatsappMessage={store.whatsappMessage}
+            updateCustomer={store.updateCustomer}
+            addRenewal={store.addRenewal}
+            renewalMessage={store.renewalMessage}
+            overdueMessage={store.overdueMessage}
+            testMessage={store.testMessage}
+            userRole={store.userRole}
+          />
+        );
+      case 'broadcast':
+        return (
+          <Broadcast
+            customers={store.customers}
+            servers={store.servers}
+            plans={store.plans}
             userRole={store.userRole}
           />
         );

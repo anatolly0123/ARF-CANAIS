@@ -613,6 +613,7 @@ export function useStore(user: User | null) {
       whatsappMessage?: string;
       renewalMessage?: string;
       overdueMessage?: string;
+      testMessage?: string;
       appIcon?: string | null;
       appCover?: string | null;
     };

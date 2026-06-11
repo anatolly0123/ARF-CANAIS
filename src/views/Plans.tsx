@@ -53,7 +53,7 @@ export function Plans({
     }
   };
 
-  const handleEditMessage = (type: 'whatsapp' | 'renewal' | 'overdue') => {
+  const handleEditMessage = (type: 'whatsapp' | 'renewal' | 'overdue' | 'test') => {
     setEditingMessageType(type);
     if (type === 'renewal') setMessageInput(renewalMessage);
     else if (type === 'overdue') setMessageInput(overdueMessage);

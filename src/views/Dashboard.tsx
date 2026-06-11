@@ -4,7 +4,6 @@ import { format, parseISO, isAfter, differenceInDays, addMonths } from 'date-fns
 import { ptBR } from 'date-fns/locale';
 import { TrendingUp, TrendingDown, DollarSign, Users, MessageCircle, ChevronRight, Server as ServerIcon, Calendar, CheckCircle, Clock, RefreshCw } from 'lucide-react';
 import { formatCurrency, isCustomerActive, parseSafeNumber, parseRobustLocalTime, formatWhatsappMessage } from '../utils';
-import { RenewModal } from '../components/RenewModal';
 import { UserRole } from '../types';
 
 interface DashboardProps {
@@ -29,8 +28,7 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
     return d;
   }, []);
 
-  // Renew State
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+
 
   // Calculate stats
   const { grossValue, totalPaidToServers, monthlyGross, monthlyCost, serverStats, expiringCustomers, totalPlansValue, chartData } = useMemo(() => {
@@ -193,48 +191,7 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
   }, [customers, servers, renewals, manualAdditions, plans, today]);
 
 
-  const openRenewModal = (customer: Customer) => {
-    setSelectedCustomer(customer);
-  };
 
-  const confirmRenew = (renewData: { serverId: string; planId: string; amountPaid: string; dueDate: string }) => {
-    if (selectedCustomer) {
-      const plan = plans.find(p => p.id === renewData.planId);
-      if (plan) {
-        const newDueDate = renewData.dueDate;
-
-        updateCustomer(selectedCustomer.id, {
-          serverId: renewData.serverId,
-          planId: renewData.planId,
-          amountPaid: parseSafeNumber(renewData.amountPaid),
-          dueDate: newDueDate,
-          hasResetCounters: false
-        });
-
-        const server = servers.find(s => s.id === renewData.serverId);
-        const cost = (server?.costPerActive || 0) * (plan?.months || 1);
-
-        addRenewal({
-          customerId: selectedCustomer.id,
-          serverId: renewData.serverId,
-          planId: renewData.planId,
-          amount: parseSafeNumber(renewData.amountPaid),
-          cost: cost,
-          date: new Date().toISOString()
-        });
-
-        // Open Renewal Confirmation Message
-        const isTest = plan?.name?.toLowerCase().includes('teste') || false;
-        const message = formatWhatsappMessage(renewalMessage, {
-          name: selectedCustomer.name,
-          amount: parseFloat(renewData.amountPaid.replace(',', '.')),
-          dueDate: newDueDate
-        }, isTest);
-        window.open(`https://wa.me/${selectedCustomer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
-      }
-      setSelectedCustomer(null);
-    }
-  };
 
   const pendingNotifications = useMemo(() => {
     const plansMap = new Map(plans.map(p => [p.id, p]));
@@ -397,136 +354,6 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
         </div>
       )}
 
-      {/* Renewal Radar - Priority Actions */}
-      {expiringCustomers.length > 0 && (
-        <div className="mt-8 space-y-3">
-          <div className="flex items-center justify-between px-1">
-            <h2 className="text-[10px] font-black text-[#c8a646] uppercase tracking-[0.3em]">Radar de Renovação</h2>
-            <span className="bg-[#c8a646]/10 text-[#c8a646] text-[8px] font-bold px-2 py-0.5 rounded-full border border-[#c8a646]/20">Prioridade Máxima</span>
-          </div>
-
-          <div className="flex flex-col space-y-3 pb-4">
-            {expiringCustomers.map(c => {
-              const pid = c.planId || (c as any).plan_id;
-              const plan = plans.find(p => p.id === pid);
-              const sId = c.serverId || (c as any).server_id;
-              const server = servers.find(s => s.id === sId);
-              const isTest = plan?.name?.toLowerCase().includes('teste');
-              const dueDateStr = c.dueDate || (c as any).due_date;
-              const dueDate = parseRobustLocalTime(dueDateStr);
-              const isExpired = !isCustomerActive(dueDateStr, isTest);
-              const dueTime = new Date(dueDate).setHours(0, 0, 0, 0);
-              const days = Math.round((dueTime - today.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-              
-              let daysText = '';
-              if (isTest) {
-                if (isExpired) {
-                  daysText = 'Vencido';
-                } else {
-                  const diffHours = Math.round((dueDate.getTime() - new Date().getTime()) / (1000 * 60 * 60));
-                  daysText = diffHours <= 0 ? 'Vence agora' : `Vence em ${diffHours}h`;
-                }
-              } else {
-                if (isExpired) {
-                  daysText = 'Vencido';
-                } else if (days === 1) {
-                  daysText = 'Vence hoje';
-                } else if (days === 2) {
-                  daysText = 'Vence amanhã';
-                } else {
-                  daysText = `Vence em ${days}d`;
-                }
-              }
-
-              const relevantDateStr = isExpired ? (c.lastOverdueNotifiedDate || (c as any).last_overdue_notified_date) : c.lastNotifiedDate;
-              const lastNotified = relevantDateStr ? parseRobustLocalTime(relevantDateStr) : null;
-              if (lastNotified) lastNotified.setHours(0, 0, 0, 0);
-              const isRecentlyNotified = lastNotified && !isNaN(lastNotified.getTime()) && Math.round((today.getTime() - lastNotified.getTime()) / (1000 * 60 * 60 * 24)) < 10;
-
-              // Disable if it's already notified recently
-              const isButtonDisabled = isRecentlyNotified;
-
-              return (
-                <div key={c.id} className="w-full">
-                  <div className={`p-4 sm:p-5 rounded-[20px] border border-white/5 shadow-2xl glass-card relative overflow-hidden group transition-transform`}>
-                    <div className={`absolute top-0 right-0 w-20 h-20 ${isExpired ? 'bg-red-500/10' : 'bg-[#c8a646]/5'} rounded-full -mr-10 -mt-10 blur-2xl pointer-events-none`} />
-
-                    <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0">
-                      <div className="flex justify-between items-start sm:items-center sm:w-auto">
-                        <div className="flex flex-col">
-                          <div className="mb-2">
-                            <span className={`inline-block whitespace-nowrap px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-lg ${isExpired ? 'bg-red-600 text-white shadow-red-600/20' : 'bg-[#c8a646]/20 text-[#c8a646]'}`}>
-                              {daysText}
-                            </span>
-                          </div>
-                          <div className="font-bold text-white text-base sm:text-lg leading-tight mb-1">{c.name}</div>
-                          <div className="text-[10px] text-[#c8a646] font-black uppercase tracking-wider">
-                            {plan?.name || 'Plano'} • {server?.name || 'Servidor'}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between sm:justify-end space-x-4 w-full sm:w-auto pt-1 sm:pt-0">
-                        <div className="text-left sm:text-right mr-2">
-                          <div className="text-[9px] text-gray-500 uppercase font-black tracking-widest">Valor</div>
-                          <div className="text-lg font-black text-white">{formatCurrency(c.amountPaid)}</div>
-                        </div>
-                        
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() => {
-                              const message = formatWhatsappMessage(isExpired ? overdueMessage : whatsappMessage, {
-                                name: c.name,
-                                amount: c.amountPaid,
-                                dueDate: c.dueDate
-                              }, isTest);
-                              const updateData = isExpired ? { lastOverdueNotifiedDate: format(today, 'yyyy-MM-dd') } : { lastNotifiedDate: format(today, 'yyyy-MM-dd') };
-                              updateCustomer(c.id, updateData);
-                              window.open(`https://wa.me/${c.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
-                            }}
-                            disabled={isButtonDisabled}
-                            className={`w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-xl sm:rounded-2xl transition-all border ${
-                              isButtonDisabled
-                                ? isExpired 
-                                  ? 'bg-red-500/5 text-red-500/30 border-red-500/5 cursor-not-allowed'
-                                  : 'bg-green-500/5 text-green-500/30 border-green-500/5 cursor-not-allowed'
-                                : isExpired 
-                                  ? 'bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20' 
-                                  : 'bg-green-500/10 text-green-400 border-green-500/10 hover:bg-green-500/20'
-                            }`}
-                          >
-                            <MessageCircle size={18} />
-                          </button>
-                          <button
-                            onClick={() => {
-                              // @ts-ignore
-                              openRenewModal(c);
-                            }}
-                            className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-white/5 text-gray-400 rounded-xl sm:rounded-2xl hover:text-white transition-all border border-white/10"
-                          >
-                            <RefreshCw size={18} />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-
-      {/* Renew Modal */}
-      <RenewModal
-        isOpen={!!selectedCustomer}
-        onClose={() => setSelectedCustomer(null)}
-        customer={selectedCustomer}
-        servers={servers}
-        plans={plans}
-        onConfirm={confirmRenew}
-      />
     </div>
   );
 }
