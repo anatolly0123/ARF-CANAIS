@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef } from 'react';
 import { Customer, Server, Plan, Renewal } from '../types';
 import { format, parseISO, addMonths, addHours, isAfter, differenceInDays } from 'date-fns';
 import { v4 as uuidv4 } from 'uuid';
-import { formatCurrency, isCustomerActive, formatWhatsappMessage, parseSafeNumber, parseRobustLocalTime, formatForDateTimeInput, formatForDateInput, ensureISO } from '../utils';
+import { formatCurrency, isCustomerActive, formatWhatsappMessage, parseSafeNumber, parseRobustLocalTime, formatForDateTimeInput, formatForDateInput, ensureISO, COUNTRIES } from '../utils';
 import { Modal } from '../components/Modal';
 import { RenewModal } from '../components/RenewModal';
 import { Plus, Search, Filter, Phone, RefreshCw, Edit2, Trash2, Calendar, CheckCircle, XCircle, MessageCircle, Users, Award, Star, UserX, ArrowRightLeft, ChevronDown, Check, Clock } from 'lucide-react';
@@ -61,7 +61,8 @@ export function Customers({
     serverId: servers.length > 0 ? servers[0].id : '',
     planId: plans.length > 0 ? plans[0].id : '',
     amountPaid: plans.length > 0 ? plans[0].defaultPrice.toString() : '0',
-    dueDate: format(addMonths(new Date(), plans.length > 0 ? plans[0].months : 1), 'yyyy-MM-dd')
+    dueDate: format(addMonths(new Date(), plans.length > 0 ? plans[0].months : 1), 'yyyy-MM-dd'),
+    country: 'Brasil'
   });
 
   const today = useMemo(() => {
@@ -131,6 +132,7 @@ export function Customers({
       planId: formData.planId,
       amountPaid: amount,
       dueDate: finalDueDate,
+      country: formData.country,
     };
 
     if (editingCustomer) {
@@ -187,7 +189,8 @@ export function Customers({
           ? format(new Date(Date.now() + 4 * 60 * 60 * 1000), "yyyy-MM-dd'T'HH:mm")
           : (customer.dueDate && (customer.dueDate.includes('T') || customer.dueDate.includes('Z'))
             ? formatForDateTimeInput(customer.dueDate)
-            : formatForDateInput(customer.dueDate))
+            : formatForDateInput(customer.dueDate)),
+        country: customer.country || 'Brasil'
       });
     } else {
       setEditingCustomer(null);
@@ -201,7 +204,8 @@ export function Customers({
         amountPaid: defaultPlan?.defaultPrice.toString() || '0',
         dueDate: isTest
           ? format(new Date(Date.now() + 4 * 60 * 60 * 1000), "yyyy-MM-dd'T'HH:mm")
-          : format(addMonths(new Date(), defaultPlan?.months || 1), 'yyyy-MM-dd')
+          : format(addMonths(new Date(), defaultPlan?.months || 1), 'yyyy-MM-dd'),
+        country: 'Brasil'
       });
     }
     setIsModalOpen(true);
@@ -780,7 +784,7 @@ export function Customers({
                     </span>
                   </div>
                   <div className="text-sm font-black text-white bg-[#c8a646]/10 px-3 py-1 rounded-full border border-[#c8a646]/20">
-                    {formatCurrency(customer.amountPaid)}
+                    {formatCurrency(customer.amountPaid, customer.country)}
                   </div>
                 </div>
               </motion.div>
@@ -912,6 +916,22 @@ export function Customers({
             >
               {plans.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">País</label>
+            <input
+              type="text"
+              list="countries-list"
+              required
+              placeholder="Digite para buscar..."
+              value={formData.country}
+              onChange={e => setFormData({ ...formData, country: e.target.value })}
+              className="w-full bg-[#0f0f0f] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#c8a646]"
+            />
+            <datalist id="countries-list">
+              {COUNTRIES.map(c => <option key={c} value={c} />)}
+            </datalist>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

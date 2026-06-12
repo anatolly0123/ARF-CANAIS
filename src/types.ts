@@ -22,6 +22,7 @@ export interface Customer {
   lastNotifiedDate?: string;
   lastOverdueNotifiedDate?: string;
   hasResetCounters?: boolean;
+  country?: string;
 }
 
 export interface Renewal {

@@ -942,7 +942,7 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
                 <div className="text-gray-500">{c.phone}</div>
               </div>
               <div className="text-right">
-                <div className="text-[#c8a646] font-bold">{formatCurrency(c.amountPaid)}</div>
+                <div className="text-[#c8a646] font-bold">{formatCurrency(c.amountPaid, c.country)}</div>
                 <div className="text-gray-500">{format(parseISO(c.dueDate), 'dd/MM/yyyy')}</div>
               </div>
             </div>

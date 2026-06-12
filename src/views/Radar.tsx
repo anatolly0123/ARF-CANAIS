@@ -446,7 +446,7 @@ export function Radar({
                     <div className="flex items-center justify-between sm:justify-end space-x-4 w-full sm:w-auto pt-1 sm:pt-0">
                       <div className="text-left sm:text-right mr-2">
                         <div className="text-[9px] text-gray-500 uppercase font-black tracking-widest">Valor</div>
-                        <div className="text-lg font-black text-white">{formatCurrency(c.amountPaid)}</div>
+                        <div className="text-lg font-black text-white">{formatCurrency(c.amountPaid, c.country)}</div>
                       </div>
 
                       <div className="flex space-x-2">
