@@ -73,13 +73,16 @@ export function Radar({
       if (isActive) {
         if (!isTest && days === 3) {
           threeDays.push(c);
-        } else if (days === 1) {
+        } else if (!isTest && days === 1) {
           todayList.push(c);
         }
       } else {
         // Overdue flow (inactive) - Only track if not a test plan and exactly 1 day ago
         if (!isTest && days === 0) {
           oneDayOverdue.push(c);
+        } else if (isTest && days === 1) {
+          // Tests that expire today appear in today list only after they expire
+          todayList.push(c);
         }
       }
     });
@@ -245,7 +248,9 @@ export function Radar({
     const isTest = plan?.name?.toLowerCase().includes('teste') || false;
 
     if (isTest) {
-      return 'Teste Ativo';
+      const dueDateStr = c.dueDate || (c as any).due_date;
+      const isActive = isCustomerActive(dueDateStr, true);
+      return isActive ? 'Teste Ativo' : 'Teste Vencido';
     }
 
     const dueDateStr = c.dueDate || (c as any).due_date;
