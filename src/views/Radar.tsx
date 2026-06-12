@@ -20,7 +20,7 @@ interface RadarProps {
   userRole: UserRole;
 }
 
-type SubTab = 'threeDays' | 'today';
+type SubTab = 'threeDays' | 'today' | 'oneDayOverdue';
 
 export function Radar({
   customers,
@@ -50,10 +50,11 @@ export function Radar({
   const plansMap = useMemo(() => new Map(plans.map(p => [p.id, p])), [plans]);
   const serversMap = useMemo(() => new Map(servers.map(s => [s.id, s])), [servers]);
 
-  // Processes and groups active customers (exludes vencidos)
-  const { threeDaysCustomers, todayCustomers } = useMemo(() => {
+  // Processes and groups active and overdue customers (1 day overdue)
+  const { threeDaysCustomers, todayCustomers, oneDayOverdueCustomers } = useMemo(() => {
     const threeDays: Customer[] = [];
     const todayList: Customer[] = [];
+    const oneDayOverdue: Customer[] = [];
 
     customers.forEach(c => {
       const dueDateStr = c.dueDate || (c as any).due_date;
@@ -66,16 +67,20 @@ export function Radar({
       const isTest = plan?.name?.toLowerCase().includes('teste') || false;
       const isActive = isCustomerActive(dueDateStr, isTest);
 
-      // Exclude expired/overdue customers completely from the Radar
-      if (!isActive) return;
-
       const dueTime = new Date(dueDate).setHours(0, 0, 0, 0);
       const days = Math.round((dueTime - today.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
-      if (!isTest && days === 3) {
-        threeDays.push(c);
-      } else if (days === 1) {
-        todayList.push(c);
+      if (isActive) {
+        if (!isTest && days === 3) {
+          threeDays.push(c);
+        } else if (days === 1) {
+          todayList.push(c);
+        }
+      } else {
+        // Overdue flow (inactive) - Only track if not a test plan and exactly 1 day ago
+        if (!isTest && days === 0) {
+          oneDayOverdue.push(c);
+        }
       }
     });
 
@@ -88,10 +93,12 @@ export function Radar({
 
     threeDays.sort(sortByDate);
     todayList.sort(sortByDate);
+    oneDayOverdue.sort(sortByDate);
 
     return {
       threeDaysCustomers: threeDays,
-      todayCustomers: todayList
+      todayCustomers: todayList,
+      oneDayOverdueCustomers: oneDayOverdue
     };
   }, [customers, plansMap, today]);
 
@@ -111,10 +118,13 @@ export function Radar({
 
   const filteredThreeDays = useMemo(() => filterBySearch(threeDaysCustomers), [threeDaysCustomers, searchQuery, serversMap]);
   const filteredToday = useMemo(() => filterBySearch(todayCustomers), [todayCustomers, searchQuery, serversMap]);
+  const filteredOneDayOverdue = useMemo(() => filterBySearch(oneDayOverdueCustomers), [oneDayOverdueCustomers, searchQuery, serversMap]);
 
   // Filters customers that are actually ready to be notified (not in cooldown)
   const notifiableList = useMemo(() => {
-    const list = activeSubTab === 'threeDays' ? filteredThreeDays : filteredToday;
+    const list = activeSubTab === 'threeDays' ? filteredThreeDays : 
+                 activeSubTab === 'today' ? filteredToday :
+                 filteredOneDayOverdue;
     return list.filter(c => {
       const plan = plansMap.get(c.planId || (c as any).plan_id);
       const isTest = plan?.name?.toLowerCase().includes('teste') || false;
@@ -130,6 +140,14 @@ export function Radar({
         return !isRecentlyNotified;
       }
 
+      if (days <= 0) {
+        const lastOverdueNotified = c.lastOverdueNotifiedDate || (c as any).last_overdue_notified_date;
+        const lastOverdueDate = lastOverdueNotified ? parseRobustLocalTime(lastOverdueNotified) : null;
+        if (lastOverdueDate) lastOverdueDate.setHours(0, 0, 0, 0);
+        const isOnCooldown = lastOverdueDate && !isNaN(lastOverdueDate.getTime()) && Math.round((today.getTime() - lastOverdueDate.getTime()) / (1000 * 60 * 60 * 24)) < 10;
+        return !isOnCooldown;
+      }
+
       if (days === 1) {
         const lastNotifiedStr = c.lastNotifiedDate;
         const isNotifiedToday = lastNotifiedStr ? format(parseRobustLocalTime(lastNotifiedStr), 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd') : false;
@@ -142,7 +160,7 @@ export function Radar({
       const isRecentlyNotified = lastNotified && !isNaN(lastNotified.getTime()) && Math.round((today.getTime() - lastNotified.getTime()) / (1000 * 60 * 60 * 24)) < 10;
       return !isRecentlyNotified;
     });
-  }, [activeSubTab, filteredThreeDays, filteredToday, plansMap, today]);
+  }, [activeSubTab, filteredThreeDays, filteredToday, filteredOneDayOverdue, plansMap, today]);
 
   // Modal open and close handlers
   const openRenewModal = (customer: Customer) => {
@@ -199,6 +217,15 @@ export function Radar({
       return { isDisabled: isRecentlyNotified, messageType: 'test' };
     }
 
+    if (days <= 0) {
+      // Overdue clients: Cooldown is 10 days on lastOverdueNotifiedDate
+      const lastOverdueNotified = c.lastOverdueNotifiedDate || (c as any).last_overdue_notified_date;
+      const lastOverdueDate = lastOverdueNotified ? parseRobustLocalTime(lastOverdueNotified) : null;
+      if (lastOverdueDate) lastOverdueDate.setHours(0, 0, 0, 0);
+      const isOnCooldown = lastOverdueDate && !isNaN(lastOverdueDate.getTime()) && Math.round((today.getTime() - lastOverdueDate.getTime()) / (1000 * 60 * 60 * 24)) < 10;
+      return { isDisabled: !!isOnCooldown, messageType: 'overdue' };
+    }
+
     if (days === 1) {
       // Expiration day: Cooldown is only 1 day (meaning only disable if notified today)
       const lastNotifiedStr = c.lastNotifiedDate;
@@ -228,6 +255,8 @@ export function Radar({
 
     if (days === 1) return 'Vence hoje';
     if (days === 2) return 'Vence amanhã';
+    if (days === 0) return 'Vencido há 1 dia';
+    if (days < 0) return `Vencido há ${Math.abs(days - 1)} dias`;
     return `Vence em ${days} dias`;
   };
 
@@ -280,7 +309,11 @@ export function Radar({
     setIsResetModalOpen(false);
   };
 
-  const currentList = activeSubTab === 'threeDays' ? filteredThreeDays : filteredToday;
+  const currentList = useMemo(() => {
+    if (activeSubTab === 'threeDays') return filteredThreeDays;
+    if (activeSubTab === 'today') return filteredToday;
+    return filteredOneDayOverdue;
+  }, [activeSubTab, filteredThreeDays, filteredToday, filteredOneDayOverdue]);
 
   return (
     <div className="space-y-6 pb-24">
@@ -319,32 +352,49 @@ export function Radar({
         <div className="flex bg-[#161616] p-1 rounded-2xl border border-white/5">
           <button
             onClick={() => setActiveSubTab('threeDays')}
-            className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center space-x-2 ${
+            className={`flex-1 py-3 px-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center space-x-1.5 ${
               activeSubTab === 'threeDays'
                 ? 'bg-[#c8a646] text-[#0f0f0f] shadow-lg shadow-[#c8a646]/20'
                 : 'text-gray-400 hover:text-white hover:bg-white/5'
             }`}
           >
             <span>Alerta 3 Dias</span>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+            <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${
               activeSubTab === 'threeDays' ? 'bg-[#0f0f0f]/20 text-[#0f0f0f]' : 'bg-white/10 text-gray-300'
             }`}>
               {threeDaysCustomers.length}
             </span>
           </button>
+          
           <button
             onClick={() => setActiveSubTab('today')}
-            className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center space-x-2 ${
+            className={`flex-1 py-3 px-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center space-x-1.5 ${
               activeSubTab === 'today'
                 ? 'bg-[#c8a646] text-[#0f0f0f] shadow-lg shadow-[#c8a646]/20'
                 : 'text-gray-400 hover:text-white hover:bg-white/5'
             }`}
           >
             <span>Vence Hoje</span>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+            <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${
               activeSubTab === 'today' ? 'bg-[#0f0f0f]/20 text-[#0f0f0f]' : 'bg-white/10 text-gray-300'
             }`}>
               {todayCustomers.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveSubTab('oneDayOverdue')}
+            className={`flex-1 py-3 px-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center space-x-1.5 ${
+              activeSubTab === 'oneDayOverdue'
+                ? 'bg-[#c8a646] text-[#0f0f0f] shadow-lg shadow-[#c8a646]/20'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <span>Vencidos 1 Dia</span>
+            <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${
+              activeSubTab === 'oneDayOverdue' ? 'bg-[#0f0f0f]/20 text-[#0f0f0f]' : 'bg-white/10 text-gray-300'
+            }`}>
+              {oneDayOverdueCustomers.length}
             </span>
           </button>
         </div>
@@ -377,9 +427,11 @@ export function Radar({
                       <div className="flex flex-col">
                         <div className="mb-2.5">
                           <span className={`inline-block px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider shadow-lg ${
-                            days === 1
-                              ? 'bg-amber-500 text-black shadow-amber-500/10'
-                              : 'bg-[#c8a646]/20 text-[#c8a646]'
+                            days <= 0
+                              ? 'bg-red-500 text-white shadow-red-500/10'
+                              : (days === 1
+                                ? 'bg-amber-500 text-black shadow-amber-500/10'
+                                : 'bg-[#c8a646]/20 text-[#c8a646]')
                           }`}>
                             {daysText}
                           </span>
@@ -401,7 +453,8 @@ export function Radar({
                         {/* Notify Button */}
                         <button
                           onClick={() => {
-                            const template = days === 1 ? todayMessage : whatsappMessage;
+                            const isOverdue = days <= 0;
+                            const template = isOverdue ? overdueMessage : (days === 1 ? todayMessage : whatsappMessage);
                             const message = formatWhatsappMessage(template, {
                               name: c.name,
                               amount: c.amountPaid,
@@ -409,7 +462,11 @@ export function Radar({
                             }, isTest);
 
                             // Update notified timestamp
-                            updateCustomer(c.id, { lastNotifiedDate: format(today, 'yyyy-MM-dd') });
+                            if (isOverdue) {
+                              updateCustomer(c.id, { lastOverdueNotifiedDate: format(today, 'yyyy-MM-dd') });
+                            } else {
+                              updateCustomer(c.id, { lastNotifiedDate: format(today, 'yyyy-MM-dd') });
+                            }
                             window.open(`https://wa.me/${c.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
                           }}
                           disabled={isDisabled || userRole === 'observer'}
@@ -452,7 +509,7 @@ export function Radar({
                   Todos os clientes estão com prazos diferentes ou a busca não encontrou resultados.
                 </p>
               </>
-            ) : (
+            ) : activeSubTab === 'today' ? (
               <>
                 <div className="bg-[#c8a646]/10 p-4 rounded-full border border-[#c8a646]/20 mb-4">
                   <Clock size={32} className="text-[#c8a646]" />
@@ -460,6 +517,16 @@ export function Radar({
                 <h3 className="font-bold text-white text-lg mb-1">Tudo em dia!</h3>
                 <p className="text-gray-500 text-xs max-w-xs leading-relaxed">
                   Não há clientes vencendo hoje.
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="bg-[#c8a646]/10 p-4 rounded-full border border-[#c8a646]/20 mb-4">
+                  <Clock size={32} className="text-[#c8a646]" />
+                </div>
+                <h3 className="font-bold text-white text-lg mb-1">Sem vencidos ontem</h3>
+                <p className="text-gray-500 text-xs max-w-xs leading-relaxed">
+                  Não há clientes que venceram há 1 dia.
                 </p>
               </>
             )}
