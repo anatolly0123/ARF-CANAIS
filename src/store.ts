@@ -263,19 +263,30 @@ export function useStore(user: User | null) {
         ] = await phase2Promise;
 
         if (customersData) {
-          const mappedCustomers = customersData.map((c: any) => ({
-            id: c.id?.toString() || '',
-            name: c.name || 'Sem Nome',
-            phone: c.phone || '',
-            serverId: (c.server_id || c.serverId || '').toString(),
-            planId: (PLAN_ID_MAP[c.plan_id] || PLAN_ID_MAP[c.planId] || c.plan_id || c.planId || '').toString(),
-            amountPaid: parseSafeNumber(c.amount_paid ?? c.amountPaid),
-            dueDate: c.due_date || c.dueDate || '',
-            lastNotifiedDate: c.last_notified_date !== undefined ? c.last_notified_date : (c.last_not_date !== undefined ? c.last_not_date : c.lastNotifiedDate),
-            lastOverdueNotifiedDate: c.last_overdue_notified_date !== undefined ? c.last_overdue_notified_date : c.lastOverdueNotifiedDate,
-            hasResetCounters: Boolean(c.has_reset_counters !== undefined ? c.has_reset_counters : c.hasResetCounters),
-            country: c.country || 'Brasil'
-          }));
+          const localCustomersRaw = localStorage.getItem('arf_customers');
+          const localCustomers: any[] = localCustomersRaw ? JSON.parse(localCustomersRaw) : [];
+          const localCountryMap = new Map(localCustomers.map(lc => [lc.id, lc.country]));
+
+          const mappedCustomers = customersData.map((c: any) => {
+            const rawPhone = c.phone || '';
+            const phoneParts = rawPhone.split(':::');
+            const cleanPhone = phoneParts[0];
+            const countryFromPhone = phoneParts.length > 1 ? phoneParts[1] : undefined;
+
+            return {
+              id: c.id?.toString() || '',
+              name: c.name || 'Sem Nome',
+              phone: cleanPhone,
+              serverId: (c.server_id || c.serverId || '').toString(),
+              planId: (PLAN_ID_MAP[c.plan_id] || PLAN_ID_MAP[c.planId] || c.plan_id || c.planId || '').toString(),
+              amountPaid: parseSafeNumber(c.amount_paid ?? c.amountPaid),
+              dueDate: c.due_date || c.dueDate || '',
+              lastNotifiedDate: c.last_notified_date !== undefined ? c.last_notified_date : (c.last_not_date !== undefined ? c.last_not_date : c.lastNotifiedDate),
+              lastOverdueNotifiedDate: c.last_overdue_notified_date !== undefined ? c.last_overdue_notified_date : c.lastOverdueNotifiedDate,
+              hasResetCounters: Boolean(c.has_reset_counters !== undefined ? c.has_reset_counters : c.hasResetCounters),
+              country: countryFromPhone || localCountryMap.get(c.id?.toString()) || 'Brasil'
+            };
+          });
           setCustomers(mappedCustomers);
           localStorage.setItem('arf_customers', JSON.stringify(mappedCustomers));
         }
@@ -384,14 +395,13 @@ export function useStore(user: User | null) {
       const { error } = await supabase.from('customers').insert({
         id: customer.id,
         name: customer.name,
-        phone: customer.phone,
+        phone: `${customer.phone}:::${customer.country || 'Brasil'}`,
         server_id: toUUID(customer.serverId),
         plan_id: toUUID(customer.planId),
         amount_paid: customer.amountPaid,
         due_date: ensureISO(customer.dueDate),
         last_notified_date: customer.lastNotifiedDate ? ensureISO(customer.lastNotifiedDate) : null,
         last_overdue_notified_date: customer.lastOverdueNotifiedDate ? ensureISO(customer.lastOverdueNotifiedDate) : null,
-        country: customer.country || 'Brasil',
         user_id: user.id
       });
       if (error) {
@@ -407,14 +417,18 @@ export function useStore(user: User | null) {
     if (user) {
       const updateData: any = {};
       if (data.name !== undefined) updateData.name = data.name;
-      if (data.phone !== undefined) updateData.phone = data.phone;
+      if (data.phone !== undefined || data.country !== undefined) {
+         const currentCustomer = customers.find(c => c.id === id);
+         const phoneToSave = data.phone !== undefined ? data.phone : (currentCustomer?.phone || '');
+         const countryToSave = data.country !== undefined ? data.country : (currentCustomer?.country || 'Brasil');
+         updateData.phone = `${phoneToSave}:::${countryToSave}`;
+      }
       if (data.serverId !== undefined) updateData.server_id = toUUID(data.serverId);
       if (data.planId !== undefined) updateData.plan_id = toUUID(data.planId);
       if (data.amountPaid !== undefined) updateData.amount_paid = data.amountPaid;
       if (data.dueDate !== undefined) updateData.due_date = ensureISO(data.dueDate);
       if ('lastNotifiedDate' in data) updateData.last_notified_date = data.lastNotifiedDate ? ensureISO(data.lastNotifiedDate) : null;
       if ('lastOverdueNotifiedDate' in data) updateData.last_overdue_notified_date = data.lastOverdueNotifiedDate ? ensureISO(data.lastOverdueNotifiedDate) : null;
-      if (data.country !== undefined) updateData.country = data.country;
       supabase.from('customers').update(updateData).eq('id', id).then(({ error }) => {
         if (error) console.error('Error updating customer in cloud:', error);
       });
@@ -735,14 +749,13 @@ export function useStore(user: User | null) {
         const { error } = await supabase.from('customers').upsert(dataToSync.customers.map(c => ({
           id: c.id,
           name: c.name,
-          phone: c.phone,
+          phone: `${c.phone}:::${c.country || 'Brasil'}`,
           server_id: toUUID(c.serverId),
           plan_id: toUUID(c.planId),
           amount_paid: c.amountPaid,
           due_date: ensureISO(c.dueDate),
           last_notified_date: c.lastNotifiedDate ? ensureISO(c.lastNotifiedDate) : null,
           last_overdue_notified_date: c.lastOverdueNotifiedDate ? ensureISO(c.lastOverdueNotifiedDate) : null,
-          country: c.country || 'Brasil',
           user_id: user.id
         })));
         if (error) throw error;
