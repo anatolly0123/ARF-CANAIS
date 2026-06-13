@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { formatCurrency, isCustomerActive, formatWhatsappMessage, parseSafeNumber, parseRobustLocalTime, formatForDateTimeInput, formatForDateInput, ensureISO, COUNTRIES } from '../utils';
 import { Modal } from '../components/Modal';
 import { RenewModal } from '../components/RenewModal';
-import { Plus, Search, Filter, Phone, RefreshCw, Edit2, Trash2, Calendar, CheckCircle, XCircle, MessageCircle, Users, Award, Star, UserX, ArrowRightLeft, ChevronDown, Check, Clock } from 'lucide-react';
+import { Plus, Search, Filter, Phone, RefreshCw, Edit2, Trash2, Calendar, CheckCircle, XCircle, MessageCircle, Users, Award, Star, UserX, ArrowRightLeft, ChevronDown, Check, Clock, Globe } from 'lucide-react';
 import { TransferModal } from '../components/TransferModal';
 import { UserRole } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -299,6 +299,7 @@ export function Customers({
 
       if (type === 'server' && c.serverId !== value) return false;
       if (type === 'plan' && c.planId !== value) return false;
+      if (type === 'country' && (c.country || 'Brasil') !== value) return false;
       if (type === 'status') {
         const dueDate = parseRobustLocalTime(c.dueDate);
         dueDate.setHours(0, 0, 0, 0);
@@ -486,6 +487,26 @@ export function Customers({
                             >
                               <span>{p.name}</span>
                               {filter === `plan:${p.id}` && <Check size={16} />}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Country Group */}
+                      <div className="px-6 py-2 mt-2 mb-4">
+                        <div className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em] mb-2 flex items-center space-x-2">
+                          <Globe size={12} />
+                          <span>País</span>
+                        </div>
+                        <div className="space-y-1">
+                          {COUNTRIES.map(c => (
+                            <button
+                              key={c}
+                              onClick={() => { setFilter(`country:${c}`); setIsFilterOpen(false); }}
+                              className={`w-full px-4 py-3 rounded-xl text-left text-sm font-bold transition-all flex items-center justify-between ${filter === `country:${c}` ? 'bg-[#c8a646]/10 text-[#c8a646]' : 'text-gray-400 hover:bg-white/5'}`}
+                            >
+                              <span>{c}</span>
+                              {filter === `country:${c}` && <Check size={16} />}
                             </button>
                           ))}
                         </div>
