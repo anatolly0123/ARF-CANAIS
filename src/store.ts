@@ -273,7 +273,8 @@ export function useStore(user: User | null) {
             dueDate: c.due_date || c.dueDate || '',
             lastNotifiedDate: c.last_notified_date !== undefined ? c.last_notified_date : (c.last_not_date !== undefined ? c.last_not_date : c.lastNotifiedDate),
             lastOverdueNotifiedDate: c.last_overdue_notified_date !== undefined ? c.last_overdue_notified_date : c.lastOverdueNotifiedDate,
-            hasResetCounters: Boolean(c.has_reset_counters !== undefined ? c.has_reset_counters : c.hasResetCounters)
+            hasResetCounters: Boolean(c.has_reset_counters !== undefined ? c.has_reset_counters : c.hasResetCounters),
+            country: c.country || 'Brasil'
           }));
           setCustomers(mappedCustomers);
           localStorage.setItem('arf_customers', JSON.stringify(mappedCustomers));
@@ -390,6 +391,7 @@ export function useStore(user: User | null) {
         due_date: ensureISO(customer.dueDate),
         last_notified_date: customer.lastNotifiedDate ? ensureISO(customer.lastNotifiedDate) : null,
         last_overdue_notified_date: customer.lastOverdueNotifiedDate ? ensureISO(customer.lastOverdueNotifiedDate) : null,
+        country: customer.country || 'Brasil',
         user_id: user.id
       });
       if (error) {
@@ -412,6 +414,7 @@ export function useStore(user: User | null) {
       if (data.dueDate !== undefined) updateData.due_date = ensureISO(data.dueDate);
       if ('lastNotifiedDate' in data) updateData.last_notified_date = data.lastNotifiedDate ? ensureISO(data.lastNotifiedDate) : null;
       if ('lastOverdueNotifiedDate' in data) updateData.last_overdue_notified_date = data.lastOverdueNotifiedDate ? ensureISO(data.lastOverdueNotifiedDate) : null;
+      if (data.country !== undefined) updateData.country = data.country;
       supabase.from('customers').update(updateData).eq('id', id).then(({ error }) => {
         if (error) console.error('Error updating customer in cloud:', error);
       });
@@ -739,6 +742,7 @@ export function useStore(user: User | null) {
           due_date: ensureISO(c.dueDate),
           last_notified_date: c.lastNotifiedDate ? ensureISO(c.lastNotifiedDate) : null,
           last_overdue_notified_date: c.lastOverdueNotifiedDate ? ensureISO(c.lastOverdueNotifiedDate) : null,
+          country: c.country || 'Brasil',
           user_id: user.id
         })));
         if (error) throw error;

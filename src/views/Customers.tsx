@@ -187,9 +187,9 @@ export function Customers({
         amountPaid: customer.amountPaid.toString(),
         dueDate: isActivatingTest
           ? format(new Date(Date.now() + 4 * 60 * 60 * 1000), "yyyy-MM-dd'T'HH:mm")
-          : (customer.dueDate && (customer.dueDate.includes('T') || customer.dueDate.includes('Z'))
-            ? formatForDateTimeInput(customer.dueDate)
-            : formatForDateInput(customer.dueDate)),
+          : (plans.find(p => p.id === customer.planId)?.name?.toLowerCase().includes('teste')
+            ? formatForDateTimeInput(customer.dueDate || '')
+            : formatForDateInput(customer.dueDate || '')),
         country: customer.country || 'Brasil'
       });
     } else {
