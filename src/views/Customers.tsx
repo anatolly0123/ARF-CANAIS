@@ -612,65 +612,108 @@ export function Customers({
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
-                className="glass-card rounded-2xl p-4 shadow-lg group relative overflow-hidden active:scale-[0.98] transition-transform"
+                className="glass-card rounded-2xl p-5 shadow-lg group relative overflow-hidden transition-all duration-300 hover:border-white/10"
               >
                 {/* Status Glow Background */}
                 <div
-                  className="absolute -top-10 -right-10 w-24 h-24 rounded-full blur-[40px] opacity-20 pointer-events-none transition-colors duration-500"
+                  className="absolute -top-10 -right-10 w-24 h-24 rounded-full blur-[40px] opacity-15 pointer-events-none transition-colors duration-500"
                   style={{ backgroundColor: statusColor }}
                 />
 
                 {/* Visual Accent */}
                 <div className="absolute top-0 left-0 w-1 h-full opacity-60 transition-colors duration-500" style={{ backgroundColor: statusColor }} />
 
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h3 className="text-lg font-bold text-white flex items-center space-x-2">
-                      <span>{customer.name}</span>
-                      {isTest ? (
-                        isPendingTest ? (
-                          <span className="bg-blue-500/20 text-blue-400 text-[10px] font-bold px-1.5 py-0.5 rounded animate-pulse uppercase tracking-widest">Aguardando Ativação</span>
-                        ) : isActive ? (
-                          <Clock size={14} className="text-[#c8a646]" />
-                        ) : (
-                          <XCircle size={14} className="text-red-500" />
-                        )
-                      ) : (
-                        isActive ? (
-                          <CheckCircle size={14} className="text-green-500" />
-                        ) : (
-                          <XCircle size={14} className="text-red-500" />
-                        )
-                      )}
-                      {(daysDiff === 1 || daysDiff === 2) && !isRecentlyNotified && !isTest && (
-                        <span className="bg-[#c8a646] text-[#0f0f0f] text-[10px] font-bold px-1.5 py-0.5 rounded shadow-lg shadow-[#c8a646]/20">
-                          NOTIFICAR
-                        </span>
-                      )}
-                      {isExpiredTest && (
-                        <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded animate-pulse">
-                          TESTE EXPIRADO
-                        </span>
-                      )}
+                {/* Row 1: Header (Name & Status Badge) */}
+                <div className="flex justify-between items-start gap-4 mb-3">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-lg font-bold text-white tracking-tight leading-snug break-words">
+                      {customer.name}
                     </h3>
-                    <div className="text-xs text-[#c8a646] uppercase tracking-wider mt-1 opacity-80">{server?.name} • {plan?.name}</div>
+                    <div className="text-xs text-[#c8a646] uppercase tracking-wider mt-1 opacity-85 font-medium">
+                      {server?.name} • {plan?.name}
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-1.5">
+
+                  {/* Status Badge */}
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
                     {isPendingTest ? (
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => openModal(customer, true)}
-                          className="px-4 py-2 bg-[#c8a646] text-[#0f0f0f] rounded-full hover:bg-[#e8c666] transition-all font-bold text-[10px] uppercase tracking-widest flex items-center space-x-2 shadow-lg shadow-[#c8a646]/20"
-                        >
-                          <Clock size={12} />
-                          <span>Ativar</span>
-                        </button>
-                        <button onClick={() => setCustomerToDelete(customer)} className="p-2 text-red-400 hover:text-red-300 transition-colors bg-red-500/10 rounded-full" title="Excluir">
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
+                      <span className="bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse" />
+                        Pendente
+                      </span>
+                    ) : isExpiredTest ? (
+                      <span className="bg-red-500/10 text-red-400 border border-red-500/20 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1.5 animate-pulse">
+                        <span className="w-1.5 h-1.5 bg-red-400 rounded-full" />
+                        Teste Exp.
+                      </span>
+                    ) : isTest && isActive ? (
+                      <span className="bg-amber-500/10 text-[#c8a646] border border-[#c8a646]/20 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1.5">
+                        <Clock size={11} />
+                        Teste Ativo
+                      </span>
+                    ) : isActive ? (
+                      <span className="bg-green-500/10 text-green-400 border border-green-500/20 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1.5">
+                        <CheckCircle size={11} />
+                        Ativo
+                      </span>
                     ) : (
-                      <>
+                      <span className="bg-red-500/10 text-red-400 border border-red-500/20 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1.5">
+                        <XCircle size={11} />
+                        Vencido
+                      </span>
+                    )}
+
+                    {/* Notify Indicator Badge */}
+                    {((daysDiff === 1 || daysDiff === 2) && !isRecentlyNotified && !isTest) && (
+                      <span className="bg-[#c8a646] text-[#0f0f0f] text-[9px] font-black px-2 py-0.5 rounded shadow-md uppercase tracking-wider">
+                        Notificar
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Row 2: Info (Vencimento & Valor) */}
+                <div className="flex items-center justify-between py-3 my-2 border-y border-white/5 bg-white/[0.01] px-2 rounded-xl">
+                  <div className="flex items-center space-x-2 text-sm">
+                    <Calendar size={14} className="text-gray-500" />
+                    <span className="text-xs text-gray-400 font-medium">Vencimento:</span>
+                    <span className={`font-bold text-xs ${isPendingTest ? 'text-blue-400' : !isActive ? 'text-red-500' : daysDiff <= 10 ? 'text-[#c8a646]' : 'text-gray-300'}`}>
+                      {isPendingTest ? 'Pendente' : (() => {
+                        try {
+                          if (isNaN(dueDate.getTime())) return 'Inválida';
+                          return isTest ? format(dueDate, 'dd/MM HH:mm') : format(dueDate, 'dd/MM/yyyy');
+                        } catch { return 'Erro'; }
+                      })()}
+                    </span>
+                  </div>
+                  <div className="text-xs font-bold text-white bg-[#c8a646]/10 px-3 py-1 rounded-lg border border-[#c8a646]/20">
+                    {formatCurrency(customer.amountPaid)}
+                  </div>
+                </div>
+
+                {/* Row 3: Action Toolbar */}
+                <div className="flex items-center justify-between mt-3 pt-2 gap-2">
+                  {isPendingTest ? (
+                    <div className="flex items-center justify-between w-full">
+                      <button
+                        onClick={() => openModal(customer, true)}
+                        className="px-4 py-2 bg-[#c8a646] text-[#0f0f0f] rounded-xl hover:bg-[#e8c666] transition-all font-bold text-[10px] uppercase tracking-widest flex items-center space-x-2 shadow-lg shadow-[#c8a646]/10 active:scale-95 cursor-pointer"
+                      >
+                        <Clock size={12} />
+                        <span>Ativar</span>
+                      </button>
+                      <button 
+                        onClick={() => setCustomerToDelete(customer)} 
+                        className="p-2 text-red-400 hover:text-red-300 transition-colors bg-red-500/10 hover:bg-red-500/20 rounded-xl cursor-pointer" 
+                        title="Excluir"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Communication Actions */}
+                      <div className="flex items-center gap-1.5">
                         <button
                           onClick={() => {
                             const message = formatWhatsappMessage(whatsappMessage, {
@@ -683,16 +726,22 @@ export function Customers({
                             window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
                           }}
                           disabled={(daysDiff === 1 || daysDiff === 2) && isRecentlyNotified}
-                          className={`p-2 rounded-full transition-all duration-300 ${
+                          className={`p-2.5 rounded-xl transition-all duration-300 relative flex items-center justify-center cursor-pointer ${
                             (daysDiff === 1 || daysDiff === 2) && isRecentlyNotified
-                              ? 'bg-green-500/5 text-green-500/30 cursor-not-allowed border border-green-500/5'
+                              ? 'bg-green-500/5 text-green-500/20 cursor-not-allowed border border-green-500/5'
                               : (daysDiff === 1 || daysDiff === 2) && !isRecentlyNotified 
-                                ? 'bg-green-600/30 text-green-400 shadow-lg shadow-green-600/20' 
-                                : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'
+                                ? 'bg-green-600/25 text-green-400 shadow-md shadow-green-500/10 hover:bg-green-600 hover:text-[#0f0f0f]' 
+                                : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 border border-white/5'
                           }`}
                           title="WhatsApp"
                         >
-                          <Phone size={16} />
+                          <Phone size={15} />
+                          {((daysDiff === 1 || daysDiff === 2) && !isRecentlyNotified && !isTest) && (
+                            <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                            </span>
+                          )}
                         </button>
 
                         {isExpiredTest && (
@@ -705,83 +754,83 @@ export function Customers({
                               }, isTest);
                               window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
                             }}
-                            className="p-2 bg-[#c8a646]/20 text-[#c8a646] rounded-full hover:bg-[#c8a646]/30 transition-all shadow-lg shadow-[#c8a646]/20"
+                            className="p-2.5 bg-[#c8a646]/10 text-[#c8a646] hover:bg-[#c8a646] hover:text-[#0f0f0f] border border-[#c8a646]/20 rounded-xl transition-all shadow-md shadow-[#c8a646]/5 active:scale-95 cursor-pointer"
                             title="Notificar Teste"
                           >
-                            <MessageCircle size={16} />
+                            <MessageCircle size={15} />
                           </button>
                         )}
 
-                        {userRole !== 'observer' && (
-                          <div className="flex items-center space-x-1.5">
-                            {!isActive && (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  const lastOverdueNotified = customer.lastOverdueNotifiedDate;
-                                  const lastOverdueDate = lastOverdueNotified ? parseRobustLocalTime(lastOverdueNotified) : null;
-                                  if (lastOverdueDate) lastOverdueDate.setHours(0, 0, 0, 0);
-                                  const isOnCooldown = lastOverdueDate && !isNaN(lastOverdueDate.getTime()) && Math.round((today.getTime() - lastOverdueDate.getTime()) / (1000 * 60 * 60 * 24)) < 10;
+                        {userRole !== 'observer' && !isActive && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              const lastOverdueNotified = customer.lastOverdueNotifiedDate;
+                              const lastOverdueDate = lastOverdueNotified ? parseRobustLocalTime(lastOverdueNotified) : null;
+                              if (lastOverdueDate) lastOverdueDate.setHours(0, 0, 0, 0);
+                              const isOnCooldown = lastOverdueDate && !isNaN(lastOverdueDate.getTime()) && Math.round((today.getTime() - lastOverdueDate.getTime()) / (1000 * 60 * 60 * 24)) < 10;
 
-                                  if (isOnCooldown) { e.preventDefault(); e.stopPropagation(); return; }
+                              if (isOnCooldown) { e.preventDefault(); e.stopPropagation(); return; }
 
-                                  const message = formatWhatsappMessage(overdueMessage, {
-                                    name: customer.name,
-                                    amount: customer.amountPaid,
-                                    dueDate: customer.dueDate
-                                  }, isTest);
+                              const message = formatWhatsappMessage(overdueMessage, {
+                                name: customer.name,
+                                amount: customer.amountPaid,
+                                dueDate: customer.dueDate
+                              }, isTest);
 
-                                  updateCustomer(customer.id, { lastOverdueNotifiedDate: format(today, 'yyyy-MM-dd') });
-                                  window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
-                                }}
-                                disabled={Boolean(isOnCooldown)}
-                                className={`p-2 rounded-full transition-all duration-300 ${isOnCooldown
-                                  ? 'bg-gray-500/10 text-gray-600 opacity-40 cursor-not-allowed'
-                                  : 'bg-red-500/10 text-red-500 hover:bg-red-500/20'
-                                  }`}
-                                title="Lembrar"
-                              >
-                                <MessageCircle size={16} />
-                              </button>
-                            )}
-
-                            <button onClick={() => openRenewModal(customer)} className="p-2 text-green-400 hover:text-green-300 transition-colors bg-white/5 hover:bg-green-500/10 rounded-full" title="Renovar">
-                              <RefreshCw size={16} />
-                            </button>
-
-                            <div className="flex bg-white/5 rounded-full p-1 border border-white/5">
-                              <button onClick={() => setSelectedCustomerForTransfer(customer)} className="p-1.5 text-blue-400 hover:text-blue-300 transition-colors hover:bg-blue-500/10 rounded-full" title="Mudar Servidor">
-                                <ArrowRightLeft size={14} />
-                              </button>
-                              <button onClick={() => openModal(customer)} className="p-1.5 text-gray-400 hover:text-white transition-colors hover:bg-white/10 rounded-full" title="Editar">
-                                <Edit2 size={14} />
-                              </button>
-                              <button onClick={() => setCustomerToDelete(customer)} className="p-1.5 text-red-400 hover:text-red-300 transition-colors hover:bg-red-500/10 rounded-full" title="Excluir">
-                                <Trash2 size={14} />
-                              </button>
-                            </div>
-                          </div>
+                              updateCustomer(customer.id, { lastOverdueNotifiedDate: format(today, 'yyyy-MM-dd') });
+                              window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
+                            }}
+                            disabled={Boolean(isOnCooldown)}
+                            className={`p-2.5 rounded-xl transition-all duration-300 relative flex items-center justify-center cursor-pointer ${isOnCooldown
+                              ? 'bg-gray-500/10 text-gray-600 opacity-40 cursor-not-allowed border border-white/5'
+                              : 'bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white border border-red-500/20 active:scale-95'
+                              }`}
+                            title="Lembrar"
+                          >
+                            <MessageCircle size={15} />
+                          </button>
                         )}
-                      </>
-                    )}
-                  </div>
-                </div>
+                      </div>
 
-                <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/5">
-                  <div className="flex items-center space-x-2 text-sm">
-                    <Calendar size={14} className="text-gray-500" />
-                    <span className={`font-bold ${isPendingTest ? 'text-blue-400' : !isActive ? 'text-red-500' : daysDiff <= 10 ? 'text-[#c8a646]' : 'text-gray-300'}`}>
-                      {isPendingTest ? 'Pendente' : (() => {
-                        try {
-                          if (isNaN(dueDate.getTime())) return 'Inválida';
-                          return isTest ? format(dueDate, 'dd/MM HH:mm') : format(dueDate, 'dd/MM/yyyy');
-                        } catch { return 'Erro'; }
-                      })()}
-                    </span>
-                  </div>
-                  <div className="text-sm font-black text-white bg-[#c8a646]/10 px-3 py-1 rounded-full border border-[#c8a646]/20">
-                    {formatCurrency(customer.amountPaid)}
-                  </div>
+                      {/* Administrative Actions */}
+                      {userRole !== 'observer' && (
+                        <div className="flex items-center gap-1.5 ml-auto">
+                          <button 
+                            onClick={() => openRenewModal(customer)} 
+                            className="p-2.5 text-green-400 hover:text-[#0f0f0f] bg-green-500/10 hover:bg-green-400 border border-green-500/20 rounded-xl transition-all active:scale-95 cursor-pointer" 
+                            title="Renovar"
+                          >
+                            <RefreshCw size={15} />
+                          </button>
+
+                          <div className="flex bg-white/5 rounded-xl p-0.5 border border-white/5 items-center">
+                            <button 
+                              onClick={() => setSelectedCustomerForTransfer(customer)} 
+                              className="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-500/15 rounded-lg transition-colors cursor-pointer" 
+                              title="Mudar Servidor"
+                            >
+                              <ArrowRightLeft size={13} />
+                            </button>
+                            <button 
+                              onClick={() => openModal(customer)} 
+                              className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer" 
+                              title="Editar"
+                            >
+                              <Edit2 size={13} />
+                            </button>
+                            <button 
+                              onClick={() => setCustomerToDelete(customer)} 
+                              className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/15 rounded-lg transition-colors cursor-pointer" 
+                              title="Excluir"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               </motion.div>
             );
