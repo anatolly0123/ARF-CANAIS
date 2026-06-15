@@ -1,7 +1,27 @@
 import { format, parseISO, isAfter, differenceInDays } from 'date-fns';
 
-export const formatCurrency = (val: number) =>
-  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+export const COUNTRIES = [
+  "Estados Unidos", "Brasil", "Paraguai"
+];
+
+const EURO_COUNTRIES = new Set([
+  "Alemanha", "Áustria", "Bélgica", "Chipre", "Croácia", "Eslováquia", "Eslovênia", "Espanha", "Estônia", "Finlândia", "França", "Grécia", "Irlanda", "Itália", "Letônia", "Lituânia", "Luxemburgo", "Malta", "Países Baixos", "Portugal"
+]);
+
+export const getCurrencyCode = (country?: string): string => {
+  if (!country || country === 'Brasil') return 'BRL';
+  if (EURO_COUNTRIES.has(country) || country === 'Europa') return 'EUR';
+  if (country === 'Reino Unido') return 'GBP';
+  return 'USD';
+};
+
+export const formatCurrency = (val: number, country: string = 'Brasil') => {
+  const currency = getCurrencyCode(country);
+  if (currency === 'BRL') return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+  if (currency === 'EUR') return new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(val);
+  if (currency === 'GBP') return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(val);
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
+};
 
 export const parseSafeNumber = (val: any): number => {
   if (typeof val === 'number') return isNaN(val) ? 0 : val;

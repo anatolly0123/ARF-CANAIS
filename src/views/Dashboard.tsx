@@ -3,7 +3,7 @@ import { Customer, Server, Plan, Renewal, ManualAddition } from '../types';
 import { format, parseISO, isAfter, differenceInDays, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { TrendingUp, TrendingDown, DollarSign, Users, MessageCircle, ChevronRight, Server as ServerIcon, Calendar, CheckCircle, Clock, RefreshCw } from 'lucide-react';
-import { formatCurrency, isCustomerActive, parseSafeNumber, parseRobustLocalTime, formatWhatsappMessage } from '../utils';
+import { formatCurrency, isCustomerActive, parseSafeNumber, parseRobustLocalTime, formatWhatsappMessage, getCurrencyCode } from '../utils';
 import { UserRole } from '../types';
 
 interface DashboardProps {
@@ -31,27 +31,23 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
 
 
   // Calculate stats
-  const { grossValue, totalPaidToServers, monthlyGross, monthlyCost, serverStats, expiringCustomers, totalPlansValue, chartData } = useMemo(() => {
+  const { serverStats, expiringCustomers, chartData, monthlyCurrencyStats } = useMemo(() => {
     const plansMap = new Map(plans.map(p => [p.id, p]));
+    const customerCountryMap = new Map(customers.map(c => [c.id.toString(), c.country || 'Brasil']));
     const tMonth = today.getMonth();
     const tYear = today.getFullYear();
     const todayTime = today.getTime();
 
-    let totalGross = 0;
-    let totalCost = 0;
-    let mGross = 0;
-    let mCost = 0;
+    const currencyTotals: Record<string, { gross: number; cost: number; country: string }> = {};
 
-    const stats: Record<string, { name: string; active: number; monthlyGross: number; monthlyCost: number; accumulatedTotal: number }> = {};
+    const stats: Record<string, { name: string; active: number; currencies: Record<string, { gross: number; cost: number; country: string }> }> = {};
     servers.forEach(s => {
       const sId = (s.id || '').toString();
       if (!sId) return;
       stats[sId] = {
         name: s.name,
         active: 0,
-        monthlyGross: 0,
-        monthlyCost: 0,
-        accumulatedTotal: 0
+        currencies: {}
       };
     });
 
@@ -77,12 +73,53 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
       const cost = parseSafeNumber(r.cost || (r as any).cost);
       const dateStr = r.date || (r as any).date || (r as any).created_at;
       const sId = (r.serverId || (r as any).server_id || '').toString();
+      const rCustomerId = (r.customerId || (r as any).customer_id || '').toString();
+      const country = customerCountryMap.get(rCustomerId) || 'Brasil';
+      const currency = getCurrencyCode(country);
 
-      totalGross += amount;
-      totalCost += cost;
+      if (!currencyTotals[currency]) {
+        currencyTotals[currency] = { gross: 0, cost: 0, country };
+      }
+      if (stats[sId] && !stats[sId].currencies[currency]) {
+        stats[sId].currencies[currency] = { gross: 0, cost: 0, country };
+      }
 
-      if (stats[sId]) {
-        stats[sId].accumulatedTotal += amount;
+      if (dateStr) {
+        const d = parseRobustLocalTime(dateStr);
+        if (!isNaN(d.getTime())) {
+          // Add to chart
+          const key = `${d.getFullYear()}-${d.getMonth()}`;
+          if (monthsData[key]) {
+            monthsData[key].total += amount; // Chart still mixed
+          }
+
+          if (isCurrentMonth(d)) {
+            const planId = r.planId || (r as any).plan_id;
+            const plan = plansMap.get(planId);
+            const months = plan && plan.months > 0 ? plan.months : 1;
+            const dividedAmount = amount / months;
+            const dividedCost = cost / months;
+
+            currencyTotals[currency].gross += dividedAmount;
+            currencyTotals[currency].cost += dividedCost;
+
+            if (stats[sId]) {
+              stats[sId].currencies[currency].gross += dividedAmount;
+              stats[sId].currencies[currency].cost += dividedCost;
+            }
+          }
+        }
+      }
+    });
+
+    manualAdditions.forEach(a => {
+      const amount = parseSafeNumber(a.amount || (a as any).amount);
+      const dateStr = a.date || (a as any).date || (a as any).created_at;
+      const country = 'Brasil';
+      const currency = 'BRL';
+
+      if (!currencyTotals[currency]) {
+        currencyTotals[currency] = { gross: 0, cost: 0, country };
       }
 
       if (dateStr) {
@@ -95,42 +132,11 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
           }
 
           if (isCurrentMonth(d)) {
-            const planId = r.planId || (r as any).plan_id;
-            const plan = plansMap.get(planId);
-            const months = plan && plan.months > 0 ? plan.months : 1;
-            const dividedAmount = amount / months;
-            const dividedCost = cost / months;
-
-            mGross += dividedAmount;
-            mCost += dividedCost;
-
-            if (stats[sId]) {
-              stats[sId].monthlyGross += dividedAmount;
-              stats[sId].monthlyCost += dividedCost;
-            }
+            currencyTotals[currency].gross += amount;
           }
         }
       }
     });
-
-    const totalManualAdditions = manualAdditions.reduce((acc, a) => acc + parseSafeNumber(a.amount || (a as any).amount), 0);
-    const mAdditions = manualAdditions.reduce((acc, a) => {
-      const dateStr = a.date || (a as any).date || (a as any).created_at;
-      if (!dateStr) return acc;
-      const d = parseRobustLocalTime(dateStr);
-      if (!isNaN(d.getTime())) {
-        // Add to chart
-        const key = `${d.getFullYear()}-${d.getMonth()}`;
-        if (monthsData[key]) {
-          monthsData[key].total += parseSafeNumber(a.amount || (a as any).amount);
-        }
-
-        if (isCurrentMonth(d)) {
-          return acc + parseSafeNumber(a.amount || (a as any).amount);
-        }
-      }
-      return acc;
-    }, 0);
 
     const expiring: Customer[] = [];
 
@@ -172,20 +178,10 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
       return dateA - dateB;
     });
 
-    const totalPlansValue = customers.reduce((acc, c) => {
-      const plan = plansMap.get(c.planId || (c as any).plan_id);
-      const isTest = plan?.name?.toLowerCase().includes('teste');
-      return isCustomerActive(c.dueDate, isTest) ? acc + parseSafeNumber(c.amountPaid) : acc;
-    }, 0);
-
     return {
-      grossValue: totalGross,
-      totalPaidToServers: totalCost,
-      monthlyGross: mGross + mAdditions,
-      monthlyCost: mCost,
-      serverStats: Object.values(stats),
+      monthlyCurrencyStats: Object.entries(currencyTotals).map(([code, data]) => ({ code, ...data })).filter(d => d.gross > 0 || d.cost > 0),
+      serverStats: Object.values(stats).filter(s => s.active > 0 || Object.keys(s.currencies).length > 0),
       expiringCustomers: expiring,
-      totalPlansValue,
       chartData: Object.values(monthsData).sort((a, b) => a.timestamp - b.timestamp)
     };
   }, [customers, servers, renewals, manualAdditions, plans, today]);
@@ -300,16 +296,23 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
             </div>
           </div>
 
-          <div className="flex flex-col space-y-1">
-            <div className="text-5xl sm:text-6xl font-black text-white tracking-tighter flex items-baseline">
-              {formatCurrency(monthlyGross)}
-              <span className="ml-2 w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_15px_rgba(34,197,94,0.6)]" />
+          {monthlyCurrencyStats.map(stat => (
+            <div key={stat.code} className="flex flex-col space-y-1 mb-4">
+              <div className="text-5xl sm:text-6xl font-black text-white tracking-tighter flex items-baseline">
+                {formatCurrency(stat.gross, stat.country)}
+                <span className="ml-2 w-2.5 h-2.5 bg-green-500 rounded-full shadow-[0_0_15px_rgba(34,197,94,0.6)]" />
+              </div>
+              <div className="flex items-center space-x-2 text-red-500/60 font-bold text-[10px] uppercase tracking-widest pl-1">
+                <TrendingDown size={14} />
+                <span>Saída Operacional: {formatCurrency(stat.cost, stat.country)}</span>
+              </div>
             </div>
-            <div className="flex items-center space-x-2 text-red-500/60 font-bold text-[10px] uppercase tracking-widest pl-1">
-              <TrendingDown size={14} />
-              <span>Saída Operacional: {formatCurrency(monthlyCost)}</span>
-            </div>
-          </div>
+          ))}
+          {monthlyCurrencyStats.length === 0 && (
+             <div className="text-5xl sm:text-6xl font-black text-white tracking-tighter flex items-baseline">
+               {formatCurrency(0)}
+             </div>
+          )}
 
           {/* Quick Stats Bar */}
           <div className="grid grid-cols-2 gap-3 pt-4 border-t border-white/5">
@@ -338,15 +341,22 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
                   <div className="font-bold text-white">{stat.name}</div>
                   <div className="text-xs text-gray-400 bg-white/5 px-2 py-1 rounded-md">{stat.active} ativos</div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-[#0f0f0f] p-3 rounded-xl border border-white/5">
-                    <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Custo Mensal</div>
-                    <div className="text-sm font-bold text-red-400">{formatCurrency(stat.monthlyCost)}</div>
-                  </div>
-                  <div className="bg-[#0f0f0f] p-3 rounded-xl border border-[#c8a646]/20">
-                    <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Bruto Mensal</div>
-                    <div className="text-sm font-bold text-white">{formatCurrency(stat.monthlyGross)}</div>
-                  </div>
+                <div className="space-y-3">
+                  {Object.values(stat.currencies).map((curr, cIdx) => (
+                    <div key={cIdx} className="grid grid-cols-2 gap-3">
+                      <div className="bg-[#0f0f0f] p-3 rounded-xl border border-white/5">
+                        <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Custo ({getCurrencyCode(curr.country)})</div>
+                        <div className="text-sm font-bold text-red-400">{formatCurrency(curr.cost, curr.country)}</div>
+                      </div>
+                      <div className="bg-[#0f0f0f] p-3 rounded-xl border border-[#c8a646]/20">
+                        <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Bruto ({getCurrencyCode(curr.country)})</div>
+                        <div className="text-sm font-bold text-white">{formatCurrency(curr.gross, curr.country)}</div>
+                      </div>
+                    </div>
+                  ))}
+                  {Object.keys(stat.currencies).length === 0 && (
+                    <div className="text-xs text-gray-500 italic">Sem financeiro ativo neste mês</div>
+                  )}
                 </div>
               </div>
             ))}
