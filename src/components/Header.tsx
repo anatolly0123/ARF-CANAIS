@@ -46,13 +46,13 @@ export function Header({ activeTab, setActiveTab, userRole, userEmail, userAvata
     <header className="sticky top-0 z-50 bg-[#0f0f0f]/90 backdrop-blur-md border-b border-[#c8a646]/20 py-4 px-6 pt-[calc(1rem+env(safe-area-inset-top))] md:pt-4">
       <div className="max-w-md mx-auto flex items-center justify-between">
         <div className="flex flex-col group cursor-default">
-          <h1 className="text-2xl font-black italic tracking-tighter leading-none flex items-center">
-            <span className="text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.1)]">ARF</span>
-            <span className="ml-1.5 text-transparent bg-clip-text bg-gradient-to-r from-[#c8a646] via-[#e8c666] to-[#c8a646] font-extrabold tracking-tight">
-              CANAIS
+          <h1 className="text-2xl font-black italic tracking-tighter flex items-center">
+            <span className="text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.1)] py-1">ARF</span>
+            <span className="ml-1 text-transparent bg-clip-text bg-gradient-to-r from-[#9D4EDD] to-[#8A2BE2] font-extrabold tracking-tight py-1 pr-2">
+              PLAY
             </span>
           </h1>
-          <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-[#c8a646]/40 to-transparent mt-1.5 rounded-full" />
+          <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-[#c8a646]/40 to-transparent rounded-full" />
         </div>
 
         <div className="flex items-center space-x-3">

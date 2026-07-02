@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef } from 'react';
 import { Customer, Server, Plan, Renewal } from '../types';
 import { format, parseISO, addMonths, addHours, isAfter, differenceInDays } from 'date-fns';
 import { v4 as uuidv4 } from 'uuid';
-import { formatCurrency, isCustomerActive, formatWhatsappMessage, parseSafeNumber, parseRobustLocalTime, formatForDateTimeInput, formatForDateInput, ensureISO } from '../utils';
+import { formatCurrency, isCustomerActive, formatWhatsappMessage, parseSafeNumber, parseRobustLocalTime, formatForDateTimeInput, formatForDateInput, ensureISO, COUNTRIES } from '../utils';
 import { Modal } from '../components/Modal';
 import { RenewModal } from '../components/RenewModal';
 import { Plus, Search, Filter, Phone, RefreshCw, Edit2, Trash2, Calendar, CheckCircle, XCircle, MessageCircle, Users, Award, Star, UserX, ArrowRightLeft, ChevronDown, Check, Clock } from 'lucide-react';
@@ -58,6 +58,7 @@ export function Customers({
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
+    country: 'Brasil',
     serverId: servers.length > 0 ? servers[0].id : '',
     planId: plans.length > 0 ? plans[0].id : '',
     amountPaid: plans.length > 0 ? plans[0].defaultPrice.toString() : '0',
@@ -127,6 +128,7 @@ export function Customers({
     const data = {
       name: formData.name,
       phone: formData.phone,
+      country: formData.country,
       serverId: formData.serverId,
       planId: formData.planId,
       amountPaid: amount,
@@ -177,17 +179,17 @@ export function Customers({
   const openModal = (customer?: Customer, isActivatingTest: boolean = false) => {
     if (customer) {
       setEditingCustomer(customer);
+      const isTestPlan = plans.find(p => p.id === customer.planId)?.name?.toLowerCase().includes('teste');
       setFormData({
         name: customer.name,
         phone: customer.phone,
+        country: customer.country || 'Brasil',
         serverId: customer.serverId || (servers.length > 0 ? servers[0].id : ''),
         planId: customer.planId,
         amountPaid: customer.amountPaid.toString(),
         dueDate: isActivatingTest
           ? format(new Date(Date.now() + 4 * 60 * 60 * 1000), "yyyy-MM-dd'T'HH:mm")
-          : (customer.dueDate && (customer.dueDate.includes('T') || customer.dueDate.includes('Z'))
-            ? formatForDateTimeInput(customer.dueDate)
-            : formatForDateInput(customer.dueDate))
+          : (isTestPlan ? formatForDateTimeInput(customer.dueDate) : formatForDateInput(customer.dueDate))
       });
     } else {
       setEditingCustomer(null);
@@ -196,6 +198,7 @@ export function Customers({
       setFormData({
         name: '',
         phone: '',
+        country: 'Brasil',
         serverId: servers.length > 0 ? servers[0].id : '',
         planId: defaultPlan?.id || '',
         amountPaid: defaultPlan?.defaultPrice.toString() || '0',
@@ -687,7 +690,7 @@ export function Customers({
                     </span>
                   </div>
                   <div className="text-xs font-bold text-white bg-[#c8a646]/10 px-3 py-1 rounded-lg border border-[#c8a646]/20">
-                    {formatCurrency(customer.amountPaid)}
+                    {formatCurrency(customer.amountPaid, customer.country)}
                   </div>
                 </div>
 
@@ -899,18 +902,30 @@ export function Customers({
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">WhatsApp</label>
-            <div className="relative">
-              <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={18} />
-              <input
-                type="tel"
-                required
-                value={formData.phone}
-                onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="5511999999999"
-                className="w-full bg-[#0f0f0f] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white focus:outline-none focus:border-[#c8a646]"
-              />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">WhatsApp</label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={18} />
+                <input
+                  type="tel"
+                  required
+                  value={formData.phone}
+                  onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="5511999999999"
+                  className="w-full bg-[#0f0f0f] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white focus:outline-none focus:border-[#c8a646]"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">País</label>
+              <select
+                value={formData.country}
+                onChange={e => setFormData({ ...formData, country: e.target.value })}
+                className="w-full bg-[#0f0f0f] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#c8a646] appearance-none"
+              >
+                {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
             </div>
           </div>
 

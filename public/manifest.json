@@ -1,6 +1,6 @@
 {
-    "name": "ARF Canais Admin",
-    "short_name": "ARF Admin",
+    "name": "ARF PLAY Admin",
+    "short_name": "ARF PLAY",
     "description": "Gerenciamento de canais e assinaturas",
     "start_url": "/",
     "display": "standalone",

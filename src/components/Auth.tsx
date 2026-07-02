@@ -41,8 +41,11 @@ export function Auth() {
                         <div className="inline-flex p-4 rounded-3xl bg-gradient-to-br from-[#c8a646] to-[#e8c666] mb-6 shadow-xl shadow-[#c8a646]/20">
                             <LogIn className="text-[#0f0f0f]" size={32} />
                         </div>
-                        <h1 className="text-3xl font-black text-white uppercase tracking-tighter mb-2">
-                            ARF Canais
+                        <h1 className="text-3xl font-black italic tracking-tighter mb-2 flex justify-center items-center">
+                            <span className="text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.1)] py-1">ARF</span>
+                            <span className="ml-1 text-transparent bg-clip-text bg-gradient-to-r from-[#9D4EDD] to-[#8A2BE2] py-1 pr-2">
+                                PLAY
+                            </span>
                         </h1>
                         <p className="text-gray-400 text-sm font-medium uppercase tracking-[0.2em]">
                             Bem-vindo de volta
