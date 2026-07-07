@@ -336,14 +336,13 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
     const start = startOfMonth(new Date());
     const end = endOfMonth(new Date());
 
-    const activeCustomers = customers.filter(c => {
+    const exportCustomers = customers.filter(c => {
       const plan = plans.find(p => p.id === c.planId);
       const isTest = plan?.name?.toLowerCase().includes('teste');
-      const isActive = isCustomerActive(c.dueDate, isTest);
-      return isActive && !isTest;
+      return !isTest;
     });
 
-    activeCustomers.forEach(c => {
+    exportCustomers.forEach(c => {
       const server = servers.find(s => s.id === c.serverId);
       
       const hasPaidThisMonth = renewals.some(r => {
@@ -394,7 +393,7 @@ export function Storage({ customers, servers, plans, renewals, manualAdditions, 
       row.getCell(7).alignment = { horizontal: 'center' };
     });
 
-    const range = activeCustomers.length + 1; // Last data row
+    const range = exportCustomers.length + 1; // Last data row
     
     // Summary Row
     worksheet.addRow([]); // Spacer
