@@ -26,7 +26,7 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = 'max-w-sm' 
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        className={`bg-[#1a1a1a] rounded-3xl border border-white/10 p-6 w-full ${maxWidth} shadow-2xl relative z-10 max-h-[90vh] overflow-y-auto custom-scrollbar`}
+                        className={`bg-[#1a1a1a] rounded-3xl border border-white/10 p-6 w-full ${maxWidth} shadow-2xl relative z-10 max-h-[90vh] overflow-y-auto overflow-x-hidden custom-scrollbar`}
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="flex justify-between items-center mb-6">

@@ -642,7 +642,7 @@ export function Customers({
                       </div>
                       <div className="flex items-center space-x-1 bg-white/5 px-1.5 py-0.5 rounded border border-white/10" title="Telas/Conexões">
                         <Users size={10} className="text-gray-400" />
-                        <span className="text-[10px] font-bold text-gray-300">{customer.connections || 1}</span>
+                        <span className="text-[10px] font-bold text-gray-300">{customer.connections || 1} <span className="text-[9px] font-normal text-gray-500 uppercase tracking-widest ml-0.5">Telas</span></span>
                       </div>
                     </div>
                   </div>
