@@ -59,6 +59,7 @@ export function Customers({
     name: '',
     phone: '',
     country: 'Brasil',
+    connections: 1,
     serverId: servers.length > 0 ? servers[0].id : '',
     planId: plans.length > 0 ? plans[0].id : '',
     amountPaid: plans.length > 0 ? plans[0].defaultPrice.toString() : '0',
@@ -129,6 +130,7 @@ export function Customers({
       name: formData.name,
       phone: formData.phone,
       country: formData.country,
+      connections: formData.connections,
       serverId: formData.serverId,
       planId: formData.planId,
       amountPaid: amount,
@@ -184,6 +186,7 @@ export function Customers({
         name: customer.name,
         phone: customer.phone,
         country: customer.country || 'Brasil',
+        connections: customer.connections || 1,
         serverId: customer.serverId || (servers.length > 0 ? servers[0].id : ''),
         planId: customer.planId,
         amountPaid: customer.amountPaid.toString(),
@@ -199,6 +202,7 @@ export function Customers({
         name: '',
         phone: '',
         country: 'Brasil',
+        connections: 1,
         serverId: servers.length > 0 ? servers[0].id : '',
         planId: defaultPlan?.id || '',
         amountPaid: defaultPlan?.defaultPrice.toString() || '0',
@@ -689,6 +693,10 @@ export function Customers({
                       })()}
                     </span>
                   </div>
+                  <div className="flex items-center space-x-1 text-sm bg-white/5 px-2 py-1 rounded-lg border border-white/5">
+                    <Users size={12} className="text-gray-400" />
+                    <span className="text-xs font-bold text-gray-300">{customer.connections || 1} <span className="text-[9px] font-normal text-gray-500 uppercase tracking-widest ml-0.5">Telas</span></span>
+                  </div>
                   <div className="text-xs font-bold text-white bg-[#c8a646]/10 px-3 py-1 rounded-lg border border-[#c8a646]/20">
                     {formatCurrency(customer.amountPaid, customer.country)}
                   </div>
@@ -902,7 +910,7 @@ export function Customers({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">WhatsApp</label>
               <div className="relative">
@@ -916,6 +924,17 @@ export function Customers({
                   className="w-full bg-[#0f0f0f] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white focus:outline-none focus:border-[#c8a646]"
                 />
               </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Conexões</label>
+              <input
+                type="number"
+                min="1"
+                required
+                value={formData.connections}
+                onChange={e => setFormData({ ...formData, connections: parseInt(e.target.value, 10) || 1 })}
+                className="w-full bg-[#0f0f0f] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#c8a646]"
+              />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">País</label>
