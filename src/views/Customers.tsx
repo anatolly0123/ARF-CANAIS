@@ -636,8 +636,14 @@ export function Customers({
                     <h3 className="text-lg font-bold text-white tracking-tight leading-snug break-words">
                       {customer.name}
                     </h3>
-                    <div className="text-xs text-[#c8a646] uppercase tracking-wider mt-1 opacity-85 font-medium">
-                      {server?.name} • {plan?.name}
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="text-xs text-[#c8a646] uppercase tracking-wider opacity-85 font-medium">
+                        {server?.name} • {plan?.name}
+                      </div>
+                      <div className="flex items-center space-x-1 bg-white/5 px-1.5 py-0.5 rounded border border-white/10" title="Telas/Conexões">
+                        <Users size={10} className="text-gray-400" />
+                        <span className="text-[10px] font-bold text-gray-300">{customer.connections || 1}</span>
+                      </div>
                     </div>
                   </div>
 
@@ -692,10 +698,6 @@ export function Customers({
                         } catch { return 'Erro'; }
                       })()}
                     </span>
-                  </div>
-                  <div className="flex items-center space-x-1 text-sm bg-white/5 px-2 py-1 rounded-lg border border-white/5">
-                    <Users size={12} className="text-gray-400" />
-                    <span className="text-xs font-bold text-gray-300">{customer.connections || 1} <span className="text-[9px] font-normal text-gray-500 uppercase tracking-widest ml-0.5">Telas</span></span>
                   </div>
                   <div className="text-xs font-bold text-white bg-[#c8a646]/10 px-3 py-1 rounded-lg border border-[#c8a646]/20">
                     {formatCurrency(customer.amountPaid, customer.country)}
@@ -931,8 +933,11 @@ export function Customers({
                 type="number"
                 min="1"
                 required
-                value={formData.connections}
-                onChange={e => setFormData({ ...formData, connections: parseInt(e.target.value, 10) || 1 })}
+                value={formData.connections === 0 ? '' : formData.connections}
+                onChange={e => {
+                  const val = e.target.value;
+                  setFormData({ ...formData, connections: val === '' ? '' as any : parseInt(val, 10) });
+                }}
                 className="w-full bg-[#0f0f0f] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#c8a646]"
               />
             </div>
