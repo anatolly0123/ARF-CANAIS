@@ -319,6 +319,12 @@ export function Customers({
         if (value === 'renovado' && !hasRenewal) return false;
         if (value === 'naorenovado' && (hasRenewal || !dueInCurrentMonth)) return false;
       }
+      if (type === 'connections') {
+        const conns = c.connections || 1;
+        if (value === '1' && conns !== 1) return false;
+        if (value === '2' && conns !== 2) return false;
+        if (value === '3+' && conns < 3) return false;
+      }
 
       return true;
     }).sort((a, b) => {
@@ -447,6 +453,29 @@ export function Customers({
                               key={value}
                               onClick={() => { setFilter(`renewal:${value}`); setIsFilterOpen(false); }}
                               className={`px-4 py-3 rounded-xl text-xs font-bold transition-all border ${filter === `renewal:${value}` ? 'bg-[#c8a646] text-[#0f0f0f] border-[#c8a646]' : 'bg-[#0f0f0f] text-gray-400 border-white/5 hover:border-white/20'}`}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Connections Group */}
+                      <div className="px-6 py-2 mt-2">
+                        <div className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em] mb-2 flex items-center space-x-2">
+                          <Users size={12} />
+                          <span>Telas</span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          {[
+                            { value: '1', label: '1 Tela' },
+                            { value: '2', label: '2 Telas' },
+                            { value: '3+', label: '3+ Telas' }
+                          ].map(({ value, label }) => (
+                            <button
+                              key={value}
+                              onClick={() => { setFilter(`connections:${value}`); setIsFilterOpen(false); }}
+                              className={`px-2 py-3 rounded-xl text-[10px] font-bold transition-all border ${filter === `connections:${value}` ? 'bg-[#c8a646] text-[#0f0f0f] border-[#c8a646]' : 'bg-[#0f0f0f] text-gray-400 border-white/5 hover:border-white/20'}`}
                             >
                               {label}
                             </button>
