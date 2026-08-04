@@ -96,9 +96,8 @@ export function Dashboard({ customers, servers, plans, whatsappMessage, updateCu
           if (isCurrentMonth(d)) {
             const planId = r.planId || (r as any).plan_id;
             const plan = plansMap.get(planId);
-            const months = plan && plan.months > 0 ? plan.months : 1;
-            const dividedAmount = amount / months;
-            const dividedCost = cost / months;
+            const dividedAmount = amount;
+            const dividedCost = cost;
 
             currencyTotals[currency].gross += dividedAmount;
             currencyTotals[currency].cost += dividedCost;
