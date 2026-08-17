@@ -229,6 +229,7 @@ export function useStore(user: User | null) {
           if (settingsData.renewal_message || (settingsData as any).renewalMessage) setRenewalMessage(settingsData.renewal_message || (settingsData as any).renewalMessage);
           if (settingsData.overdue_message || (settingsData as any).overdueMessage) setOverdueMessage(settingsData.overdue_message || (settingsData as any).overdueMessage);
           if (settingsData.today_message || (settingsData as any).todayMessage) setTodayMessage(settingsData.today_message || (settingsData as any).todayMessage);
+          if (settingsData.test_message || (settingsData as any).testMessage) setTestMessage(settingsData.test_message || (settingsData as any).testMessage);
           if (settingsData.app_icon || (settingsData as any).appIcon) setAppIcon(settingsData.app_icon || (settingsData as any).appIcon);
           if (settingsData.app_cover || (settingsData as any).appCover) setAppCover(settingsData.app_cover || (settingsData as any).appCover);
         }
@@ -549,30 +550,34 @@ export function useStore(user: User | null) {
   useEffect(() => {
     if (!user || loading) return;
     const syncSettings = async () => {
-      const { error } = await supabase.from('settings').upsert({
+      const payload = {
         user_id: user.id,
         whatsapp_message: whatsappMessage,
         renewal_message: renewalMessage,
         overdue_message: overdueMessage,
         today_message: todayMessage,
+        test_message: testMessage,
         app_icon: appIcon,
         app_cover: appCover
-      }, { onConflict: 'user_id' });
+      };
 
-      if (error && (error.code === '42703' || error.message.includes('today_message'))) {
-        await supabase.from('settings').upsert({
+      const { error } = await supabase.from('settings').upsert(payload, { onConflict: 'user_id' });
+
+      if (error && error.code === '42703') {
+        const fallbackPayload = {
           user_id: user.id,
           whatsapp_message: whatsappMessage,
           renewal_message: renewalMessage,
           overdue_message: overdueMessage,
           app_icon: appIcon,
           app_cover: appCover
-        }, { onConflict: 'user_id' });
+        };
+        await supabase.from('settings').upsert(fallbackPayload, { onConflict: 'user_id' });
       }
     };
     const timer = setTimeout(syncSettings, 1000);
     return () => clearTimeout(timer);
-  }, [whatsappMessage, renewalMessage, overdueMessage, todayMessage, appIcon, appCover, user, loading]);
+  }, [whatsappMessage, renewalMessage, overdueMessage, todayMessage, testMessage, appIcon, appCover, user, loading]);
 
 
 
@@ -695,18 +700,21 @@ export function useStore(user: User | null) {
 
       // 1. Sync Settings
       console.log('Syncing settings...');
-      const { error: settingsError } = await supabase.from('settings').upsert({
+      const settingsPayload = {
         user_id: user.id,
         whatsapp_message: dataToSync.settings.whatsappMessage,
         renewal_message: dataToSync.settings.renewalMessage,
         overdue_message: dataToSync.settings.overdueMessage,
         today_message: dataToSync.settings.todayMessage,
+        test_message: dataToSync.settings.testMessage,
         app_icon: dataToSync.settings.appIcon,
         app_cover: dataToSync.settings.appCover
-      }, { onConflict: 'user_id' });
+      };
+
+      const { error: settingsError } = await supabase.from('settings').upsert(settingsPayload, { onConflict: 'user_id' });
 
       if (settingsError) {
-        if (settingsError.code === '42703' || settingsError.message.includes('today_message')) {
+        if (settingsError.code === '42703') {
           const { error: retryError } = await supabase.from('settings').upsert({
             user_id: user.id,
             whatsapp_message: dataToSync.settings.whatsappMessage,
