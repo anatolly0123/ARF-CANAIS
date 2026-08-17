@@ -91,7 +91,13 @@ export function useStore(user: User | null) {
 
   const [whatsappMessage, setWhatsappMessage] = useState<string>(() => {
     const saved = localStorage.getItem('arf_message_v2');
-    const defaultMsg = 'Olá *{nome}*! 👋\n\nPassando para lembrar que seu acesso vence em *{dias}* (dia *{vencimento}*).\n\nO valor para renovação é de *{valor}*.\n\nPodemos confirmar sua renovação para garantir que você não fique sem sinal? 😊';
+    const defaultMsg = 'Olá *{nome}*! 👋\n\nPassando para lembrar que seu acesso vence em *{dias}* (dia *{vencimento}*).\n\nO valor para renovação é de *{valor}*.';
+    
+    // Force update if the saved message still contains the old text they want removed
+    if (saved && saved.includes('Podemos confirmar sua renovação para garantir')) {
+      return defaultMsg;
+    }
+    
     return saved || defaultMsg;
   });
 
@@ -225,7 +231,13 @@ export function useStore(user: User | null) {
           localStorage.setItem('arf_plans', JSON.stringify(mappedPlans));
         }
         if (settingsData) {
-          if (settingsData.whatsapp_message || (settingsData as any).whatsappMessage) setWhatsappMessage(settingsData.whatsapp_message || (settingsData as any).whatsappMessage);
+          if (settingsData.whatsapp_message || (settingsData as any).whatsappMessage) {
+            let msg = settingsData.whatsapp_message || (settingsData as any).whatsappMessage;
+            if (msg.includes('Podemos confirmar sua renovação para garantir')) {
+              msg = 'Olá *{nome}*! 👋\n\nPassando para lembrar que seu acesso vence em *{dias}* (dia *{vencimento}*).\n\nO valor para renovação é de *{valor}*.';
+            }
+            setWhatsappMessage(msg);
+          }
           if (settingsData.renewal_message || (settingsData as any).renewalMessage) setRenewalMessage(settingsData.renewal_message || (settingsData as any).renewalMessage);
           if (settingsData.overdue_message || (settingsData as any).overdueMessage) setOverdueMessage(settingsData.overdue_message || (settingsData as any).overdueMessage);
           if (settingsData.today_message || (settingsData as any).todayMessage) setTodayMessage(settingsData.today_message || (settingsData as any).todayMessage);
