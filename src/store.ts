@@ -568,9 +568,7 @@ export function useStore(user: User | null) {
           user_id: user.id,
           whatsapp_message: whatsappMessage,
           renewal_message: renewalMessage,
-          overdue_message: overdueMessage,
-          app_icon: appIcon,
-          app_cover: appCover
+          overdue_message: overdueMessage
         };
         await supabase.from('settings').upsert(fallbackPayload, { onConflict: 'user_id' });
       }
@@ -719,9 +717,7 @@ export function useStore(user: User | null) {
             user_id: user.id,
             whatsapp_message: dataToSync.settings.whatsappMessage,
             renewal_message: dataToSync.settings.renewalMessage,
-            overdue_message: dataToSync.settings.overdueMessage,
-            app_icon: dataToSync.settings.appIcon,
-            app_cover: dataToSync.settings.appCover
+            overdue_message: dataToSync.settings.overdueMessage
           }, { onConflict: 'user_id' });
           if (retryError) throw retryError;
         } else {
